@@ -1,0 +1,16 @@
+<?php
+
+namespace {{Namespace}}\Domain\Entities;
+
+final class {{Class}}
+{
+    public function __construct(
+        private readonly string $id,
+    ) {
+    }
+
+    public function id(): string
+    {
+        return $this->id;
+    }
+}

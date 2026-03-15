@@ -1,0 +1,14 @@
+<?php
+
+namespace {{Namespace}}\Domain\Repositories;
+
+use {{Namespace}}\Domain\Entities\{{Class}};
+
+interface {{Class}}Repository
+{
+    public function find(string $id): ?{{Class}};
+
+    public function save({{Class}} $entity): void;
+
+    public function delete(string $id): void;
+}

@@ -1,0 +1,12 @@
+<?php
+
+namespace {{Namespace}}\Domain\Specifications;
+
+class {{Class}}Specification
+{
+    public function isSatisfiedBy(mixed $candidate): bool
+    {
+        // TODO: Implement specification logic
+        return true;
+    }
+}

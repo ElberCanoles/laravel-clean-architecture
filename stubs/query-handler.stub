@@ -1,0 +1,15 @@
+<?php
+
+namespace {{Namespace}}\Application\Queries\{{Class}};
+
+class {{Class}}Handler
+{
+    public function __construct()
+    {
+    }
+
+    public function handle({{Class}}Query $query): {{Class}}ReadModel
+    {
+        // TODO: Implement handler logic
+    }
+}

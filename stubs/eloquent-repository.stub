@@ -1,0 +1,25 @@
+<?php
+
+namespace {{Namespace}}\Infrastructure;
+
+use {{Namespace}}\Domain\Entities\{{Class}};
+use {{Namespace}}\Domain\Repositories\{{Class}}Repository;
+
+class {{Class}}EloquentRepository implements {{Class}}Repository
+{
+    public function find(string $id): ?{{Class}}
+    {
+        // TODO: Implement find
+        return null;
+    }
+
+    public function save({{Class}} $entity): void
+    {
+        // TODO: Implement save
+    }
+
+    public function delete(string $id): void
+    {
+        // TODO: Implement delete
+    }
+}

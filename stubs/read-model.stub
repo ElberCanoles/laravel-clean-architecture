@@ -1,0 +1,11 @@
+<?php
+
+namespace {{Namespace}}\Application\ReadModels;
+
+readonly class {{Class}}ReadModel
+{
+    public function __construct(
+        public string $id,
+    ) {
+    }
+}

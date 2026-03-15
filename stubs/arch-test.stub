@@ -1,0 +1,29 @@
+<?php
+
+use function Pest\Arch\expect;
+
+test('{{Context}} domain does not depend on infrastructure', function () {
+    expect('{{Namespace}}\Domain')
+        ->toUseNothing()
+        ->ignoring('{{Namespace}}\Domain');
+});
+
+test('{{Context}} domain does not depend on application layer', function () {
+    expect('{{Namespace}}\Domain')
+        ->not->toUse('{{Namespace}}\Application');
+});
+
+test('{{Context}} entities are final classes', function () {
+    expect('{{Namespace}}\Domain\Entities')
+        ->toBeFinal();
+});
+
+test('{{Context}} repositories in domain are interfaces', function () {
+    expect('{{Namespace}}\Domain\Repositories')
+        ->toBeInterfaces();
+});
+
+test('{{Context}} value objects are readonly', function () {
+    expect('{{Namespace}}\Domain\ValueObjects')
+        ->toBeReadonly();
+});

@@ -1,0 +1,52 @@
+{
+  "name": "elber/laravel-clean-architecture",
+  "description": "DDD + Clean Architecture scaffolding for Laravel",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Elber Canoles",
+      "role": "Developer"
+    }
+  ],
+  "keywords": ["laravel", "ddd", "clean-architecture", "cqrs", "bounded-context"],
+  "autoload": {
+    "psr-4": {
+      "CleanArchitecture\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "CleanArchitecture\\Tests\\": "tests/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "CleanArchitecture\\CleanArchitectureServiceProvider"
+      ]
+    }
+  },
+  "require": {
+    "php": "^8.2",
+    "illuminate/support": "^11.0|^12.0"
+  },
+  "require-dev": {
+    "orchestra/testbench": "^9.0|^10.0",
+    "pestphp/pest": "^3.0",
+    "pestphp/pest-plugin-arch": "^3.0",
+    "phpstan/phpstan": "^2.0",
+    "larastan/larastan": "^3.0"
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true,
+  "scripts": {
+    "test": "pest",
+    "analyse": "phpstan analyse"
+  },
+  "config": {
+    "allow-plugins": {
+      "pestphp/pest-plugin": true
+    }
+  }
+}
