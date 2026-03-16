@@ -673,7 +673,7 @@ src/Billing/
     └── Routes/
         └── api.php                        # auto-loaded by ServiceProvider
 
-tests/Architecture/
+tests/Feature/Architecture/
 └── BillingArchTest.php
 ```
 
@@ -800,7 +800,7 @@ php artisan clean:arch-test {context} [--force]
 
 ```bash
 php artisan clean:arch-test Billing
-# Output: tests/Architecture/BillingArchTest.php
+# Output: tests/Feature/Architecture/BillingArchTest.php
 ```
 
 ### `clean:controller`
@@ -901,7 +901,7 @@ return [
     | The directory where architecture tests are generated, relative to base_path().
     |
     */
-    'arch_tests_path' => 'tests/Architecture',
+    'arch_tests_path' => 'tests/Feature/Architecture',
 ];
 ```
 
@@ -911,7 +911,7 @@ return [
 | `namespace_prefix` | `App` | Root namespace for contexts (`App\Billing`, `App\Inventory`, etc.) |
 | `auto_discover` | `true` | Auto-register `{Context}ServiceProvider` from each context |
 | `auto_load` | `true` | Auto-register PSR-4 autoloading for all `src/` contexts |
-| `arch_tests_path` | `tests/Architecture` | Where generated architecture tests are stored |
+| `arch_tests_path` | `tests/Feature/Architecture` | Where generated architecture tests are stored |
 
 ---
 
@@ -958,7 +958,7 @@ Generated tests for each context:
 Run them with:
 
 ```bash
-vendor/bin/pest tests/Architecture/
+vendor/bin/pest tests/Feature/Architecture/
 ```
 
 These tests integrate into your CI pipeline and **fail the build** if anyone introduces a dependency rule violation.

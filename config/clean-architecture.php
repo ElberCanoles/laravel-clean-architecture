@@ -52,5 +52,5 @@ return [
     | The directory where architecture tests are generated, relative to base_path().
     |
     */
-    'arch_tests_path' => 'tests/Architecture',
+    'arch_tests_path' => 'tests/Feature/Architecture',
 ];
