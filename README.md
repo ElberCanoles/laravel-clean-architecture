@@ -422,11 +422,12 @@ class InvoiceEloquentRepository implements InvoiceRepository
 
 #### Context ServiceProvider
 
-Each bounded context has its own ServiceProvider where you **bind interfaces to implementations**, register event listeners, and configure routes.
+Each bounded context has its own ServiceProvider where you **bind interfaces to implementations** and register event listeners. Routes are **automatically loaded** from `Presentation/Routes/api.php`.
 
 ```php
 namespace App\Billing\Infrastructure;
 
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
 class BillingServiceProvider extends ServiceProvider
@@ -439,12 +440,21 @@ class BillingServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // Register routes, event listeners, etc.
+        $this->loadRoutes();
+    }
+
+    protected function loadRoutes(): void
+    {
+        $routesPath = __DIR__ . '/../Presentation/Routes/api.php';
+
+        if (file_exists($routesPath)) {
+            Route::middleware('api')->group($routesPath);
+        }
     }
 }
 ```
 
-This provider is **auto-discovered** by the package — no manual registration needed.
+This provider is **auto-discovered** by the package — no manual registration needed. The route file is loaded with the `api` middleware group automatically.
 
 ---
 
@@ -456,10 +466,94 @@ This provider is **auto-discovered** by the package — no manual registration n
 src/{Context}/Presentation/
 ├── Controllers/
 ├── Requests/
-└── Resources/
+├── Resources/
+└── Routes/
+    └── api.php
 ```
 
-This layer is intentionally left empty by the generators — its structure varies per project.
+#### Controllers
+
+Handle HTTP requests and delegate to Application layer commands/queries.
+
+```php
+namespace App\Billing\Presentation\Controllers;
+
+use Illuminate\Http\JsonResponse;
+use Illuminate\Routing\Controller;
+
+class InvoiceController extends Controller
+{
+    public function index(): JsonResponse
+    {
+        // Dispatch query to Application layer
+        return response()->json([]);
+    }
+
+    public function store(/* StoreInvoiceRequest $request */): JsonResponse
+    {
+        // Dispatch command to Application layer
+        return response()->json([], 201);
+    }
+}
+```
+
+#### Form Requests
+
+Validate incoming HTTP data before it reaches the Application layer.
+
+```php
+namespace App\Billing\Presentation\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class StoreInvoiceRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function rules(): array
+    {
+        return [
+            // Validation rules
+        ];
+    }
+}
+```
+
+#### API Resources
+
+Transform domain data into JSON responses.
+
+```php
+namespace App\Billing\Presentation\Resources;
+
+use Illuminate\Http\Resources\Json\JsonResource;
+
+class InvoiceResource extends JsonResource
+{
+    public function toArray($request): array
+    {
+        return parent::toArray($request);
+    }
+}
+```
+
+#### Routes
+
+Each context has its own route file at `Presentation/Routes/api.php`, automatically loaded by the context's ServiceProvider with the `api` middleware. The route prefix is derived from the context name in kebab-case.
+
+```php
+// src/Billing/Presentation/Routes/api.php
+use Illuminate\Support\Facades\Route;
+
+Route::prefix('billing')->group(function () {
+    // Define your context routes here
+});
+```
+
+For a multi-word context like `OrderManagement`, the prefix becomes `order-management`.
 
 ---
 
@@ -519,7 +613,7 @@ php artisan vendor:publish --tag=clean-architecture-stubs
 Create a complete bounded context in seconds:
 
 ```bash
-# 1. Create the Billing context (folders + ServiceProvider + arch tests)
+# 1. Create the Billing context (folders + ServiceProvider + routes + arch tests)
 php artisan clean:context Billing
 
 # 2. Generate domain objects
@@ -534,6 +628,11 @@ php artisan clean:query Billing ListInvoices
 
 # 4. Generate a standalone read model
 php artisan clean:read-model Billing InvoiceSummary
+
+# 5. Generate presentation layer
+php artisan clean:controller Billing Invoice
+php artisan clean:request Billing StoreInvoice
+php artisan clean:resource Billing Invoice
 ```
 
 Result:
@@ -565,6 +664,14 @@ src/Billing/
 │   ├── BillingServiceProvider.php
 │   └── InvoiceEloquentRepository.php      # implements interface
 └── Presentation/
+    ├── Controllers/
+    │   └── InvoiceController.php
+    ├── Requests/
+    │   └── StoreInvoiceRequest.php
+    ├── Resources/
+    │   └── InvoiceResource.php
+    └── Routes/
+        └── api.php                        # auto-loaded by ServiceProvider
 
 tests/Architecture/
 └── BillingArchTest.php
@@ -578,7 +685,7 @@ All commands support the `--force` flag to overwrite existing files.
 
 ### `clean:context`
 
-Creates a full bounded context with folder structure, ServiceProvider, and architecture tests.
+Creates a full bounded context with folder structure, ServiceProvider, routes, and architecture tests.
 
 ```bash
 php artisan clean:context {name} [--force]
@@ -694,6 +801,45 @@ php artisan clean:arch-test {context} [--force]
 ```bash
 php artisan clean:arch-test Billing
 # Output: tests/Architecture/BillingArchTest.php
+```
+
+### `clean:controller`
+
+Creates a controller in the Presentation layer with CRUD methods.
+
+```bash
+php artisan clean:controller {context} {name} [--force]
+```
+
+```bash
+php artisan clean:controller Billing Invoice
+# Output: src/Billing/Presentation/Controllers/InvoiceController.php
+```
+
+### `clean:request`
+
+Creates a form request in the Presentation layer.
+
+```bash
+php artisan clean:request {context} {name} [--force]
+```
+
+```bash
+php artisan clean:request Billing StoreInvoice
+# Output: src/Billing/Presentation/Requests/StoreInvoiceRequest.php
+```
+
+### `clean:resource`
+
+Creates an API resource (JsonResource) in the Presentation layer.
+
+```bash
+php artisan clean:resource {context} {name} [--force]
+```
+
+```bash
+php artisan clean:resource Billing Invoice
+# Output: src/Billing/Presentation/Resources/InvoiceResource.php
 ```
 
 ---
@@ -845,6 +991,10 @@ Available stubs:
 | `query-handler.stub` | `clean:query` | `{{Namespace}}`, `{{Class}}` |
 | `query-read-model.stub` | `clean:query` | `{{Namespace}}`, `{{Class}}` |
 | `service-provider.stub` | `clean:context` | `{{Namespace}}`, `{{Context}}` |
+| `routes.stub` | `clean:context` | `{{prefix}}` |
+| `controller.stub` | `clean:controller` | `{{Namespace}}`, `{{Class}}` |
+| `request.stub` | `clean:request` | `{{Namespace}}`, `{{Class}}` |
+| `resource.stub` | `clean:resource` | `{{Namespace}}`, `{{Class}}` |
 | `arch-test.stub` | `clean:arch-test` | `{{Namespace}}`, `{{Context}}` |
 
 ---
