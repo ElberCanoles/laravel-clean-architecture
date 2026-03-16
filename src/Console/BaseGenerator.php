@@ -15,7 +15,18 @@ abstract class BaseGenerator extends Command
             return File::get($customPath);
         }
 
-        return File::get(__DIR__ . "/../../stubs/$name.stub");
+        $packagePath = __DIR__ . "/../../stubs/$name.stub";
+
+        if (! File::exists($packagePath)) {
+            throw new \RuntimeException(
+                "Stub '$name.stub' not found. Looked in:\n"
+                . "  - $customPath\n"
+                . "  - $packagePath\n"
+                . 'Run: php artisan vendor:publish --tag=clean-architecture-stubs'
+            );
+        }
+
+        return File::get($packagePath);
     }
 
     protected function getNamespacePrefix(): string
@@ -26,6 +37,18 @@ abstract class BaseGenerator extends Command
     protected function buildNamespace(string $context): string
     {
         return $this->getNamespacePrefix() . "\\$context";
+    }
+
+    /**
+     * Validate that a context or class name is a valid PHP identifier (PascalCase).
+     */
+    protected function validateName(string $value, string $label): void
+    {
+        if (! preg_match('/^[A-Z][a-zA-Z0-9]*$/', $value)) {
+            throw new \InvalidArgumentException(
+                "Invalid $label: '$value'. Must start with an uppercase letter and contain only alphanumeric characters (e.g. 'Billing', 'Invoice')."
+            );
+        }
     }
 
     protected function writeFile(string $filePath, string $content): bool

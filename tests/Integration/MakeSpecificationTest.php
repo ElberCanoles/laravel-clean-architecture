@@ -23,3 +23,10 @@ test('warns when specification file exists without --force', function () {
     $this->artisan('clean:specification', ['context' => 'Billing', 'name' => 'InvoiceOverdue'])
         ->expectsOutputToContain('File already exists');
 });
+
+test('overwrites specification with --force', function () {
+    $this->artisan('clean:specification', ['context' => 'Billing', 'name' => 'InvoiceOverdue']);
+    $this->artisan('clean:specification', ['context' => 'Billing', 'name' => 'InvoiceOverdue', '--force' => true])
+        ->assertSuccessful()
+        ->expectsOutputToContain('Specification created');
+});

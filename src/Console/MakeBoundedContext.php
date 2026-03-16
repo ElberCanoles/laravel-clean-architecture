@@ -12,6 +12,9 @@ class MakeBoundedContext extends BaseGenerator
     public function handle(): void
     {
         $name = $this->argument('name');
+
+        $this->validateName($name, 'context');
+
         $base = base_path(config('clean-architecture.contexts_path') . "/$name");
         $namespace = $this->buildNamespace($name);
 

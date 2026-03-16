@@ -13,8 +13,16 @@ class MakeCommand extends BaseGenerator
     {
         $context = $this->argument('context');
         $name = $this->argument('name');
-        $namespace = $this->buildNamespace($context);
         $entity = $this->option('entity');
+
+        $this->validateName($context, 'context');
+        $this->validateName($name, 'name');
+
+        if ($entity) {
+            $this->validateName($entity, 'entity');
+        }
+
+        $namespace = $this->buildNamespace($context);
 
         $base = base_path(config('clean-architecture.contexts_path') . "/$context/Application/Commands/$name");
         File::makeDirectory($base, 0755, true, true);

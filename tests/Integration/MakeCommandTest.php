@@ -47,3 +47,11 @@ test('warns when command files exist without --force', function () {
     $this->artisan('clean:command', ['context' => 'Billing', 'name' => 'PayInvoice'])
         ->expectsOutputToContain('File already exists');
 });
+
+test('rejects invalid entity name', function () {
+    $this->artisan('clean:command', [
+        'context' => 'Billing',
+        'name' => 'PayInvoice',
+        '--entity' => 'invalid-entity',
+    ]);
+})->throws(\InvalidArgumentException::class);

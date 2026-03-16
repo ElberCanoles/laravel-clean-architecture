@@ -29,3 +29,19 @@ test('overwrites entity file with --force', function () {
         ->assertSuccessful()
         ->expectsOutputToContain('Entity created');
 });
+
+test('rejects lowercase context name', function () {
+    $this->artisan('clean:entity', ['context' => 'billing', 'name' => 'Invoice']);
+})->throws(\InvalidArgumentException::class);
+
+test('rejects context name with special characters', function () {
+    $this->artisan('clean:entity', ['context' => 'My-Context', 'name' => 'Invoice']);
+})->throws(\InvalidArgumentException::class);
+
+test('rejects name starting with number', function () {
+    $this->artisan('clean:entity', ['context' => 'Billing', 'name' => '123Entity']);
+})->throws(\InvalidArgumentException::class);
+
+test('rejects name with spaces', function () {
+    $this->artisan('clean:entity', ['context' => 'Billing', 'name' => 'My Entity']);
+})->throws(\InvalidArgumentException::class);

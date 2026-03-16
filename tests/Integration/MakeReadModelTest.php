@@ -19,3 +19,10 @@ test('warns when read model file exists without --force', function () {
     $this->artisan('clean:read-model', ['context' => 'Billing', 'name' => 'InvoiceSummary'])
         ->expectsOutputToContain('File already exists');
 });
+
+test('overwrites read model with --force', function () {
+    $this->artisan('clean:read-model', ['context' => 'Billing', 'name' => 'InvoiceSummary']);
+    $this->artisan('clean:read-model', ['context' => 'Billing', 'name' => 'InvoiceSummary', '--force' => true])
+        ->assertSuccessful()
+        ->expectsOutputToContain('Read model created');
+});

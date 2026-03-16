@@ -12,6 +12,9 @@ class MakeArchTest extends BaseGenerator
     public function handle(): void
     {
         $context = $this->argument('context');
+
+        $this->validateName($context, 'context');
+
         $namespace = $this->buildNamespace($context);
 
         $path = base_path(config('clean-architecture.arch_tests_path', 'tests/Feature/Architecture'));

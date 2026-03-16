@@ -11,6 +11,10 @@ class MakeScaffold extends BaseGenerator
     {
         $context = $this->argument('context');
         $name = $this->argument('name');
+
+        $this->validateName($context, 'context');
+        $this->validateName($name, 'name');
+
         $force = $this->option('force');
 
         $commands = [

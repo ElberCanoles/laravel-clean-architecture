@@ -77,8 +77,14 @@ class CleanArchitectureServiceProvider extends ServiceProvider
         $providers = ModuleLoader::load();
 
         foreach ($providers as $provider) {
-            if (class_exists($provider)) {
+            if (! class_exists($provider)) {
+                continue;
+            }
+
+            try {
                 $this->app->register($provider);
+            } catch (\Throwable $e) {
+                report($e);
             }
         }
     }

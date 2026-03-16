@@ -13,6 +13,10 @@ class MakeTest extends BaseGenerator
     {
         $context = $this->argument('context');
         $name = $this->argument('name');
+
+        $this->validateName($context, 'context');
+        $this->validateName($name, 'name');
+
         $namespace = $this->buildNamespace($context);
 
         $path = base_path(config('clean-architecture.unit_tests_path', 'tests/Unit/Domain') . "/$context");

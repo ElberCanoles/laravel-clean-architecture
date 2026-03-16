@@ -90,3 +90,7 @@ test('overwrites files with --force', function () {
         ->assertSuccessful()
         ->expectsOutputToContain('ServiceProvider created');
 });
+
+test('rejects invalid context name', function () {
+    $this->artisan('clean:context', ['name' => 'my-context']);
+})->throws(\InvalidArgumentException::class);

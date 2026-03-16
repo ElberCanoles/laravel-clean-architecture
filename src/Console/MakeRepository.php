@@ -13,6 +13,10 @@ class MakeRepository extends BaseGenerator
     {
         $context = $this->argument('context');
         $name = $this->argument('name');
+
+        $this->validateName($context, 'context');
+        $this->validateName($name, 'name');
+
         $namespace = $this->buildNamespace($context);
 
         $this->createWriteInterface($context, $name, $namespace);

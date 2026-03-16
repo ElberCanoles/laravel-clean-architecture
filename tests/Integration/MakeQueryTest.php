@@ -52,3 +52,11 @@ test('warns when query files exist without --force', function () {
     $this->artisan('clean:query', ['context' => 'Billing', 'name' => 'ListInvoices'])
         ->expectsOutputToContain('File already exists');
 });
+
+test('rejects invalid entity name', function () {
+    $this->artisan('clean:query', [
+        'context' => 'Billing',
+        'name' => 'ListInvoices',
+        '--entity' => 'bad entity',
+    ]);
+})->throws(\InvalidArgumentException::class);

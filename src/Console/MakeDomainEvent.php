@@ -13,6 +13,10 @@ class MakeDomainEvent extends BaseGenerator
     {
         $context = $this->argument('context');
         $name = $this->argument('name');
+
+        $this->validateName($context, 'context');
+        $this->validateName($name, 'name');
+
         $namespace = $this->buildNamespace($context);
 
         $path = base_path(config('clean-architecture.contexts_path') . "/$context/Domain/Events");
