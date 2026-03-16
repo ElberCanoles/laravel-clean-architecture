@@ -2,38 +2,49 @@
 
 namespace {{Namespace}}\Presentation\Controllers;
 
+use {{Namespace}}\Presentation\Requests\Store{{Class}}Request;
+use {{Namespace}}\Presentation\Resources\{{Class}}Resource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 
 class {{Class}}Controller extends Controller
 {
+    public function __construct(
+        // TODO: Inject command/query handlers
+    ) {
+    }
+
     public function index(): JsonResponse
     {
-        // TODO: Implement index
+        // $readModels = $this->listHandler->handle(new List{{Class}}sQuery());
+        // return {{Class}}Resource::collection($readModels);
         return response()->json([]);
     }
 
     public function show(string $id): JsonResponse
     {
-        // TODO: Implement show
+        // $readModel = $this->showHandler->handle(new Show{{Class}}Query($id));
+        // return new {{Class}}Resource($readModel);
         return response()->json([]);
     }
 
-    public function store(/* {{Class}}Request $request */): JsonResponse
+    public function store(Store{{Class}}Request $request): JsonResponse
     {
-        // TODO: Implement store
+        // $sanitized = {{Class}}Sanitizer::sanitize($request->validated());
+        // $this->createHandler->handle(new Create{{Class}}Command(...$sanitized));
         return response()->json([], 201);
     }
 
-    public function update(/* {{Class}}Request $request, */ string $id): JsonResponse
+    public function update(Store{{Class}}Request $request, string $id): JsonResponse
     {
-        // TODO: Implement update
+        // $sanitized = {{Class}}Sanitizer::sanitize($request->validated());
+        // $this->updateHandler->handle(new Update{{Class}}Command($id, ...$sanitized));
         return response()->json([]);
     }
 
     public function destroy(string $id): JsonResponse
     {
-        // TODO: Implement destroy
+        // $this->deleteHandler->handle(new Delete{{Class}}Command($id));
         return response()->json([], 204);
     }
 }

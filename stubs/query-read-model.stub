@@ -6,6 +6,7 @@ readonly class {{Class}}ReadModel
 {
     public function __construct(
         public string $id,
+        // TODO: Add query-specific fields
     ) {
     }
 }

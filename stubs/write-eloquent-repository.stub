@@ -1,0 +1,20 @@
+<?php
+
+namespace {{Namespace}}\Infrastructure;
+
+use {{Namespace}}\Domain\Entities\{{Class}};
+use {{Namespace}}\Domain\Repositories\{{Class}}WriteRepository;
+
+class {{Class}}WriteEloquentRepository implements {{Class}}WriteRepository
+{
+    public function save({{Class}} $entity): void
+    {
+        // $data = {{Class}}Mapper::toArray($entity);
+        // YourEloquentModel::updateOrCreate(['id' => $entity->id()], $data);
+    }
+
+    public function delete(string $id): void
+    {
+        // YourEloquentModel::destroy($id);
+    }
+}

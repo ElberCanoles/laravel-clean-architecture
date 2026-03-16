@@ -7,11 +7,13 @@ use CleanArchitecture\Console\MakeBoundedContext;
 use CleanArchitecture\Console\MakeCommand;
 use CleanArchitecture\Console\MakeController;
 use CleanArchitecture\Console\MakeEntity;
+use CleanArchitecture\Console\MakeMapper;
 use CleanArchitecture\Console\MakeQuery;
 use CleanArchitecture\Console\MakeReadModel;
 use CleanArchitecture\Console\MakeRepository;
 use CleanArchitecture\Console\MakeRequest;
 use CleanArchitecture\Console\MakeResource;
+use CleanArchitecture\Console\MakeSanitizer;
 use CleanArchitecture\Console\MakeSpecification;
 use CleanArchitecture\Console\MakeValueObject;
 use CleanArchitecture\Kernel\ModuleLoader;
@@ -45,6 +47,8 @@ class CleanArchitectureServiceProvider extends ServiceProvider
                 MakeSpecification::class,
                 MakeReadModel::class,
                 MakeArchTest::class,
+                MakeMapper::class,
+                MakeSanitizer::class,
                 MakeController::class,
                 MakeRequest::class,
                 MakeResource::class,

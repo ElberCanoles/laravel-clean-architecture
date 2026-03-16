@@ -15,13 +15,30 @@ test('creates command and handler files', function () {
     $commandContent = file_get_contents($commandFile);
     expect($commandContent)
         ->toContain('namespace App\Billing\Application\Commands\PayInvoice;')
-        ->toContain('class PayInvoiceCommand');
+        ->toContain('readonly class PayInvoiceCommand')
+        ->toContain('public string $id,');
 
     $handlerContent = file_get_contents($handlerFile);
     expect($handlerContent)
         ->toContain('namespace App\Billing\Application\Commands\PayInvoice;')
         ->toContain('class PayInvoiceHandler')
-        ->toContain('public function handle(PayInvoiceCommand $command): void');
+        ->toContain('public function handle(PayInvoiceCommand $command): void')
+        ->toContain('// TODO: Inject your WriteRepository');
+});
+
+test('creates handler with entity injection when --entity is provided', function () {
+    $this->artisan('clean:command', [
+        'context' => 'Billing',
+        'name' => 'PayInvoice',
+        '--entity' => 'Invoice',
+    ])->assertSuccessful();
+
+    $handlerFile = $this->tempDir . '/Billing/Application/Commands/PayInvoice/PayInvoiceHandler.php';
+    $handlerContent = file_get_contents($handlerFile);
+
+    expect($handlerContent)
+        ->toContain('use App\Billing\Domain\Repositories\InvoiceWriteRepository;')
+        ->toContain('private readonly InvoiceWriteRepository $repository,');
 });
 
 test('warns when command files exist without --force', function () {

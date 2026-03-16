@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\File;
 
 class MakeCommand extends BaseGenerator
 {
-    protected $signature = 'clean:command {context} {name} {--force}';
+    protected $signature = 'clean:command {context} {name} {--entity= : Entity name to inject WriteRepository} {--force}';
     protected $description = 'Create a CQRS command with handler';
 
     public function handle(): void
@@ -14,6 +14,7 @@ class MakeCommand extends BaseGenerator
         $context = $this->argument('context');
         $name = $this->argument('name');
         $namespace = $this->buildNamespace($context);
+        $entity = $this->option('entity');
 
         $base = base_path(config('clean-architecture.contexts_path') . "/$context/Application/Commands/$name");
         File::makeDirectory($base, 0755, true, true);
@@ -24,10 +25,20 @@ class MakeCommand extends BaseGenerator
             $this->getStub('command')
         );
 
+        $handlerStub = $this->getStub('command-handler');
+
+        if ($entity) {
+            $entityImport = "use {$namespace}\\Domain\\Repositories\\{$entity}WriteRepository;";
+            $entityConstructor = "private readonly {$entity}WriteRepository \$repository,";
+        } else {
+            $entityImport = '';
+            $entityConstructor = '// TODO: Inject your WriteRepository';
+        }
+
         $handlerContent = str_replace(
-            ['{{Namespace}}', '{{Class}}'],
-            [$namespace, $name],
-            $this->getStub('command-handler')
+            ['{{Namespace}}', '{{Class}}', '{{EntityImport}}', '{{EntityConstructor}}'],
+            [$namespace, $name, $entityImport, $entityConstructor],
+            $handlerStub
         );
 
         $created = false;

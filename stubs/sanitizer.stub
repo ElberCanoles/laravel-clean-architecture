@@ -1,0 +1,16 @@
+<?php
+
+namespace {{Namespace}}\Application\Sanitizers;
+
+class {{Class}}Sanitizer
+{
+    /** @return array<string, mixed> */
+    public static function sanitize(array $data): array
+    {
+        return [
+            // TODO: Normalize input data before passing to domain
+            // 'email' => strtolower(trim($data['email'] ?? '')),
+            // 'name' => trim($data['name'] ?? ''),
+        ];
+    }
+}

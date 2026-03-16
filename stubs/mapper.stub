@@ -1,0 +1,25 @@
+<?php
+
+namespace {{Namespace}}\Infrastructure;
+
+use {{Namespace}}\Domain\Entities\{{Class}};
+
+final class {{Class}}Mapper
+{
+    /** @return array<string, mixed> */
+    public static function toArray({{Class}} $entity): array
+    {
+        return [
+            'id' => $entity->id(),
+            // TODO: Map entity properties
+        ];
+    }
+
+    public static function toEntity(object $model): {{Class}}
+    {
+        return new {{Class}}(
+            id: $model->id,
+            // TODO: Map model properties
+        );
+    }
+}

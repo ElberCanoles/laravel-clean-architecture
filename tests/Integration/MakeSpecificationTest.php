@@ -11,7 +11,9 @@ test('creates specification with correct content', function () {
     expect($content)
         ->toContain('namespace App\Billing\Domain\Specifications;')
         ->toContain('class InvoiceOverdueSpecification')
-        ->toContain('public function isSatisfiedBy(mixed $candidate): bool');
+        ->toContain('public function isSatisfiedBy(mixed $candidate): bool')
+        ->toContain('public function and(self $other): static')
+        ->toContain('public function not(): static');
 });
 
 test('warns when specification file exists without --force', function () {

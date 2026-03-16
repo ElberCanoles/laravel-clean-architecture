@@ -11,6 +11,16 @@ test('{{Context}} domain does not depend on application layer', function () {
         ->not->toUse('{{Namespace}}\Application');
 });
 
+test('{{Context}} application does not depend on presentation', function () {
+    expect('{{Namespace}}\Application')
+        ->not->toUse('{{Namespace}}\Presentation');
+});
+
+test('{{Context}} application does not depend on infrastructure', function () {
+    expect('{{Namespace}}\Application')
+        ->not->toUse('{{Namespace}}\Infrastructure');
+});
+
 test('{{Context}} entities are final classes', function () {
     expect('{{Namespace}}\Domain\Entities')
         ->toBeFinal();

@@ -2,14 +2,17 @@
 
 namespace {{Namespace}}\Application\Commands\{{Class}};
 
+{{EntityImport}}
+
 class {{Class}}Handler
 {
-    public function __construct()
-    {
+    public function __construct(
+        {{EntityConstructor}}
+    ) {
     }
 
     public function handle({{Class}}Command $command): void
     {
-        // TODO: Implement handler logic
+        // TODO: Load or create entity, execute domain logic, persist via repository
     }
 }

@@ -11,7 +11,8 @@ test('creates api resource in presentation layer', function () {
     expect($content)
         ->toContain('namespace App\Billing\Presentation\Resources;')
         ->toContain('class InvoiceResource extends JsonResource')
-        ->toContain('public function toArray(Request $request): array');
+        ->toContain('public function toArray(Request $request): array')
+        ->toContain("'id' => \$this->id");
 });
 
 test('warns when resource exists without --force', function () {

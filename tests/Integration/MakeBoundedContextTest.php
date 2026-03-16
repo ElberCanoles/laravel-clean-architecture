@@ -13,6 +13,8 @@ test('creates full bounded context folder structure', function () {
     expect(is_dir("$base/Application/Commands"))->toBeTrue();
     expect(is_dir("$base/Application/Queries"))->toBeTrue();
     expect(is_dir("$base/Application/ReadModels"))->toBeTrue();
+    expect(is_dir("$base/Application/Contracts"))->toBeTrue();
+    expect(is_dir("$base/Application/Sanitizers"))->toBeTrue();
     expect(is_dir("$base/Infrastructure"))->toBeTrue();
     expect(is_dir("$base/Presentation/Controllers"))->toBeTrue();
     expect(is_dir("$base/Presentation/Requests"))->toBeTrue();
@@ -32,6 +34,9 @@ test('generates service provider for context with route loading', function () {
         ->toContain('namespace App\Billing\Infrastructure;')
         ->toContain('class BillingServiceProvider extends ServiceProvider')
         ->toContain('public function register(): void')
+        ->toContain('TODO: Bind repository interfaces to implementations')
+        ->toContain('YourWriteRepository::class')
+        ->toContain('YourReadRepository::class')
         ->toContain('public function boot(): void')
         ->toContain('$this->loadRoutes()')
         ->toContain("'/../Presentation/Routes/api.php'");

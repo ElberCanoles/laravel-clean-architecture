@@ -1,24 +1,53 @@
 <?php
 
-test('creates repository interface and eloquent implementation', function () {
+test('creates CQRS repository interfaces, eloquent implementations, read model and mapper', function () {
     $this->artisan('clean:repository', ['context' => 'Billing', 'name' => 'Invoice'])
         ->assertSuccessful();
 
-    $interface = $this->tempDir . '/Billing/Domain/Repositories/InvoiceRepository.php';
-    $eloquent = $this->tempDir . '/Billing/Infrastructure/InvoiceEloquentRepository.php';
+    $writeInterface = $this->tempDir . '/Billing/Domain/Repositories/InvoiceWriteRepository.php';
+    $readInterface = $this->tempDir . '/Billing/Application/Contracts/InvoiceReadRepository.php';
+    $readModel = $this->tempDir . '/Billing/Application/ReadModels/InvoiceReadModel.php';
+    $writeEloquent = $this->tempDir . '/Billing/Infrastructure/InvoiceWriteEloquentRepository.php';
+    $readEloquent = $this->tempDir . '/Billing/Infrastructure/InvoiceReadEloquentRepository.php';
+    $mapper = $this->tempDir . '/Billing/Infrastructure/InvoiceMapper.php';
 
-    expect(file_exists($interface))->toBeTrue();
-    expect(file_exists($eloquent))->toBeTrue();
+    expect(file_exists($writeInterface))->toBeTrue();
+    expect(file_exists($readInterface))->toBeTrue();
+    expect(file_exists($readModel))->toBeTrue();
+    expect(file_exists($writeEloquent))->toBeTrue();
+    expect(file_exists($readEloquent))->toBeTrue();
+    expect(file_exists($mapper))->toBeTrue();
 
-    $interfaceContent = file_get_contents($interface);
-    expect($interfaceContent)
+    $writeInterfaceContent = file_get_contents($writeInterface);
+    expect($writeInterfaceContent)
         ->toContain('namespace App\Billing\Domain\Repositories;')
-        ->toContain('interface InvoiceRepository');
+        ->toContain('interface InvoiceWriteRepository')
+        ->toContain('public function save(Invoice $entity): void')
+        ->toContain('public function delete(string $id): void');
 
-    $eloquentContent = file_get_contents($eloquent);
-    expect($eloquentContent)
+    $readInterfaceContent = file_get_contents($readInterface);
+    expect($readInterfaceContent)
+        ->toContain('namespace App\Billing\Application\Contracts;')
+        ->toContain('interface InvoiceReadRepository')
+        ->toContain('public function findById(string $id): ?InvoiceReadModel')
+        ->toContain('public function findAll(): array');
+
+    $writeEloquentContent = file_get_contents($writeEloquent);
+    expect($writeEloquentContent)
         ->toContain('namespace App\Billing\Infrastructure;')
-        ->toContain('class InvoiceEloquentRepository implements InvoiceRepository');
+        ->toContain('class InvoiceWriteEloquentRepository implements InvoiceWriteRepository');
+
+    $readEloquentContent = file_get_contents($readEloquent);
+    expect($readEloquentContent)
+        ->toContain('namespace App\Billing\Infrastructure;')
+        ->toContain('class InvoiceReadEloquentRepository implements InvoiceReadRepository');
+
+    $mapperContent = file_get_contents($mapper);
+    expect($mapperContent)
+        ->toContain('namespace App\Billing\Infrastructure;')
+        ->toContain('final class InvoiceMapper')
+        ->toContain('public static function toArray(Invoice $entity): array')
+        ->toContain('public static function toEntity(object $model): Invoice');
 });
 
 test('warns when repository files exist without --force', function () {
@@ -32,6 +61,9 @@ test('overwrites repository files with --force', function () {
     $this->artisan('clean:repository', ['context' => 'Billing', 'name' => 'Invoice']);
     $this->artisan('clean:repository', ['context' => 'Billing', 'name' => 'Invoice', '--force' => true])
         ->assertSuccessful()
-        ->expectsOutputToContain('Repository interface created')
-        ->expectsOutputToContain('Eloquent repository created');
+        ->expectsOutputToContain('Write repository interface created')
+        ->expectsOutputToContain('Read repository interface created')
+        ->expectsOutputToContain('Write Eloquent repository created')
+        ->expectsOutputToContain('Read Eloquent repository created')
+        ->expectsOutputToContain('Mapper created');
 });

@@ -8,6 +8,7 @@ class {{Class}}Request extends FormRequest
 {
     public function authorize(): bool
     {
+        // TODO: Implement authorization
         return true;
     }
 
@@ -15,7 +16,7 @@ class {{Class}}Request extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            // 'name' => ['required', 'string', 'max:255'],
         ];
     }
 }

@@ -9,7 +9,15 @@ class {{Context}}ServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        // TODO: Bind repository interfaces to implementations
+        // $this->app->bind(
+        //     \{{Namespace}}\Domain\Repositories\YourWriteRepository::class,
+        //     \{{Namespace}}\Infrastructure\YourWriteEloquentRepository::class,
+        // );
+        // $this->app->bind(
+        //     \{{Namespace}}\Application\Contracts\YourReadRepository::class,
+        //     \{{Namespace}}\Infrastructure\YourReadEloquentRepository::class,
+        // );
     }
 
     public function boot(): void

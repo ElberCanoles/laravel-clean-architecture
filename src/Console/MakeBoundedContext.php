@@ -23,6 +23,8 @@ class MakeBoundedContext extends BaseGenerator
             'Application/Commands',
             'Application/Queries',
             'Application/ReadModels',
+            'Application/Contracts',
+            'Application/Sanitizers',
             'Infrastructure',
             'Presentation/Controllers',
             'Presentation/Requests',

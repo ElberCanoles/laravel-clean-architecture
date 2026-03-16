@@ -2,9 +2,10 @@
 
 namespace {{Namespace}}\Application\Queries\{{Class}};
 
-class {{Class}}Query
+readonly class {{Class}}Query
 {
-    public function __construct()
-    {
+    public function __construct(
+        public string $id,
+    ) {
     }
 }

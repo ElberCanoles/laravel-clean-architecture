@@ -2,9 +2,10 @@
 
 namespace {{Namespace}}\Application\Commands\{{Class}};
 
-class {{Class}}Command
+readonly class {{Class}}Command
 {
-    public function __construct()
-    {
+    public function __construct(
+        public string $id,
+    ) {
     }
 }

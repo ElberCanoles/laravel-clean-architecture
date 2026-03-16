@@ -11,6 +11,7 @@ test('creates value object with correct content', function () {
     expect($content)
         ->toContain('namespace App\Billing\Domain\ValueObjects;')
         ->toContain('readonly class Money')
+        ->toContain("throw new \\InvalidArgumentException('Money cannot be empty.')")
         ->toContain('public function equals(self $other): bool')
         ->toContain('public function __toString(): string');
 });

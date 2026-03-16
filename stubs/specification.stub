@@ -4,9 +4,46 @@ namespace {{Namespace}}\Domain\Specifications;
 
 class {{Class}}Specification
 {
+    /** @param mixed $candidate Replace mixed with your entity type for type safety */
     public function isSatisfiedBy(mixed $candidate): bool
     {
         // TODO: Implement specification logic
         return true;
+    }
+
+    public function and(self $other): static
+    {
+        $left = $this;
+
+        return new class($left, $other) extends {{Class}}Specification {
+            public function __construct(
+                private readonly {{Class}}Specification $left,
+                private readonly {{Class}}Specification $right,
+            ) {
+            }
+
+            public function isSatisfiedBy(mixed $candidate): bool
+            {
+                return $this->left->isSatisfiedBy($candidate)
+                    && $this->right->isSatisfiedBy($candidate);
+            }
+        };
+    }
+
+    public function not(): static
+    {
+        $spec = $this;
+
+        return new class($spec) extends {{Class}}Specification {
+            public function __construct(
+                private readonly {{Class}}Specification $inner,
+            ) {
+            }
+
+            public function isSatisfiedBy(mixed $candidate): bool
+            {
+                return ! $this->inner->isSatisfiedBy($candidate);
+            }
+        };
     }
 }

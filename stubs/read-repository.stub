@@ -1,0 +1,13 @@
+<?php
+
+namespace {{Namespace}}\Application\Contracts;
+
+use {{Namespace}}\Application\ReadModels\{{Class}}ReadModel;
+
+interface {{Class}}ReadRepository
+{
+    public function findById(string $id): ?{{Class}}ReadModel;
+
+    /** @return {{Class}}ReadModel[] */
+    public function findAll(): array;
+}
