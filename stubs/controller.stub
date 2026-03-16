@@ -2,7 +2,7 @@
 
 namespace {{Namespace}}\Presentation\Controllers;
 
-use {{Namespace}}\Presentation\Requests\Store{{Class}}Request;
+use {{Namespace}}\Presentation\Requests\{{Class}}Request;
 use {{Namespace}}\Presentation\Resources\{{Class}}Resource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
@@ -28,14 +28,14 @@ class {{Class}}Controller extends Controller
         return response()->json([]);
     }
 
-    public function store(Store{{Class}}Request $request): JsonResponse
+    public function store({{Class}}Request $request): JsonResponse
     {
         // $sanitized = {{Class}}Sanitizer::sanitize($request->validated());
         // $this->createHandler->handle(new Create{{Class}}Command(...$sanitized));
         return response()->json([], 201);
     }
 
-    public function update(Store{{Class}}Request $request, string $id): JsonResponse
+    public function update({{Class}}Request $request, string $id): JsonResponse
     {
         // $sanitized = {{Class}}Sanitizer::sanitize($request->validated());
         // $this->updateHandler->handle(new Update{{Class}}Command($id, ...$sanitized));

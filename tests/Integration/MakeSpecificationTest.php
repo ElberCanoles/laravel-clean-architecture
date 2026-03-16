@@ -13,6 +13,7 @@ test('creates specification with correct content', function () {
         ->toContain('class InvoiceOverdueSpecification')
         ->toContain('public function isSatisfiedBy(mixed $candidate): bool')
         ->toContain('public function and(self $other): static')
+        ->toContain('public function or(self $other): static')
         ->toContain('public function not(): static');
 });
 

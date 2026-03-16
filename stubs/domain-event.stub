@@ -1,0 +1,12 @@
+<?php
+
+namespace {{Namespace}}\Domain\Events;
+
+readonly class {{Class}}Event
+{
+    public function __construct(
+        public string $id,
+        public \DateTimeImmutable $occurredAt = new \DateTimeImmutable(),
+    ) {
+    }
+}

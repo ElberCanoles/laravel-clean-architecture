@@ -10,6 +10,7 @@ test('creates full bounded context folder structure', function () {
     expect(is_dir("$base/Domain/ValueObjects"))->toBeTrue();
     expect(is_dir("$base/Domain/Repositories"))->toBeTrue();
     expect(is_dir("$base/Domain/Specifications"))->toBeTrue();
+    expect(is_dir("$base/Domain/Events"))->toBeTrue();
     expect(is_dir("$base/Application/Commands"))->toBeTrue();
     expect(is_dir("$base/Application/Queries"))->toBeTrue();
     expect(is_dir("$base/Application/ReadModels"))->toBeTrue();
@@ -34,6 +35,7 @@ test('generates service provider for context with route loading', function () {
         ->toContain('namespace App\Billing\Infrastructure;')
         ->toContain('class BillingServiceProvider extends ServiceProvider')
         ->toContain('public function register(): void')
+        ->toContain('auto-discovered by the CleanArchitecture package')
         ->toContain('TODO: Bind repository interfaces to implementations')
         ->toContain('YourWriteRepository::class')
         ->toContain('YourReadRepository::class')

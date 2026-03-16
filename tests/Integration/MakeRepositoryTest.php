@@ -1,19 +1,17 @@
 <?php
 
-test('creates CQRS repository interfaces, eloquent implementations, read model and mapper', function () {
+test('creates CQRS repository interfaces, eloquent implementations and mapper', function () {
     $this->artisan('clean:repository', ['context' => 'Billing', 'name' => 'Invoice'])
         ->assertSuccessful();
 
     $writeInterface = $this->tempDir . '/Billing/Domain/Repositories/InvoiceWriteRepository.php';
     $readInterface = $this->tempDir . '/Billing/Application/Contracts/InvoiceReadRepository.php';
-    $readModel = $this->tempDir . '/Billing/Application/ReadModels/InvoiceReadModel.php';
     $writeEloquent = $this->tempDir . '/Billing/Infrastructure/InvoiceWriteEloquentRepository.php';
     $readEloquent = $this->tempDir . '/Billing/Infrastructure/InvoiceReadEloquentRepository.php';
     $mapper = $this->tempDir . '/Billing/Infrastructure/InvoiceMapper.php';
 
     expect(file_exists($writeInterface))->toBeTrue();
     expect(file_exists($readInterface))->toBeTrue();
-    expect(file_exists($readModel))->toBeTrue();
     expect(file_exists($writeEloquent))->toBeTrue();
     expect(file_exists($readEloquent))->toBeTrue();
     expect(file_exists($mapper))->toBeTrue();
@@ -66,4 +64,11 @@ test('overwrites repository files with --force', function () {
         ->expectsOutputToContain('Write Eloquent repository created')
         ->expectsOutputToContain('Read Eloquent repository created')
         ->expectsOutputToContain('Mapper created');
+});
+
+test('does not create a read model (use clean:read-model instead)', function () {
+    $this->artisan('clean:repository', ['context' => 'Billing', 'name' => 'Invoice']);
+
+    $readModel = $this->tempDir . '/Billing/Application/ReadModels/InvoiceReadModel.php';
+    expect(file_exists($readModel))->toBeFalse();
 });

@@ -9,6 +9,10 @@ class {{Context}}ServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        // This provider is auto-discovered by the CleanArchitecture package
+        // when 'auto_discover' is enabled in config/clean-architecture.php.
+        // No manual registration in bootstrap/providers.php is needed.
+
         // TODO: Bind repository interfaces to implementations
         // $this->app->bind(
         //     \{{Namespace}}\Domain\Repositories\YourWriteRepository::class,

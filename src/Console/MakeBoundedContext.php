@@ -20,6 +20,7 @@ class MakeBoundedContext extends BaseGenerator
             'Domain/ValueObjects',
             'Domain/Repositories',
             'Domain/Specifications',
+            'Domain/Events',
             'Application/Commands',
             'Application/Queries',
             'Application/ReadModels',

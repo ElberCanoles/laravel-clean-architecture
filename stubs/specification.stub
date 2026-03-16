@@ -30,6 +30,25 @@ class {{Class}}Specification
         };
     }
 
+    public function or(self $other): static
+    {
+        $left = $this;
+
+        return new class($left, $other) extends {{Class}}Specification {
+            public function __construct(
+                private readonly {{Class}}Specification $left,
+                private readonly {{Class}}Specification $right,
+            ) {
+            }
+
+            public function isSatisfiedBy(mixed $candidate): bool
+            {
+                return $this->left->isSatisfiedBy($candidate)
+                    || $this->right->isSatisfiedBy($candidate);
+            }
+        };
+    }
+
     public function not(): static
     {
         $spec = $this;

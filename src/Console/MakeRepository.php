@@ -17,7 +17,6 @@ class MakeRepository extends BaseGenerator
 
         $this->createWriteInterface($context, $name, $namespace);
         $this->createReadInterface($context, $name, $namespace);
-        $this->createReadModel($context, $name, $namespace);
         $this->createWriteEloquentImplementation($context, $name, $namespace);
         $this->createReadEloquentImplementation($context, $name, $namespace);
         $this->createMapper($context, $name, $namespace);
@@ -56,24 +55,6 @@ class MakeRepository extends BaseGenerator
 
         if ($this->writeFile($file, $content)) {
             $this->info("Read repository interface created: $file");
-        }
-    }
-
-    protected function createReadModel(string $context, string $name, string $namespace): void
-    {
-        $path = base_path(config('clean-architecture.contexts_path') . "/$context/Application/ReadModels");
-        File::makeDirectory($path, 0755, true, true);
-
-        $content = str_replace(
-            ['{{Namespace}}', '{{Class}}'],
-            [$namespace, $name],
-            $this->getStub('read-model')
-        );
-
-        $file = "$path/{$name}ReadModel.php";
-
-        if ($this->writeFile($file, $content)) {
-            $this->info("Read model created: $file");
         }
     }
 
