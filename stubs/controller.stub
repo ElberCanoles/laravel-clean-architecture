@@ -16,8 +16,7 @@ class {{Class}}Controller extends Controller
 
     public function index(): JsonResponse
     {
-        // TODO: Implement list query
-        return response()->json([]);
+        {{IndexBody}}
     }
 
     public function show(string $id): JsonResponse
@@ -32,13 +31,11 @@ class {{Class}}Controller extends Controller
 
     public function update({{Class}}Request $request, string $id): JsonResponse
     {
-        // TODO: Implement update command
-        return response()->json([]);
+        {{UpdateBody}}
     }
 
     public function destroy(string $id): JsonResponse
     {
-        // TODO: Implement delete command
-        return response()->json([], 204);
+        {{DestroyBody}}
     }
 }

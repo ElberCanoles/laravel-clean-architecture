@@ -7,6 +7,9 @@ test('scaffolds all files for an entity', function () {
     // Entity
     expect(file_exists($this->tempDir . '/Billing/Domain/Entities/Invoice.php'))->toBeTrue();
 
+    // Model
+    expect(file_exists($this->tempDir . '/Billing/Infrastructure/Models/InvoiceModel.php'))->toBeTrue();
+
     // Repository interfaces + implementations + mapper
     expect(file_exists($this->tempDir . '/Billing/Domain/Repositories/InvoiceWriteRepository.php'))->toBeTrue();
     expect(file_exists($this->tempDir . '/Billing/Application/Contracts/InvoiceReadRepository.php'))->toBeTrue();
@@ -17,14 +20,26 @@ test('scaffolds all files for an entity', function () {
     // Read model
     expect(file_exists($this->tempDir . '/Billing/Application/ReadModels/InvoiceReadModel.php'))->toBeTrue();
 
-    // Command + handler
+    // Create command + handler
     expect(file_exists($this->tempDir . '/Billing/Application/Commands/CreateInvoice/CreateInvoiceCommand.php'))->toBeTrue();
     expect(file_exists($this->tempDir . '/Billing/Application/Commands/CreateInvoice/CreateInvoiceHandler.php'))->toBeTrue();
 
-    // Query + handler (ReadModel lives in Application/ReadModels, not in Query folder)
+    // Update command + handler
+    expect(file_exists($this->tempDir . '/Billing/Application/Commands/UpdateInvoice/UpdateInvoiceCommand.php'))->toBeTrue();
+    expect(file_exists($this->tempDir . '/Billing/Application/Commands/UpdateInvoice/UpdateInvoiceHandler.php'))->toBeTrue();
+
+    // Delete command + handler
+    expect(file_exists($this->tempDir . '/Billing/Application/Commands/DeleteInvoice/DeleteInvoiceCommand.php'))->toBeTrue();
+    expect(file_exists($this->tempDir . '/Billing/Application/Commands/DeleteInvoice/DeleteInvoiceHandler.php'))->toBeTrue();
+
+    // Get query + handler (ReadModel lives in Application/ReadModels, not in Query folder)
     expect(file_exists($this->tempDir . '/Billing/Application/Queries/GetInvoice/GetInvoiceQuery.php'))->toBeTrue();
     expect(file_exists($this->tempDir . '/Billing/Application/Queries/GetInvoice/GetInvoiceHandler.php'))->toBeTrue();
     expect(file_exists($this->tempDir . '/Billing/Application/Queries/GetInvoice/GetInvoiceReadModel.php'))->toBeFalse();
+
+    // List query + handler
+    expect(file_exists($this->tempDir . '/Billing/Application/Queries/ListInvoices/ListInvoicesQuery.php'))->toBeTrue();
+    expect(file_exists($this->tempDir . '/Billing/Application/Queries/ListInvoices/ListInvoicesHandler.php'))->toBeTrue();
 
     // Controller, request, resource, sanitizer
     expect(file_exists($this->tempDir . '/Billing/Presentation/Controllers/InvoiceController.php'))->toBeTrue();
@@ -67,7 +82,7 @@ test('scaffold wires entity injection in query handler', function () {
         ->toContain('public function handle(GetInvoiceQuery $query): InvoiceReadModel');
 });
 
-test('scaffold wires controller with CQRS imports and handlers', function () {
+test('scaffold wires controller with all CQRS handlers', function () {
     $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice']);
 
     $file = $this->tempDir . '/Billing/Presentation/Controllers/InvoiceController.php';
@@ -75,12 +90,33 @@ test('scaffold wires controller with CQRS imports and handlers', function () {
 
     expect($content)
         ->toContain('use App\Billing\Application\Commands\CreateInvoice\CreateInvoiceHandler;')
+        ->toContain('use App\Billing\Application\Commands\UpdateInvoice\UpdateInvoiceHandler;')
+        ->toContain('use App\Billing\Application\Commands\DeleteInvoice\DeleteInvoiceHandler;')
         ->toContain('use App\Billing\Application\Queries\GetInvoice\GetInvoiceHandler;')
+        ->toContain('use App\Billing\Application\Queries\ListInvoices\ListInvoicesHandler;')
         ->toContain('private readonly CreateInvoiceHandler $createHandler,')
+        ->toContain('private readonly UpdateInvoiceHandler $updateHandler,')
+        ->toContain('private readonly DeleteInvoiceHandler $deleteHandler,')
         ->toContain('private readonly GetInvoiceHandler $getHandler,')
+        ->toContain('private readonly ListInvoicesHandler $listHandler,')
+        ->toContain('$this->listHandler->handle(new ListInvoicesQuery())')
         ->toContain('$this->getHandler->handle(new GetInvoiceQuery($id))')
         ->toContain('InvoiceSanitizer::sanitize($request->validated())')
-        ->toContain('$this->createHandler->handle(new CreateInvoiceCommand(...$sanitized))');
+        ->toContain('$this->createHandler->handle(new CreateInvoiceCommand(...$sanitized))')
+        ->toContain('$this->updateHandler->handle(new UpdateInvoiceCommand($id, ...$sanitized))')
+        ->toContain('$this->deleteHandler->handle(new DeleteInvoiceCommand($id))');
+});
+
+test('scaffold generates list query as collection', function () {
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice']);
+
+    $queryFile = $this->tempDir . '/Billing/Application/Queries/ListInvoices/ListInvoicesQuery.php';
+    $content = file_get_contents($queryFile);
+
+    expect($content)
+        ->toContain('public int $page = 1,')
+        ->toContain('public int $perPage = 15,')
+        ->not->toContain('public string $id,');
 });
 
 test('scaffold wires service provider bindings', function () {

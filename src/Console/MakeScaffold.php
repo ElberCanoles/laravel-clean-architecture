@@ -18,64 +18,89 @@ class MakeScaffold extends BaseGenerator
         $this->validateName($name, 'name');
 
         $force = $this->option('force');
+        $plural = $this->toPluralStudly($name);
 
         $commands = [
-            'clean:entity' => [
+            ['clean:entity', [
                 'context' => $context,
                 'name' => $name,
                 '--force' => $force,
-            ],
-            'clean:repository' => [
+            ]],
+            ['clean:model', [
                 'context' => $context,
                 'name' => $name,
                 '--force' => $force,
-            ],
-            'clean:read-model' => [
+            ]],
+            ['clean:repository', [
                 'context' => $context,
                 'name' => $name,
                 '--force' => $force,
-            ],
-            'clean:command' => [
+            ]],
+            ['clean:read-model', [
+                'context' => $context,
+                'name' => $name,
+                '--force' => $force,
+            ]],
+            ['clean:command', [
                 'context' => $context,
                 'name' => "Create{$name}",
                 '--entity' => $name,
                 '--force' => $force,
-            ],
-            'clean:query' => [
+            ]],
+            ['clean:command', [
+                'context' => $context,
+                'name' => "Update{$name}",
+                '--entity' => $name,
+                '--force' => $force,
+            ]],
+            ['clean:command', [
+                'context' => $context,
+                'name' => "Delete{$name}",
+                '--entity' => $name,
+                '--force' => $force,
+            ]],
+            ['clean:query', [
                 'context' => $context,
                 'name' => "Get{$name}",
                 '--entity' => $name,
                 '--force' => $force,
-            ],
-            'clean:controller' => [
+            ]],
+            ['clean:query', [
+                'context' => $context,
+                'name' => "List{$plural}",
+                '--entity' => $name,
+                '--collection' => true,
+                '--force' => $force,
+            ]],
+            ['clean:controller', [
                 'context' => $context,
                 'name' => $name,
                 '--entity' => $name,
                 '--force' => $force,
-            ],
-            'clean:request' => [
+            ]],
+            ['clean:request', [
                 'context' => $context,
                 'name' => $name,
                 '--force' => $force,
-            ],
-            'clean:resource' => [
+            ]],
+            ['clean:resource', [
                 'context' => $context,
                 'name' => $name,
                 '--force' => $force,
-            ],
-            'clean:sanitizer' => [
+            ]],
+            ['clean:sanitizer', [
                 'context' => $context,
                 'name' => $name,
                 '--force' => $force,
-            ],
-            'clean:test' => [
+            ]],
+            ['clean:test', [
                 'context' => $context,
                 'name' => $name,
                 '--force' => $force,
-            ],
+            ]],
         ];
 
-        foreach ($commands as $command => $arguments) {
+        foreach ($commands as [$command, $arguments]) {
             $this->call($command, $arguments);
         }
 

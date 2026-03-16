@@ -52,6 +52,11 @@ abstract class BaseGenerator extends Command
         }
     }
 
+    protected function toPluralStudly(string $name): string
+    {
+        return Str::plural($name);
+    }
+
     protected function toKebabPlural(string $name): string
     {
         $kebab = strtolower(preg_replace('/([a-z])([A-Z])/', '$1-$2', $name));

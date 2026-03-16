@@ -2,19 +2,24 @@
 
 namespace {{Namespace}}\Infrastructure;
 
+use CleanArchitecture\Support\DispatchesDomainEvents;
 use {{Namespace}}\Domain\Entities\{{Class}};
 use {{Namespace}}\Domain\Repositories\{{Class}}WriteRepository;
+use {{Namespace}}\Infrastructure\Models\{{Class}}Model;
 
 class {{Class}}WriteEloquentRepository implements {{Class}}WriteRepository
 {
+    use DispatchesDomainEvents;
+
     public function save({{Class}} $entity): void
     {
         $data = {{Class}}Mapper::toArray($entity);
-        // YourEloquentModel::updateOrCreate(['id' => $entity->id()], $data);
+        {{Class}}Model::updateOrCreate(['id' => $entity->id()], $data);
+        $this->dispatchDomainEvents($entity);
     }
 
     public function delete(string $id): void
     {
-        // YourEloquentModel::destroy($id);
+        {{Class}}Model::destroy($id);
     }
 }

@@ -44,11 +44,14 @@ test('controller without --entity keeps TODO comments', function () {
 
     expect($content)
         ->toContain('// TODO: Inject command/query handlers')
+        ->toContain('// TODO: Implement list query')
         ->toContain('// TODO: Implement show query')
-        ->toContain('// TODO: Implement create command');
+        ->toContain('// TODO: Implement create command')
+        ->toContain('// TODO: Implement update command')
+        ->toContain('// TODO: Implement delete command');
 });
 
-test('controller with --entity wires CQRS handlers', function () {
+test('controller with --entity wires all CQRS handlers', function () {
     $this->artisan('clean:controller', ['context' => 'Billing', 'name' => 'Invoice', '--entity' => 'Invoice'])
         ->assertSuccessful();
 
@@ -56,14 +59,34 @@ test('controller with --entity wires CQRS handlers', function () {
     $content = file_get_contents($file);
 
     expect($content)
+        // Imports
         ->toContain('use App\Billing\Application\Commands\CreateInvoice\CreateInvoiceCommand;')
         ->toContain('use App\Billing\Application\Commands\CreateInvoice\CreateInvoiceHandler;')
+        ->toContain('use App\Billing\Application\Commands\UpdateInvoice\UpdateInvoiceCommand;')
+        ->toContain('use App\Billing\Application\Commands\UpdateInvoice\UpdateInvoiceHandler;')
+        ->toContain('use App\Billing\Application\Commands\DeleteInvoice\DeleteInvoiceCommand;')
+        ->toContain('use App\Billing\Application\Commands\DeleteInvoice\DeleteInvoiceHandler;')
         ->toContain('use App\Billing\Application\Queries\GetInvoice\GetInvoiceHandler;')
         ->toContain('use App\Billing\Application\Queries\GetInvoice\GetInvoiceQuery;')
+        ->toContain('use App\Billing\Application\Queries\ListInvoices\ListInvoicesHandler;')
+        ->toContain('use App\Billing\Application\Queries\ListInvoices\ListInvoicesQuery;')
         ->toContain('use App\Billing\Application\Sanitizers\InvoiceSanitizer;')
+        // Constructor
         ->toContain('private readonly CreateInvoiceHandler $createHandler,')
+        ->toContain('private readonly UpdateInvoiceHandler $updateHandler,')
+        ->toContain('private readonly DeleteInvoiceHandler $deleteHandler,')
         ->toContain('private readonly GetInvoiceHandler $getHandler,')
+        ->toContain('private readonly ListInvoicesHandler $listHandler,')
+        // index
+        ->toContain('$this->listHandler->handle(new ListInvoicesQuery())')
+        ->toContain('InvoiceResource::collection($readModels)')
+        // show
         ->toContain('$this->getHandler->handle(new GetInvoiceQuery($id))')
+        // store
         ->toContain('InvoiceSanitizer::sanitize($request->validated())')
-        ->toContain('$this->createHandler->handle(new CreateInvoiceCommand(...$sanitized))');
+        ->toContain('$this->createHandler->handle(new CreateInvoiceCommand(...$sanitized))')
+        // update
+        ->toContain('$this->updateHandler->handle(new UpdateInvoiceCommand($id, ...$sanitized))')
+        // destroy
+        ->toContain('$this->deleteHandler->handle(new DeleteInvoiceCommand($id))');
 });

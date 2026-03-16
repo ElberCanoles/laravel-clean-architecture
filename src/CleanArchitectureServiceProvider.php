@@ -10,6 +10,7 @@ use CleanArchitecture\Console\MakeDomainEvent;
 use CleanArchitecture\Console\MakeEntity;
 use CleanArchitecture\Console\MakeException;
 use CleanArchitecture\Console\MakeMapper;
+use CleanArchitecture\Console\MakeModel;
 use CleanArchitecture\Console\MakeQuery;
 use CleanArchitecture\Console\MakeReadModel;
 use CleanArchitecture\Console\MakeRepository;
@@ -54,6 +55,7 @@ class CleanArchitectureServiceProvider extends ServiceProvider
                 MakeDomainEvent::class,
                 MakeException::class,
                 MakeMapper::class,
+                MakeModel::class,
                 MakeSanitizer::class,
                 MakeScaffold::class,
                 MakeTest::class,

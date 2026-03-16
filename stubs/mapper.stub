@@ -3,6 +3,7 @@
 namespace {{Namespace}}\Infrastructure;
 
 use {{Namespace}}\Domain\Entities\{{Class}};
+use {{Namespace}}\Infrastructure\Models\{{Class}}Model;
 
 final class {{Class}}Mapper
 {
@@ -15,7 +16,7 @@ final class {{Class}}Mapper
         ];
     }
 
-    public static function toEntity(object $model): {{Class}}
+    public static function toEntity({{Class}}Model $model): {{Class}}
     {
         return new {{Class}}(
             id: $model->id,

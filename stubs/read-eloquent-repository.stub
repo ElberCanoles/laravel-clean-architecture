@@ -4,22 +4,22 @@ namespace {{Namespace}}\Infrastructure;
 
 use {{Namespace}}\Application\Contracts\{{Class}}ReadRepository;
 use {{Namespace}}\Application\ReadModels\{{Class}}ReadModel;
+use {{Namespace}}\Infrastructure\Models\{{Class}}Model;
 
 class {{Class}}ReadEloquentRepository implements {{Class}}ReadRepository
 {
     public function findById(string $id): ?{{Class}}ReadModel
     {
-        // $model = YourEloquentModel::find($id);
-        // return $model ? new {{Class}}ReadModel($model->id) : null;
-        return null;
+        $model = {{Class}}Model::find($id);
+
+        return $model ? {{Class}}Mapper::toEntity($model) : null;
     }
 
     /** @return {{Class}}ReadModel[] */
     public function findAll(): array
     {
-        // return YourEloquentModel::all()
-        //     ->map(fn ($model) => new {{Class}}ReadModel($model->id))
-        //     ->all();
-        return [];
+        return {{Class}}Model::all()
+            ->map(fn ({{Class}}Model $model) => {{Class}}Mapper::toEntity($model))
+            ->all();
     }
 }

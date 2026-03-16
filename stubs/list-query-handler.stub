@@ -1,0 +1,19 @@
+<?php
+
+namespace {{Namespace}}\Application\Queries\{{Class}};
+
+{{EntityImport}}
+
+class {{Class}}Handler
+{
+    public function __construct(
+        {{EntityConstructor}}
+    ) {
+    }
+
+    /** @return {{ReturnType}}[] */
+    public function handle({{Class}}Query $query): array
+    {
+        // TODO: Use repository to fetch and return read models
+    }
+}

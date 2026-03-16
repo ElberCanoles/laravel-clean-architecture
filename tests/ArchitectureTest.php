@@ -2,7 +2,8 @@
 
 test('clean architecture package classes are in correct namespace', function () {
     expect('CleanArchitecture')
-        ->toBeClasses();
+        ->toBeClasses()
+        ->ignoring('CleanArchitecture\Support');
 });
 
 test('console commands extend Illuminate Command', function () {

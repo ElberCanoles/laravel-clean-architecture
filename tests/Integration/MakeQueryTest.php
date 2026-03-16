@@ -57,3 +57,46 @@ test('rejects invalid entity name', function () {
         '--entity' => 'bad entity',
     ]);
 })->throws(\InvalidArgumentException::class);
+
+test('creates collection query with --collection flag', function () {
+    $this->artisan('clean:query', ['context' => 'Billing', 'name' => 'ListInvoices', '--collection' => true])
+        ->assertSuccessful();
+
+    $base = $this->tempDir . '/Billing/Application/Queries/ListInvoices';
+
+    $queryFile = "$base/ListInvoicesQuery.php";
+    $handlerFile = "$base/ListInvoicesHandler.php";
+
+    expect(file_exists($queryFile))->toBeTrue();
+    expect(file_exists($handlerFile))->toBeTrue();
+
+    $queryContent = file_get_contents($queryFile);
+    expect($queryContent)
+        ->toContain('readonly class ListInvoicesQuery')
+        ->toContain('public int $page = 1,')
+        ->toContain('public int $perPage = 15,')
+        ->not->toContain('public string $id,');
+
+    $handlerContent = file_get_contents($handlerFile);
+    expect($handlerContent)
+        ->toContain('public function handle(ListInvoicesQuery $query): array');
+});
+
+test('creates collection query with entity injection', function () {
+    $this->artisan('clean:query', [
+        'context' => 'Billing',
+        'name' => 'ListInvoices',
+        '--entity' => 'Invoice',
+        '--collection' => true,
+    ])->assertSuccessful();
+
+    $handlerFile = $this->tempDir . '/Billing/Application/Queries/ListInvoices/ListInvoicesHandler.php';
+    $handlerContent = file_get_contents($handlerFile);
+
+    expect($handlerContent)
+        ->toContain('use App\Billing\Application\Contracts\InvoiceReadRepository;')
+        ->toContain('use App\Billing\Application\ReadModels\InvoiceReadModel;')
+        ->toContain('private readonly InvoiceReadRepository $repository,')
+        ->toContain('/** @return InvoiceReadModel[] */')
+        ->toContain('public function handle(ListInvoicesQuery $query): array');
+});

@@ -1,0 +1,22 @@
+<?php
+
+namespace {{Namespace}}\Infrastructure\Models;
+
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Model;
+
+class {{Class}}Model extends Model
+{
+    use HasUuids;
+
+    protected $table = '{{table}}';
+
+    protected $fillable = [
+        'id',
+        // TODO: Add fillable columns
+    ];
+
+    protected $casts = [
+        // TODO: Add column casts
+    ];
+}

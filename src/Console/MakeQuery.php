@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\File;
 
 class MakeQuery extends BaseGenerator
 {
-    protected $signature = 'clean:query {context} {name} {--entity= : Entity name to inject ReadRepository} {--force}';
+    protected $signature = 'clean:query {context} {name} {--entity= : Entity name to inject ReadRepository} {--collection : Generate a list/collection query} {--force}';
     protected $description = 'Create a CQRS query with handler and read model';
 
     public function handle(): void
@@ -27,13 +27,15 @@ class MakeQuery extends BaseGenerator
         $base = base_path(config('clean-architecture.contexts_path') . "/$context/Application/Queries/$name");
         File::makeDirectory($base, 0755, true, true);
 
+        $isCollection = $this->option('collection');
+
         $queryContent = str_replace(
             ['{{Namespace}}', '{{Class}}'],
             [$namespace, $name],
-            $this->getStub('query')
+            $this->getStub($isCollection ? 'list-query' : 'query')
         );
 
-        $handlerStub = $this->getStub('query-handler');
+        $handlerStub = $this->getStub($isCollection ? 'list-query-handler' : 'query-handler');
 
         if ($entity) {
             $entityImport = "use {$namespace}\\Application\\Contracts\\{$entity}ReadRepository;\nuse {$namespace}\\Application\\ReadModels\\{$entity}ReadModel;";

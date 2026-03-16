@@ -28,24 +28,44 @@ class MakeController extends BaseGenerator
         File::makeDirectory($path, 0755, true, true);
 
         if ($entity) {
+            $plural = $this->toPluralStudly($entity);
+
             $imports = "use {$namespace}\\Application\\Commands\\Create{$entity}\\Create{$entity}Command;\n"
                 . "use {$namespace}\\Application\\Commands\\Create{$entity}\\Create{$entity}Handler;\n"
+                . "use {$namespace}\\Application\\Commands\\Update{$entity}\\Update{$entity}Command;\n"
+                . "use {$namespace}\\Application\\Commands\\Update{$entity}\\Update{$entity}Handler;\n"
+                . "use {$namespace}\\Application\\Commands\\Delete{$entity}\\Delete{$entity}Command;\n"
+                . "use {$namespace}\\Application\\Commands\\Delete{$entity}\\Delete{$entity}Handler;\n"
                 . "use {$namespace}\\Application\\Queries\\Get{$entity}\\Get{$entity}Handler;\n"
                 . "use {$namespace}\\Application\\Queries\\Get{$entity}\\Get{$entity}Query;\n"
+                . "use {$namespace}\\Application\\Queries\\List{$plural}\\List{$plural}Handler;\n"
+                . "use {$namespace}\\Application\\Queries\\List{$plural}\\List{$plural}Query;\n"
                 . "use {$namespace}\\Application\\Sanitizers\\{$entity}Sanitizer;\n";
-            $constructor = "private readonly Create{$entity}Handler \$createHandler,\n        private readonly Get{$entity}Handler \$getHandler,";
+
+            $constructor = "private readonly Create{$entity}Handler \$createHandler,\n"
+                . "        private readonly Update{$entity}Handler \$updateHandler,\n"
+                . "        private readonly Delete{$entity}Handler \$deleteHandler,\n"
+                . "        private readonly Get{$entity}Handler \$getHandler,\n"
+                . "        private readonly List{$plural}Handler \$listHandler,";
+
+            $indexBody = "\$readModels = \$this->listHandler->handle(new List{$plural}Query());\n\n        return {$entity}Resource::collection(\$readModels)->response();";
             $showBody = "\$readModel = \$this->getHandler->handle(new Get{$entity}Query(\$id));\n\n        return (new {$entity}Resource(\$readModel))->response();";
             $storeBody = "\$sanitized = {$entity}Sanitizer::sanitize(\$request->validated());\n        \$this->createHandler->handle(new Create{$entity}Command(...\$sanitized));\n\n        return response()->json([], 201);";
+            $updateBody = "\$sanitized = {$entity}Sanitizer::sanitize(\$request->validated());\n        \$this->updateHandler->handle(new Update{$entity}Command(\$id, ...\$sanitized));\n\n        return response()->json([]);";
+            $destroyBody = "\$this->deleteHandler->handle(new Delete{$entity}Command(\$id));\n\n        return response()->json([], 204);";
         } else {
             $imports = '';
             $constructor = '// TODO: Inject command/query handlers';
+            $indexBody = "// TODO: Implement list query\n        return response()->json([]);";
             $showBody = "// TODO: Implement show query\n        return response()->json([]);";
             $storeBody = "// TODO: Implement create command\n        return response()->json([], 201);";
+            $updateBody = "// TODO: Implement update command\n        return response()->json([]);";
+            $destroyBody = "// TODO: Implement delete command\n        return response()->json([], 204);";
         }
 
         $content = str_replace(
-            ['{{Namespace}}', '{{Class}}', '{{ControllerImports}}', '{{ControllerConstructor}}', '{{ShowBody}}', '{{StoreBody}}'],
-            [$namespace, $name, $imports, $constructor, $showBody, $storeBody],
+            ['{{Namespace}}', '{{Class}}', '{{ControllerImports}}', '{{ControllerConstructor}}', '{{IndexBody}}', '{{ShowBody}}', '{{StoreBody}}', '{{UpdateBody}}', '{{DestroyBody}}'],
+            [$namespace, $name, $imports, $constructor, $indexBody, $showBody, $storeBody, $updateBody, $destroyBody],
             $this->getStub('controller')
         );
 
