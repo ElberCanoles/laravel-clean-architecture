@@ -12,9 +12,9 @@ A Laravel package that provides scaffolding for **Domain-Driven Design (DDD)** a
 ## Table of Contents
 
 - [Architecture Overview](#architecture-overview)
-  - [System Context (C4 Level 1)](#system-context-c4-level-1)
-  - [Bounded Contexts (C4 Level 2)](#bounded-contexts-c4-level-2)
-  - [Layers Within a Context (C4 Level 3)](#layers-within-a-context-c4-level-3)
+  - [System Context](#system-context)
+  - [Bounded Contexts](#bounded-contexts)
+  - [Layers Within a Context](#layers-within-a-context)
 - [Architecture Layers](#architecture-layers)
   - [Domain Layer](#domain-layer)
   - [Application Layer](#application-layer)
@@ -35,96 +35,96 @@ A Laravel package that provides scaffolding for **Domain-Driven Design (DDD)** a
 
 ## Architecture Overview
 
-This package implements a layered architecture based on the principles of **Clean Architecture** (Robert C. Martin) and **Domain-Driven Design** (Eric Evans). The following C4 diagrams illustrate how the pieces fit together.
+This package implements a layered architecture based on the principles of **Clean Architecture** (Robert C. Martin) and **Domain-Driven Design** (Eric Evans). The following diagrams illustrate how the pieces fit together.
 
-### System Context (C4 Level 1)
+### System Context
 
 How the package fits into the Laravel ecosystem:
 
 ```mermaid
-C4Context
-    title System Context - Laravel Clean Architecture
+flowchart TD
+    Dev["👤 Developer"]
+    Pkg["Laravel Clean Architecture\nGenerators, auto-discovery,\nautoloading, arch tests"]
+    Laravel["Laravel Framework\nHTTP, routing, container, Eloquent"]
+    Pest["Pest + Arch Plugin\nArchitecture test runner"]
+    Packagist["Packagist\nPackage distribution"]
 
-    Person(dev, "Developer", "Uses artisan commands to scaffold DDD structure")
-
-    System(pkg, "Laravel Clean Architecture", "Provides generators, auto-discovery, autoloading, and architecture test enforcement")
-
-    System_Ext(laravel, "Laravel Framework", "HTTP, routing, service container, Eloquent ORM")
-    System_Ext(pest, "Pest + Arch Plugin", "Runs architecture tests to enforce dependency rules")
-    System_Ext(packagist, "Packagist", "Package distribution")
-
-    Rel(dev, pkg, "Runs artisan commands")
-    Rel(pkg, laravel, "Integrates via ServiceProvider")
-    Rel(pkg, pest, "Generates arch tests for")
-    Rel(packagist, pkg, "Distributes")
+    Dev -- "Runs artisan commands" --> Pkg
+    Pkg -- "Integrates via ServiceProvider" --> Laravel
+    Pkg -- "Generates arch tests for" --> Pest
+    Packagist -- "Distributes" --> Pkg
 ```
 
-### Bounded Contexts (C4 Level 2)
+### Bounded Contexts
 
 How multiple bounded contexts coexist inside a Laravel application:
 
 ```mermaid
-C4Container
-    title Container Diagram - Bounded Contexts in a Laravel App
+flowchart TD
+    Dev["👤 Developer"]
+    DB[("Database\nMySQL / PostgreSQL")]
 
-    Person(dev, "Developer")
+    subgraph App ["Laravel Application"]
+        Kernel["Laravel Kernel\nHTTP, routing, middleware"]
+        Loader["ModuleLoader\nAuto-discovers providers\nand registers PSR-4"]
 
-    System_Boundary(app, "Laravel Application") {
-        Container(kernel, "Laravel Kernel", "PHP", "HTTP handling, routing, middleware")
+        subgraph Contexts ["Bounded Contexts"]
+            Billing["Billing Context\nInvoices, payments"]
+            Inventory["Inventory Context\nProducts, stock"]
+            Shipping["Shipping Context\nOrders, tracking"]
+        end
+    end
 
-        Container(billing, "Billing Context", "src/Billing/", "Invoices, payments, billing rules")
-        Container(inventory, "Inventory Context", "src/Inventory/", "Products, stock, warehouses")
-        Container(shipping, "Shipping Context", "src/Shipping/", "Orders, tracking, carriers")
-
-        Container(loader, "ModuleLoader", "CleanArchitecture\\Kernel", "Auto-discovers ServiceProviders and registers PSR-4 autoloading")
-    }
-
-    System_Ext(db, "Database", "MySQL / PostgreSQL")
-
-    Rel(dev, kernel, "HTTP requests")
-    Rel(kernel, billing, "Routes to")
-    Rel(kernel, inventory, "Routes to")
-    Rel(kernel, shipping, "Routes to")
-    Rel(loader, billing, "Registers")
-    Rel(loader, inventory, "Registers")
-    Rel(loader, shipping, "Registers")
-    Rel(billing, db, "Reads/Writes")
-    Rel(inventory, db, "Reads/Writes")
+    Dev -- "HTTP requests" --> Kernel
+    Kernel --> Billing
+    Kernel --> Inventory
+    Kernel --> Shipping
+    Loader -. "Registers" .-> Billing
+    Loader -. "Registers" .-> Inventory
+    Loader -. "Registers" .-> Shipping
+    Billing --> DB
+    Inventory --> DB
 ```
 
-### Layers Within a Context (C4 Level 3)
+### Layers Within a Context
 
 The internal structure of a single bounded context and how layers communicate:
 
 ```mermaid
-C4Component
-    title Component Diagram - Layers Within a Bounded Context
+flowchart TD
+    subgraph Context ["Billing Context"]
 
-    Container_Boundary(context, "Billing Context") {
+        subgraph Presentation ["Presentation Layer"]
+            Controllers["Controllers, Routes, Requests"]
+        end
 
-        Component(presentation, "Presentation Layer", "Controllers, Routes, Requests", "Receives HTTP requests and delegates to Application layer")
+        subgraph Application ["Application Layer"]
+            Commands["Commands + Handlers\nWrite operations"]
+            Queries["Queries + Handlers\nRead operations"]
+            ReadModels["Read Models\nReadonly DTOs"]
+        end
 
-        Component(commands, "Commands + Handlers", "Application Layer", "Write operations: PayInvoice, CreateInvoice, etc.")
-        Component(queries, "Queries + Handlers", "Application Layer", "Read operations: ListInvoices, GetInvoiceDetails, etc.")
-        Component(readmodels, "Read Models", "Application Layer", "Readonly DTOs optimized for query responses")
+        subgraph Domain ["Domain Layer"]
+            Entities["Entities\nInvoice, Payment"]
+            ValueObjects["Value Objects\nMoney, Address"]
+            RepoInterfaces["Repository Interfaces\nInvoiceRepository"]
+            Specifications["Specifications\nInvoiceOverdue"]
+        end
 
-        Component(entities, "Entities", "Domain Layer", "Core business objects with identity: Invoice, Payment")
-        Component(valueobjects, "Value Objects", "Domain Layer", "Immutable values without identity: Money, Address")
-        Component(repositories, "Repository Interfaces", "Domain Layer", "Contracts for persistence: InvoiceRepository")
-        Component(specifications, "Specifications", "Domain Layer", "Business rules as composable predicates: InvoiceOverdue")
+        subgraph Infrastructure ["Infrastructure Layer"]
+            Eloquent["Eloquent Repositories"]
+            Provider["ServiceProvider"]
+        end
+    end
 
-        Component(eloquent, "Eloquent Repositories", "Infrastructure Layer", "Implements repository interfaces using Eloquent ORM")
-        Component(provider, "ServiceProvider", "Infrastructure Layer", "Registers bindings, event listeners, routes")
-    }
-
-    Rel(presentation, commands, "Dispatches")
-    Rel(presentation, queries, "Dispatches")
-    Rel(commands, entities, "Uses")
-    Rel(commands, repositories, "Depends on interface")
-    Rel(queries, readmodels, "Returns")
-    Rel(specifications, entities, "Evaluates")
-    Rel(eloquent, repositories, "Implements")
-    Rel(provider, eloquent, "Binds to interface")
+    Controllers -- "Dispatches" --> Commands
+    Controllers -- "Dispatches" --> Queries
+    Commands --> Entities
+    Commands -- "Depends on interface" --> RepoInterfaces
+    Queries --> ReadModels
+    Specifications --> Entities
+    Eloquent -. "Implements" .-> RepoInterfaces
+    Provider -. "Binds" .-> Eloquent
 ```
 
 ---
