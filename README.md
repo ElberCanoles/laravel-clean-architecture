@@ -326,10 +326,9 @@ src/{Context}/Application/
 ├── Queries/
 │   └── {Name}/
 │       ├── {Name}Query.php
-│       ├── {Name}Handler.php
-│       └── {Name}ReadModel.php
+│       └── {Name}Handler.php
 ├── Contracts/          # ReadRepository interfaces
-├── ReadModels/         # Standalone read models
+├── ReadModels/         # Read models (readonly DTOs)
 └── Sanitizers/         # Input sanitization
 ```
 
@@ -394,6 +393,7 @@ readonly class GetInvoiceQuery
 namespace App\Billing\Application\Queries\GetInvoice;
 
 use App\Billing\Application\Contracts\InvoiceReadRepository;
+use App\Billing\Application\ReadModels\InvoiceReadModel;
 
 class GetInvoiceHandler
 {
@@ -402,7 +402,7 @@ class GetInvoiceHandler
     ) {
     }
 
-    public function handle(GetInvoiceQuery $query): GetInvoiceReadModel
+    public function handle(GetInvoiceQuery $query): InvoiceReadModel
     {
         // Use repository to fetch and return read model
     }
@@ -412,12 +412,12 @@ class GetInvoiceHandler
 | Component | Responsibility |
 |-----------|---------------|
 | `Query` | DTO with query parameters (filters, pagination) |
-| `Handler` | Fetches data, builds and returns the ReadModel |
-| `ReadModel` | Readonly DTO optimized for the consumer |
+| `Handler` | Fetches data, builds and returns a ReadModel from `Application/ReadModels/` |
+| `ReadModel` | Readonly DTO optimized for the consumer (one per entity) |
 
-#### Standalone Read Models
+#### Read Models
 
-Read models in `Application/ReadModels/` are **reusable projections** not tied to a specific query.
+Read models in `Application/ReadModels/` are **reusable projections** shared across queries.
 
 ```php
 namespace App\Billing\Application\ReadModels;
@@ -767,12 +767,11 @@ src/Billing/
 │   ├── Queries/
 │   │   └── GetInvoice/
 │   │       ├── GetInvoiceQuery.php            # readonly DTO
-│   │       ├── GetInvoiceHandler.php          # injects ReadRepository
-│   │       └── GetInvoiceReadModel.php
+│   │       └── GetInvoiceHandler.php          # injects ReadRepository, returns ReadModel
 │   ├── Contracts/
 │   │   └── InvoiceReadRepository.php          # interface (read only)
 │   ├── ReadModels/
-│   │   └── InvoiceReadModel.php
+│   │   └── InvoiceReadModel.php               # shared across queries
 │   └── Sanitizers/
 │       └── InvoiceSanitizer.php
 ├── Infrastructure/
@@ -931,8 +930,7 @@ Available stubs:
 | `command.stub` | `clean:command` | `{{Namespace}}`, `{{Class}}` |
 | `command-handler.stub` | `clean:command` | `{{Namespace}}`, `{{Class}}`, `{{EntityImport}}`, `{{EntityConstructor}}` |
 | `query.stub` | `clean:query` | `{{Namespace}}`, `{{Class}}` |
-| `query-handler.stub` | `clean:query` | `{{Namespace}}`, `{{Class}}`, `{{EntityImport}}`, `{{EntityConstructor}}` |
-| `query-read-model.stub` | `clean:query` | `{{Namespace}}`, `{{Class}}` |
+| `query-handler.stub` | `clean:query` | `{{Namespace}}`, `{{Class}}`, `{{EntityImport}}`, `{{EntityConstructor}}`, `{{ReturnType}}` |
 | `domain-event.stub` | `clean:domain-event` | `{{Namespace}}`, `{{Class}}` |
 | `domain-exception.stub` | `clean:exception` | `{{Namespace}}`, `{{Class}}` |
 | `sanitizer.stub` | `clean:sanitizer` | `{{Namespace}}`, `{{Class}}` |

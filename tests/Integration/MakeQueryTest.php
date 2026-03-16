@@ -1,6 +1,6 @@
 <?php
 
-test('creates query, handler and read model files', function () {
+test('creates query and handler files', function () {
     $this->artisan('clean:query', ['context' => 'Billing', 'name' => 'ListInvoices'])
         ->assertSuccessful();
 
@@ -8,11 +8,10 @@ test('creates query, handler and read model files', function () {
 
     $queryFile = "$base/ListInvoicesQuery.php";
     $handlerFile = "$base/ListInvoicesHandler.php";
-    $readModelFile = "$base/ListInvoicesReadModel.php";
 
     expect(file_exists($queryFile))->toBeTrue();
     expect(file_exists($handlerFile))->toBeTrue();
-    expect(file_exists($readModelFile))->toBeTrue();
+    expect(file_exists("$base/ListInvoicesReadModel.php"))->toBeFalse();
 
     $queryContent = file_get_contents($queryFile);
     expect($queryContent)
@@ -23,12 +22,8 @@ test('creates query, handler and read model files', function () {
     $handlerContent = file_get_contents($handlerFile);
     expect($handlerContent)
         ->toContain('class ListInvoicesHandler')
-        ->toContain('public function handle(ListInvoicesQuery $query): ListInvoicesReadModel')
+        ->toContain('public function handle(ListInvoicesQuery $query): mixed')
         ->toContain('// TODO: Inject your ReadRepository');
-
-    $readModelContent = file_get_contents($readModelFile);
-    expect($readModelContent)
-        ->toContain('readonly class ListInvoicesReadModel');
 });
 
 test('creates handler with entity injection when --entity is provided', function () {
@@ -43,7 +38,9 @@ test('creates handler with entity injection when --entity is provided', function
 
     expect($handlerContent)
         ->toContain('use App\Billing\Application\Contracts\InvoiceReadRepository;')
-        ->toContain('private readonly InvoiceReadRepository $repository,');
+        ->toContain('use App\Billing\Application\ReadModels\InvoiceReadModel;')
+        ->toContain('private readonly InvoiceReadRepository $repository,')
+        ->toContain('public function handle(ListInvoicesQuery $query): InvoiceReadModel');
 });
 
 test('warns when query files exist without --force', function () {

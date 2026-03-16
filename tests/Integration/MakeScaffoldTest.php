@@ -21,10 +21,10 @@ test('scaffolds all files for an entity', function () {
     expect(file_exists($this->tempDir . '/Billing/Application/Commands/CreateInvoice/CreateInvoiceCommand.php'))->toBeTrue();
     expect(file_exists($this->tempDir . '/Billing/Application/Commands/CreateInvoice/CreateInvoiceHandler.php'))->toBeTrue();
 
-    // Query + handler + query read model
+    // Query + handler (ReadModel lives in Application/ReadModels, not in Query folder)
     expect(file_exists($this->tempDir . '/Billing/Application/Queries/GetInvoice/GetInvoiceQuery.php'))->toBeTrue();
     expect(file_exists($this->tempDir . '/Billing/Application/Queries/GetInvoice/GetInvoiceHandler.php'))->toBeTrue();
-    expect(file_exists($this->tempDir . '/Billing/Application/Queries/GetInvoice/GetInvoiceReadModel.php'))->toBeTrue();
+    expect(file_exists($this->tempDir . '/Billing/Application/Queries/GetInvoice/GetInvoiceReadModel.php'))->toBeFalse();
 
     // Controller, request, resource, sanitizer
     expect(file_exists($this->tempDir . '/Billing/Presentation/Controllers/InvoiceController.php'))->toBeTrue();
@@ -62,5 +62,7 @@ test('scaffold wires entity injection in query handler', function () {
 
     expect($content)
         ->toContain('use App\Billing\Application\Contracts\InvoiceReadRepository;')
-        ->toContain('private readonly InvoiceReadRepository $repository,');
+        ->toContain('use App\Billing\Application\ReadModels\InvoiceReadModel;')
+        ->toContain('private readonly InvoiceReadRepository $repository,')
+        ->toContain('public function handle(GetInvoiceQuery $query): InvoiceReadModel');
 });

@@ -36,23 +36,19 @@ class MakeQuery extends BaseGenerator
         $handlerStub = $this->getStub('query-handler');
 
         if ($entity) {
-            $entityImport = "use {$namespace}\\Application\\Contracts\\{$entity}ReadRepository;";
+            $entityImport = "use {$namespace}\\Application\\Contracts\\{$entity}ReadRepository;\nuse {$namespace}\\Application\\ReadModels\\{$entity}ReadModel;";
             $entityConstructor = "private readonly {$entity}ReadRepository \$repository,";
+            $returnType = "{$entity}ReadModel";
         } else {
             $entityImport = '';
             $entityConstructor = '// TODO: Inject your ReadRepository';
+            $returnType = 'mixed';
         }
 
         $handlerContent = str_replace(
-            ['{{Namespace}}', '{{Class}}', '{{EntityImport}}', '{{EntityConstructor}}'],
-            [$namespace, $name, $entityImport, $entityConstructor],
+            ['{{Namespace}}', '{{Class}}', '{{EntityImport}}', '{{EntityConstructor}}', '{{ReturnType}}'],
+            [$namespace, $name, $entityImport, $entityConstructor, $returnType],
             $handlerStub
-        );
-
-        $readModelContent = str_replace(
-            ['{{Namespace}}', '{{Class}}'],
-            [$namespace, $name],
-            $this->getStub('query-read-model')
         );
 
         $created = false;
@@ -62,10 +58,6 @@ class MakeQuery extends BaseGenerator
         }
 
         if ($this->writeFile("$base/{$name}Handler.php", $handlerContent)) {
-            $created = true;
-        }
-
-        if ($this->writeFile("$base/{$name}ReadModel.php", $readModelContent)) {
             $created = true;
         }
 
