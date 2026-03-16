@@ -24,7 +24,10 @@ class MakeBoundedContext extends BaseGenerator
             'Application/Queries',
             'Application/ReadModels',
             'Infrastructure',
-            'Presentation',
+            'Presentation/Controllers',
+            'Presentation/Requests',
+            'Presentation/Resources',
+            'Presentation/Routes',
         ];
 
         foreach ($folders as $folder) {
@@ -32,6 +35,7 @@ class MakeBoundedContext extends BaseGenerator
         }
 
         $this->generateServiceProvider($base, $name, $namespace);
+        $this->generateRoutes($base, $name);
 
         $this->info("Bounded context [$name] created.");
 
@@ -53,6 +57,23 @@ class MakeBoundedContext extends BaseGenerator
 
         if ($this->writeFile($file, $content)) {
             $this->info("ServiceProvider created: $file");
+        }
+    }
+
+    protected function generateRoutes(string $base, string $context): void
+    {
+        $prefix = strtolower(preg_replace('/([a-z])([A-Z])/', '$1-$2', $context));
+
+        $content = str_replace(
+            '{{prefix}}',
+            $prefix,
+            $this->getStub('routes')
+        );
+
+        $file = "$base/Presentation/Routes/api.php";
+
+        if ($this->writeFile($file, $content)) {
+            $this->info("Routes created: $file");
         }
     }
 }

@@ -2,6 +2,7 @@
 
 namespace {{Namespace}}\Infrastructure;
 
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
 class {{Context}}ServiceProvider extends ServiceProvider
@@ -13,6 +14,15 @@ class {{Context}}ServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        //
+        $this->loadRoutes();
+    }
+
+    protected function loadRoutes(): void
+    {
+        $routesPath = __DIR__ . '/../Presentation/Routes/api.php';
+
+        if (file_exists($routesPath)) {
+            Route::middleware('api')->group($routesPath);
+        }
     }
 }

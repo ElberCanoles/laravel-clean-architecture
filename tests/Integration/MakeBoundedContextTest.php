@@ -14,10 +14,13 @@ test('creates full bounded context folder structure', function () {
     expect(is_dir("$base/Application/Queries"))->toBeTrue();
     expect(is_dir("$base/Application/ReadModels"))->toBeTrue();
     expect(is_dir("$base/Infrastructure"))->toBeTrue();
-    expect(is_dir("$base/Presentation"))->toBeTrue();
+    expect(is_dir("$base/Presentation/Controllers"))->toBeTrue();
+    expect(is_dir("$base/Presentation/Requests"))->toBeTrue();
+    expect(is_dir("$base/Presentation/Resources"))->toBeTrue();
+    expect(is_dir("$base/Presentation/Routes"))->toBeTrue();
 });
 
-test('generates service provider for context', function () {
+test('generates service provider for context with route loading', function () {
     $this->artisan('clean:context', ['name' => 'Billing'])
         ->assertSuccessful();
 
@@ -29,7 +32,33 @@ test('generates service provider for context', function () {
         ->toContain('namespace App\Billing\Infrastructure;')
         ->toContain('class BillingServiceProvider extends ServiceProvider')
         ->toContain('public function register(): void')
-        ->toContain('public function boot(): void');
+        ->toContain('public function boot(): void')
+        ->toContain('$this->loadRoutes()')
+        ->toContain("'/../Presentation/Routes/api.php'");
+});
+
+test('generates routes file for context', function () {
+    $this->artisan('clean:context', ['name' => 'Billing'])
+        ->assertSuccessful();
+
+    $file = $this->tempDir . '/Billing/Presentation/Routes/api.php';
+    expect(file_exists($file))->toBeTrue();
+
+    $content = file_get_contents($file);
+    expect($content)
+        ->toContain("Route::prefix('billing')")
+        ->toContain('->group(');
+});
+
+test('generates kebab-case route prefix for multi-word contexts', function () {
+    $this->artisan('clean:context', ['name' => 'OrderManagement'])
+        ->assertSuccessful();
+
+    $file = $this->tempDir . '/OrderManagement/Presentation/Routes/api.php';
+    expect(file_exists($file))->toBeTrue();
+
+    $content = file_get_contents($file);
+    expect($content)->toContain("Route::prefix('order-management')");
 });
 
 test('generates architecture test for context', function () {
