@@ -1,6 +1,6 @@
 # Laravel Clean Architecture
 
-[![CI](https://github.com/elber-canoles/laravel-clean-architecture/actions/workflows/ci.yml/badge.svg)](https://github.com/elber-canoles/laravel-clean-architecture/actions)
+[![CI](https://github.com/ElberCanoles/laravel-clean-architecture/actions/workflows/ci.yml/badge.svg)](https://github.com/ElberCanoles/laravel-clean-architecture/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![PHP 8.2+](https://img.shields.io/badge/PHP-8.2%2B-8892BF.svg)](https://php.net)
 [![Laravel 11+](https://img.shields.io/badge/Laravel-11%2B-FF2D20.svg)](https://laravel.com)
