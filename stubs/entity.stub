@@ -4,6 +4,9 @@ namespace {{Namespace}}\Domain\Entities;
 
 final class {{Class}}
 {
+    /** @var object[] */
+    private array $domainEvents = [];
+
     public function __construct(
         private readonly string $id,
     ) {
@@ -17,5 +20,19 @@ final class {{Class}}
     public function id(): string
     {
         return $this->id;
+    }
+
+    protected function recordEvent(object $event): void
+    {
+        $this->domainEvents[] = $event;
+    }
+
+    /** @return object[] */
+    public function releaseEvents(): array
+    {
+        $events = $this->domainEvents;
+        $this->domainEvents = [];
+
+        return $events;
     }
 }

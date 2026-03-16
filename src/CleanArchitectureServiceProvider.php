@@ -8,6 +8,7 @@ use CleanArchitecture\Console\MakeCommand;
 use CleanArchitecture\Console\MakeController;
 use CleanArchitecture\Console\MakeDomainEvent;
 use CleanArchitecture\Console\MakeEntity;
+use CleanArchitecture\Console\MakeException;
 use CleanArchitecture\Console\MakeMapper;
 use CleanArchitecture\Console\MakeQuery;
 use CleanArchitecture\Console\MakeReadModel;
@@ -17,6 +18,7 @@ use CleanArchitecture\Console\MakeResource;
 use CleanArchitecture\Console\MakeSanitizer;
 use CleanArchitecture\Console\MakeScaffold;
 use CleanArchitecture\Console\MakeSpecification;
+use CleanArchitecture\Console\MakeTest;
 use CleanArchitecture\Console\MakeValueObject;
 use CleanArchitecture\Kernel\ModuleLoader;
 use Illuminate\Support\ServiceProvider;
@@ -50,9 +52,11 @@ class CleanArchitectureServiceProvider extends ServiceProvider
                 MakeReadModel::class,
                 MakeArchTest::class,
                 MakeDomainEvent::class,
+                MakeException::class,
                 MakeMapper::class,
                 MakeSanitizer::class,
                 MakeScaffold::class,
+                MakeTest::class,
                 MakeController::class,
                 MakeRequest::class,
                 MakeResource::class,

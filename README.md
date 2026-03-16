@@ -5,7 +5,7 @@
 [![PHP 8.2+](https://img.shields.io/badge/PHP-8.2%2B-8892BF.svg)](https://php.net)
 [![Laravel 11+](https://img.shields.io/badge/Laravel-11%2B-FF2D20.svg)](https://laravel.com)
 
-A Laravel package that provides scaffolding for **Domain-Driven Design (DDD)** and **Clean Architecture**. It generates bounded contexts, entities, repositories, value objects, CQRS commands/queries, and architecture tests — enforcing clean dependency rules from day one.
+A Laravel package that provides scaffolding for **Domain-Driven Design (DDD)**, **Clean Architecture**, and **CQRS**. It generates bounded contexts with separated read/write repositories, domain events, mappers, sanitizers, and architecture tests — enforcing clean dependency rules from day one.
 
 ---
 
@@ -95,36 +95,48 @@ flowchart TD
     subgraph Context ["Billing Context"]
 
         subgraph Presentation ["Presentation Layer"]
-            Controllers["Controllers, Routes, Requests"]
+            Controllers["Controllers\nRequests, Resources, Routes"]
         end
 
         subgraph Application ["Application Layer"]
             Commands["Commands + Handlers\nWrite operations"]
             Queries["Queries + Handlers\nRead operations"]
+            Contracts["Contracts\nReadRepository interfaces"]
             ReadModels["Read Models\nReadonly DTOs"]
+            Sanitizers["Sanitizers\nInput normalization"]
         end
 
         subgraph Domain ["Domain Layer"]
-            Entities["Entities\nInvoice, Payment"]
-            ValueObjects["Value Objects\nMoney, Address"]
-            RepoInterfaces["Repository Interfaces\nInvoiceRepository"]
-            Specifications["Specifications\nInvoiceOverdue"]
+            Entities["Entities\nwith factory methods + events"]
+            ValueObjects["Value Objects\nwith self-validation"]
+            WriteRepoInterfaces["WriteRepository Interfaces"]
+            Specifications["Specifications\nwith and()/or()/not()"]
+            Events["Domain Events"]
+            Exceptions["Domain Exceptions"]
         end
 
         subgraph Infrastructure ["Infrastructure Layer"]
-            Eloquent["Eloquent Repositories"]
+            WriteEloquent["WriteEloquent Repositories"]
+            ReadEloquent["ReadEloquent Repositories"]
+            Mappers["Mappers\nEntity ↔ Model"]
             Provider["ServiceProvider"]
         end
     end
 
     Controllers -- "Dispatches" --> Commands
     Controllers -- "Dispatches" --> Queries
+    Controllers --> Sanitizers
+    Commands -- "Depends on" --> WriteRepoInterfaces
     Commands --> Entities
-    Commands -- "Depends on interface" --> RepoInterfaces
+    Queries -- "Depends on" --> Contracts
     Queries --> ReadModels
+    Entities --> Events
     Specifications --> Entities
-    Eloquent -. "Implements" .-> RepoInterfaces
-    Provider -. "Binds" .-> Eloquent
+    WriteEloquent -. "Implements" .-> WriteRepoInterfaces
+    ReadEloquent -. "Implements" .-> Contracts
+    WriteEloquent --> Mappers
+    Provider -. "Binds" .-> WriteEloquent
+    Provider -. "Binds" .-> ReadEloquent
 ```
 
 ---
@@ -141,8 +153,10 @@ The **heart of the system**. Contains pure business logic with zero dependencies
 src/{Context}/Domain/
 ├── Entities/
 ├── ValueObjects/
-├── Repositories/
-└── Specifications/
+├── Repositories/       # WriteRepository interfaces only
+├── Specifications/
+├── Events/
+└── Exceptions/
 ```
 
 #### Entities
@@ -154,14 +168,33 @@ namespace App\Billing\Domain\Entities;
 
 final class Invoice
 {
+    private array $domainEvents = [];
+
     public function __construct(
         private readonly string $id,
     ) {
     }
 
+    public static function create(string $id): self
+    {
+        return new self($id);
+    }
+
     public function id(): string
     {
         return $this->id;
+    }
+
+    protected function recordEvent(object $event): void
+    {
+        $this->domainEvents[] = $event;
+    }
+
+    public function releaseEvents(): array
+    {
+        $events = $this->domainEvents;
+        $this->domainEvents = [];
+        return $events;
     }
 }
 ```
@@ -169,7 +202,8 @@ final class Invoice
 | Characteristic | Rule |
 |---------------|------|
 | Identity | Every entity has a unique `id` |
-| Mutability | Can change state through domain methods |
+| Factory method | `create()` — named constructor for expressive creation |
+| Events | `recordEvent()` / `releaseEvents()` — collect domain events for dispatch |
 | Keyword | `final class` — prevents inheritance to protect invariants |
 | Dependencies | None outside Domain layer |
 
@@ -185,6 +219,9 @@ readonly class Money
     public function __construct(
         public string $value,
     ) {
+        if (trim($value) === '') {
+            throw new \InvalidArgumentException('Money cannot be empty.');
+        }
     }
 
     public function equals(self $other): bool
@@ -202,34 +239,46 @@ readonly class Money
 | Characteristic | Rule |
 |---------------|------|
 | Immutability | `readonly class` — cannot be modified after creation |
+| Self-validation | Constructor rejects invalid state immediately |
 | Equality | Compared by value via `equals()`, not by reference |
-| Side effects | None — always safe to share and pass around |
 | Dependencies | None outside Domain layer |
 
-#### Repository Interfaces
+#### Repository Interfaces (CQRS Split)
 
-**Contracts** that define how the domain accesses persistence, without specifying the implementation. The domain depends on the interface; the infrastructure provides the implementation.
+Repositories follow the **CQRS pattern**: write operations are separated from read operations. The **WriteRepository** lives in Domain, the **ReadRepository** lives in Application/Contracts.
 
 ```php
+// Domain/Repositories — write operations only
 namespace App\Billing\Domain\Repositories;
 
 use App\Billing\Domain\Entities\Invoice;
 
-interface InvoiceRepository
+interface InvoiceWriteRepository
 {
-    public function find(string $id): ?Invoice;
-
     public function save(Invoice $entity): void;
-
     public function delete(string $id): void;
+}
+```
+
+```php
+// Application/Contracts — read operations, returns ReadModels
+namespace App\Billing\Application\Contracts;
+
+use App\Billing\Application\ReadModels\InvoiceReadModel;
+
+interface InvoiceReadRepository
+{
+    public function findById(string $id): ?InvoiceReadModel;
+    public function findAll(): array;
 }
 ```
 
 | Characteristic | Rule |
 |---------------|------|
 | Type | `interface` — never a concrete class in Domain |
-| Methods | Standard CRUD: `find`, `save`, `delete` |
-| Purpose | Decouples domain from persistence mechanism |
+| Write | `save`, `delete` — works with entities |
+| Read | `findById`, `findAll` — returns read models |
+| Purpose | Decouples domain from persistence + enforces CQRS |
 | Implementation | Lives in Infrastructure layer (Eloquent, API, etc.) |
 
 #### Specifications
@@ -244,9 +293,15 @@ class InvoiceOverdueSpecification
     public function isSatisfiedBy(mixed $candidate): bool
     {
         // Business rule: is this invoice past its due date?
-        return true;
     }
+
+    public function and(self $other): static { /* ... */ }
+    public function or(self $other): static { /* ... */ }
+    public function not(): static { /* ... */ }
 }
+
+// Compose specifications:
+// $overdue->and($highValue)->or($flagged->not())
 ```
 
 | Characteristic | Rule |
@@ -273,7 +328,9 @@ src/{Context}/Application/
 │       ├── {Name}Query.php
 │       ├── {Name}Handler.php
 │       └── {Name}ReadModel.php
-└── ReadModels/
+├── Contracts/          # ReadRepository interfaces
+├── ReadModels/         # Standalone read models
+└── Sanitizers/         # Input sanitization
 ```
 
 #### Commands (Write Operations)
@@ -281,30 +338,32 @@ src/{Context}/Application/
 A **Command** represents an intention to change state. It is a simple DTO (Data Transfer Object) carrying the data needed for the operation. The **Handler** executes the use case.
 
 ```php
-// Command — carries data, no logic
+// Command — immutable DTO with input data
 namespace App\Billing\Application\Commands\PayInvoice;
 
-class PayInvoiceCommand
+readonly class PayInvoiceCommand
 {
-    public function __construct()
-    {
+    public function __construct(
+        public string $id,
+    ) {
     }
 }
 
-// Handler — orchestrates the use case
+// Handler — orchestrates the use case, repository injected via --entity flag
 namespace App\Billing\Application\Commands\PayInvoice;
+
+use App\Billing\Domain\Repositories\InvoiceWriteRepository;
 
 class PayInvoiceHandler
 {
-    public function __construct()
-    {
+    public function __construct(
+        private readonly InvoiceWriteRepository $repository,
+    ) {
     }
 
     public function handle(PayInvoiceCommand $command): void
     {
-        // 1. Load entity from repository
-        // 2. Execute domain logic
-        // 3. Persist changes
+        // Load or create entity, execute domain logic, persist via repository
     }
 }
 ```
@@ -320,39 +379,32 @@ class PayInvoiceHandler
 A **Query** represents a request for data. The **Handler** fetches and returns a **ReadModel** — a flat, optimized representation of the data.
 
 ```php
-// Query — what data is being requested
-namespace App\Billing\Application\Queries\ListInvoices;
+// Query — immutable DTO with query parameters
+namespace App\Billing\Application\Queries\GetInvoice;
 
-class ListInvoicesQuery
-{
-    public function __construct()
-    {
-    }
-}
-
-// Handler — fetches data and returns a ReadModel
-namespace App\Billing\Application\Queries\ListInvoices;
-
-class ListInvoicesHandler
-{
-    public function __construct()
-    {
-    }
-
-    public function handle(ListInvoicesQuery $query): ListInvoicesReadModel
-    {
-        // Fetch and return projection
-    }
-}
-
-// ReadModel — readonly projection of the data
-namespace App\Billing\Application\Queries\ListInvoices;
-
-readonly class ListInvoicesReadModel
+readonly class GetInvoiceQuery
 {
     public function __construct(
         public string $id,
     ) {
+    }
+}
+
+// Handler — fetches data via ReadRepository, injected via --entity flag
+namespace App\Billing\Application\Queries\GetInvoice;
+
+use App\Billing\Application\Contracts\InvoiceReadRepository;
+
+class GetInvoiceHandler
+{
+    public function __construct(
+        private readonly InvoiceReadRepository $repository,
+    ) {
+    }
+
+    public function handle(GetInvoiceQuery $query): GetInvoiceReadModel
+    {
+        // Use repository to fetch and return read model
     }
 }
 ```
@@ -388,73 +440,96 @@ readonly class InvoiceSummaryReadModel
 ```
 src/{Context}/Infrastructure/
 ├── {Context}ServiceProvider.php
-└── {Name}EloquentRepository.php
+├── {Name}WriteEloquentRepository.php
+├── {Name}ReadEloquentRepository.php
+└── {Name}Mapper.php
 ```
 
-#### Eloquent Repositories
+#### Eloquent Repositories (CQRS)
 
-Concrete implementations of the repository interfaces using Laravel's Eloquent ORM.
+Separate implementations for write and read operations:
 
 ```php
+// Write — works with entities
 namespace App\Billing\Infrastructure;
 
 use App\Billing\Domain\Entities\Invoice;
-use App\Billing\Domain\Repositories\InvoiceRepository;
+use App\Billing\Domain\Repositories\InvoiceWriteRepository;
 
-class InvoiceEloquentRepository implements InvoiceRepository
+class InvoiceWriteEloquentRepository implements InvoiceWriteRepository
 {
-    public function find(string $id): ?Invoice
-    {
-        // Eloquent query
-    }
-
     public function save(Invoice $entity): void
     {
-        // Eloquent persist
+        $data = InvoiceMapper::toArray($entity);
+        // YourEloquentModel::updateOrCreate(['id' => $entity->id()], $data);
     }
 
     public function delete(string $id): void
     {
-        // Eloquent delete
+        // YourEloquentModel::destroy($id);
+    }
+}
+```
+
+```php
+// Read — returns read models
+namespace App\Billing\Infrastructure;
+
+use App\Billing\Application\Contracts\InvoiceReadRepository;
+use App\Billing\Application\ReadModels\InvoiceReadModel;
+
+class InvoiceReadEloquentRepository implements InvoiceReadRepository
+{
+    public function findById(string $id): ?InvoiceReadModel { /* ... */ }
+    public function findAll(): array { /* ... */ }
+}
+```
+
+#### Mapper
+
+Bridges the gap between entities and Eloquent models:
+
+```php
+namespace App\Billing\Infrastructure;
+
+final class InvoiceMapper
+{
+    public static function toArray(Invoice $entity): array
+    {
+        return ['id' => $entity->id(), /* ... */];
+    }
+
+    public static function toEntity(object $model): Invoice
+    {
+        return new Invoice(id: $model->id, /* ... */);
     }
 }
 ```
 
 #### Context ServiceProvider
 
-Each bounded context has its own ServiceProvider where you **bind interfaces to implementations** and register event listeners. Routes are **automatically loaded** from `Presentation/Routes/api.php`.
+Each bounded context has its own ServiceProvider where you **bind repository interfaces to implementations**. Routes are **automatically loaded** from `Presentation/Routes/api.php`.
 
 ```php
 namespace App\Billing\Infrastructure;
-
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\ServiceProvider;
 
 class BillingServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // Bind repository interface to Eloquent implementation
-        // $this->app->bind(InvoiceRepository::class, InvoiceEloquentRepository::class);
+        // This provider is auto-discovered by the CleanArchitecture package.
+        // No manual registration in bootstrap/providers.php is needed.
+
+        $this->app->bind(InvoiceWriteRepository::class, InvoiceWriteEloquentRepository::class);
+        $this->app->bind(InvoiceReadRepository::class, InvoiceReadEloquentRepository::class);
     }
 
     public function boot(): void
     {
         $this->loadRoutes();
     }
-
-    protected function loadRoutes(): void
-    {
-        $routesPath = __DIR__ . '/../Presentation/Routes/api.php';
-
-        if (file_exists($routesPath)) {
-            Route::middleware('api')->group($routesPath);
-        }
-    }
 }
 ```
-
-This provider is **auto-discovered** by the package — no manual registration needed. The route file is loaded with the `api` middleware group automatically.
 
 ---
 
@@ -478,21 +553,30 @@ Handle HTTP requests and delegate to Application layer commands/queries.
 ```php
 namespace App\Billing\Presentation\Controllers;
 
+use App\Billing\Presentation\Requests\InvoiceRequest;
+use App\Billing\Presentation\Resources\InvoiceResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 
 class InvoiceController extends Controller
 {
-    public function index(): JsonResponse
-    {
-        // Dispatch query to Application layer
-        return response()->json([]);
+    public function __construct(
+        // Inject command/query handlers
+    ) {
     }
 
-    public function store(/* StoreInvoiceRequest $request */): JsonResponse
+    public function store(InvoiceRequest $request): JsonResponse
     {
-        // Dispatch command to Application layer
+        // $sanitized = InvoiceSanitizer::sanitize($request->validated());
+        // $this->createHandler->handle(new CreateInvoiceCommand(...$sanitized));
         return response()->json([], 201);
+    }
+
+    public function show(string $id): JsonResponse
+    {
+        // $readModel = $this->showHandler->handle(new GetInvoiceQuery($id));
+        // return new InvoiceResource($readModel);
+        return response()->json([]);
     }
 }
 ```
@@ -506,17 +590,18 @@ namespace App\Billing\Presentation\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class StoreInvoiceRequest extends FormRequest
+class InvoiceRequest extends FormRequest
 {
     public function authorize(): bool
     {
+        // TODO: Implement authorization
         return true;
     }
 
     public function rules(): array
     {
         return [
-            // Validation rules
+            // 'name' => ['required', 'string', 'max:255'],
         ];
     }
 }
@@ -524,7 +609,7 @@ class StoreInvoiceRequest extends FormRequest
 
 #### API Resources
 
-Transform domain data into JSON responses.
+Transform read models into JSON responses:
 
 ```php
 namespace App\Billing\Presentation\Resources;
@@ -535,7 +620,11 @@ class InvoiceResource extends JsonResource
 {
     public function toArray($request): array
     {
-        return parent::toArray($request);
+        return [
+            'id' => $this->id,
+            // 'name' => $this->name,
+            // 'created_at' => $this->created_at?->toISOString(),
+        ];
     }
 }
 ```
@@ -577,6 +666,8 @@ graph LR
 |------|-------------|
 | Domain does not depend on Application | Architecture test |
 | Domain does not depend on Infrastructure | Architecture test |
+| Application does not depend on Presentation | Architecture test |
+| Application does not depend on Infrastructure | Architecture test |
 | Entities are `final` | Architecture test |
 | Repository interfaces are `interface` | Architecture test |
 | Value Objects are `readonly` | Architecture test |
@@ -610,29 +701,45 @@ php artisan vendor:publish --tag=clean-architecture-stubs
 
 ## Quick Start
 
-Create a complete bounded context in seconds:
+### Option A: Scaffold everything at once
 
 ```bash
 # 1. Create the Billing context (folders + ServiceProvider + routes + arch tests)
 php artisan clean:context Billing
 
+# 2. Scaffold a full entity with all layers in one command
+php artisan clean:scaffold Billing Invoice
+```
+
+This generates entity, CQRS repositories (write + read), mapper, read model, command (`CreateInvoice`) with handler wired to `InvoiceWriteRepository`, query (`GetInvoice`) with handler wired to `InvoiceReadRepository`, controller, request, resource, sanitizer, and a unit test.
+
+### Option B: Generate piece by piece
+
+```bash
+# 1. Create the Billing context
+php artisan clean:context Billing
+
 # 2. Generate domain objects
 php artisan clean:entity Billing Invoice
 php artisan clean:value-object Billing Money
-php artisan clean:repository Billing Invoice
+php artisan clean:repository Billing Invoice      # generates Write + Read repos, Eloquent impls, and mapper
+php artisan clean:read-model Billing Invoice       # standalone read model
 php artisan clean:specification Billing InvoiceOverdue
+php artisan clean:domain-event Billing InvoicePaid
+php artisan clean:exception Billing InvoiceNotFound
 
-# 3. Generate CQRS use cases
-php artisan clean:command Billing PayInvoice
-php artisan clean:query Billing ListInvoices
+# 3. Generate CQRS use cases (--entity wires repository injection automatically)
+php artisan clean:command Billing PayInvoice --entity=Invoice
+php artisan clean:query Billing GetInvoice --entity=Invoice
 
-# 4. Generate a standalone read model
-php artisan clean:read-model Billing InvoiceSummary
-
-# 5. Generate presentation layer
+# 4. Generate presentation layer
 php artisan clean:controller Billing Invoice
-php artisan clean:request Billing StoreInvoice
+php artisan clean:request Billing Invoice
 php artisan clean:resource Billing Invoice
+php artisan clean:sanitizer Billing Invoice
+
+# 5. Generate a unit test
+php artisan clean:test Billing Invoice
 ```
 
 Result:
@@ -641,40 +748,53 @@ Result:
 src/Billing/
 ├── Domain/
 │   ├── Entities/
-│   │   └── Invoice.php
+│   │   └── Invoice.php                        # with factory method + domain events
 │   ├── ValueObjects/
-│   │   └── Money.php
+│   │   └── Money.php                          # with self-validation
 │   ├── Repositories/
-│   │   └── InvoiceRepository.php          # interface
-│   └── Specifications/
-│       └── InvoiceOverdueSpecification.php
+│   │   └── InvoiceWriteRepository.php         # interface (write only)
+│   ├── Specifications/
+│   │   └── InvoiceOverdueSpecification.php    # with and()/or()/not()
+│   ├── Events/
+│   │   └── InvoicePaidEvent.php               # readonly with timestamp
+│   └── Exceptions/
+│       └── InvoiceNotFoundException.php
 ├── Application/
 │   ├── Commands/
-│   │   └── PayInvoice/
-│   │       ├── PayInvoiceCommand.php
-│   │       └── PayInvoiceHandler.php
+│   │   └── CreateInvoice/
+│   │       ├── CreateInvoiceCommand.php       # readonly DTO
+│   │       └── CreateInvoiceHandler.php       # injects WriteRepository
 │   ├── Queries/
-│   │   └── ListInvoices/
-│   │       ├── ListInvoicesQuery.php
-│   │       ├── ListInvoicesHandler.php
-│   │       └── ListInvoicesReadModel.php
-│   └── ReadModels/
-│       └── InvoiceSummaryReadModel.php
+│   │   └── GetInvoice/
+│   │       ├── GetInvoiceQuery.php            # readonly DTO
+│   │       ├── GetInvoiceHandler.php          # injects ReadRepository
+│   │       └── GetInvoiceReadModel.php
+│   ├── Contracts/
+│   │   └── InvoiceReadRepository.php          # interface (read only)
+│   ├── ReadModels/
+│   │   └── InvoiceReadModel.php
+│   └── Sanitizers/
+│       └── InvoiceSanitizer.php
 ├── Infrastructure/
-│   ├── BillingServiceProvider.php
-│   └── InvoiceEloquentRepository.php      # implements interface
+│   ├── BillingServiceProvider.php             # with binding examples
+│   ├── InvoiceWriteEloquentRepository.php
+│   ├── InvoiceReadEloquentRepository.php
+│   └── InvoiceMapper.php                      # Entity <-> Model bridge
 └── Presentation/
     ├── Controllers/
-    │   └── InvoiceController.php
+    │   └── InvoiceController.php              # with CQRS dispatch pattern
     ├── Requests/
-    │   └── StoreInvoiceRequest.php
+    │   └── InvoiceRequest.php
     ├── Resources/
-    │   └── InvoiceResource.php
+    │   └── InvoiceResource.php                # with field mapping
     └── Routes/
-        └── api.php                        # auto-loaded by ServiceProvider
+        └── api.php
 
 tests/Feature/Architecture/
-└── BillingArchTest.php
+└── BillingArchTest.php                        # 7 dependency rules
+
+tests/Unit/Domain/Billing/
+└── InvoiceTest.php                            # entity unit test
 ```
 
 ---
@@ -683,227 +803,44 @@ tests/Feature/Architecture/
 
 All commands support the `--force` flag to overwrite existing files.
 
-### `clean:context`
+| Command | Description | Output |
+|---------|-------------|--------|
+| `clean:context {name}` | Create bounded context with folders, ServiceProvider, routes, arch tests | Full folder structure |
+| `clean:scaffold {context} {name}` | Scaffold a full entity across all layers | 17+ files |
+| `clean:entity {context} {name}` | Domain entity with factory method and event recording | `Domain/Entities/{Name}.php` |
+| `clean:repository {context} {name}` | CQRS repositories (Write + Read interfaces, Eloquent impls, mapper) | 5 files |
+| `clean:read-model {context} {name}` | Standalone readonly read model | `Application/ReadModels/{Name}ReadModel.php` |
+| `clean:value-object {context} {name}` | Readonly value object with validation | `Domain/ValueObjects/{Name}.php` |
+| `clean:specification {context} {name}` | Composable specification with `and()`/`or()`/`not()` | `Domain/Specifications/{Name}Specification.php` |
+| `clean:domain-event {context} {name}` | Readonly domain event with timestamp | `Domain/Events/{Name}Event.php` |
+| `clean:exception {context} {name}` | Domain exception extending `\DomainException` | `Domain/Exceptions/{Name}Exception.php` |
+| `clean:command {context} {name} [--entity=]` | CQRS command + handler (optionally injects WriteRepository) | `Application/Commands/{Name}/` |
+| `clean:query {context} {name} [--entity=]` | CQRS query + handler + read model (optionally injects ReadRepository) | `Application/Queries/{Name}/` |
+| `clean:mapper {context} {name}` | Entity-Model mapper | `Infrastructure/{Name}Mapper.php` |
+| `clean:sanitizer {context} {name}` | Input sanitizer | `Application/Sanitizers/{Name}Sanitizer.php` |
+| `clean:controller {context} {name}` | Controller with CQRS dispatch pattern | `Presentation/Controllers/{Name}Controller.php` |
+| `clean:request {context} {name}` | Form request with authorization | `Presentation/Requests/{Name}Request.php` |
+| `clean:resource {context} {name}` | API resource with field mapping | `Presentation/Resources/{Name}Resource.php` |
+| `clean:test {context} {name}` | Pest unit test for domain entity | `tests/Unit/Domain/{Context}/{Name}Test.php` |
+| `clean:arch-test {context}` | Architecture dependency tests | `tests/Feature/Architecture/{Context}ArchTest.php` |
 
-Creates a full bounded context with folder structure, ServiceProvider, routes, and architecture tests.
+### The `--entity` flag
 
-```bash
-php artisan clean:context {name} [--force]
-```
-
-```bash
-php artisan clean:context Billing
-```
-
-### `clean:entity`
-
-Creates a final domain entity with id and constructor.
-
-```bash
-php artisan clean:entity {context} {name} [--force]
-```
-
-```bash
-php artisan clean:entity Billing Invoice
-# Output: src/Billing/Domain/Entities/Invoice.php
-```
-
-### `clean:repository`
-
-Creates a repository interface in Domain and an Eloquent implementation in Infrastructure.
+The `clean:command` and `clean:query` commands accept an optional `--entity` flag that automatically injects the typed repository:
 
 ```bash
-php artisan clean:repository {context} {name} [--force]
+# Handler will inject InvoiceWriteRepository
+php artisan clean:command Billing PayInvoice --entity=Invoice
+
+# Handler will inject InvoiceReadRepository
+php artisan clean:query Billing GetInvoice --entity=Invoice
 ```
 
-```bash
-php artisan clean:repository Billing Invoice
-# Output: src/Billing/Domain/Repositories/InvoiceRepository.php      (interface)
-#         src/Billing/Infrastructure/InvoiceEloquentRepository.php    (implementation)
-```
-
-### `clean:value-object`
-
-Creates a readonly value object with `equals()` and `__toString()`.
-
-```bash
-php artisan clean:value-object {context} {name} [--force]
-```
-
-```bash
-php artisan clean:value-object Billing Money
-# Output: src/Billing/Domain/ValueObjects/Money.php
-```
-
-### `clean:specification`
-
-Creates a domain specification with `isSatisfiedBy()`.
-
-```bash
-php artisan clean:specification {context} {name} [--force]
-```
-
-```bash
-php artisan clean:specification Billing InvoiceOverdue
-# Output: src/Billing/Domain/Specifications/InvoiceOverdueSpecification.php
-```
-
-### `clean:read-model`
-
-Creates a standalone readonly read model in the Application layer.
-
-```bash
-php artisan clean:read-model {context} {name} [--force]
-```
-
-```bash
-php artisan clean:read-model Billing InvoiceSummary
-# Output: src/Billing/Application/ReadModels/InvoiceSummaryReadModel.php
-```
-
-### `clean:command`
-
-Creates a CQRS command and its handler.
-
-```bash
-php artisan clean:command {context} {name} [--force]
-```
-
-```bash
-php artisan clean:command Billing PayInvoice
-# Output: src/Billing/Application/Commands/PayInvoice/PayInvoiceCommand.php
-#         src/Billing/Application/Commands/PayInvoice/PayInvoiceHandler.php
-```
-
-### `clean:query`
-
-Creates a CQRS query, handler, and read model.
-
-```bash
-php artisan clean:query {context} {name} [--force]
-```
-
-```bash
-php artisan clean:query Billing ListInvoices
-# Output: src/Billing/Application/Queries/ListInvoices/ListInvoicesQuery.php
-#         src/Billing/Application/Queries/ListInvoices/ListInvoicesHandler.php
-#         src/Billing/Application/Queries/ListInvoices/ListInvoicesReadModel.php
-```
-
-### `clean:arch-test`
-
-Creates Pest architecture tests for a bounded context.
-
-```bash
-php artisan clean:arch-test {context} [--force]
-```
-
-```bash
-php artisan clean:arch-test Billing
-# Output: tests/Feature/Architecture/BillingArchTest.php
-```
-
-### `clean:controller`
-
-Creates a controller in the Presentation layer with CRUD methods.
-
-```bash
-php artisan clean:controller {context} {name} [--force]
-```
-
-```bash
-php artisan clean:controller Billing Invoice
-# Output: src/Billing/Presentation/Controllers/InvoiceController.php
-```
-
-### `clean:request`
-
-Creates a form request in the Presentation layer.
-
-```bash
-php artisan clean:request {context} {name} [--force]
-```
-
-```bash
-php artisan clean:request Billing StoreInvoice
-# Output: src/Billing/Presentation/Requests/StoreInvoiceRequest.php
-```
-
-### `clean:resource`
-
-Creates an API resource (JsonResource) in the Presentation layer.
-
-```bash
-php artisan clean:resource {context} {name} [--force]
-```
-
-```bash
-php artisan clean:resource Billing Invoice
-# Output: src/Billing/Presentation/Resources/InvoiceResource.php
-```
+Without `--entity`, the handler gets a TODO comment instead.
 
 ---
 
 ## Configuration
-
-```php
-// config/clean-architecture.php
-
-return [
-    /*
-    |--------------------------------------------------------------------------
-    | Contexts Path
-    |--------------------------------------------------------------------------
-    |
-    | The directory where bounded contexts are stored, relative to base_path().
-    |
-    */
-    'contexts_path' => 'src',
-
-    /*
-    |--------------------------------------------------------------------------
-    | Namespace Prefix
-    |--------------------------------------------------------------------------
-    |
-    | The root namespace prefix for all bounded contexts.
-    | e.g. App\Billing, App\Inventory, etc.
-    |
-    */
-    'namespace_prefix' => 'App',
-
-    /*
-    |--------------------------------------------------------------------------
-    | Auto-discover Contexts
-    |--------------------------------------------------------------------------
-    |
-    | When enabled, the package will automatically discover and register
-    | service providers found in each context's Infrastructure directory.
-    |
-    */
-    'auto_discover' => true,
-
-    /*
-    |--------------------------------------------------------------------------
-    | Auto-load Contexts
-    |--------------------------------------------------------------------------
-    |
-    | When enabled, the package will automatically register PSR-4 autoloading
-    | for all bounded contexts in the contexts_path directory.
-    |
-    */
-    'auto_load' => true,
-
-    /*
-    |--------------------------------------------------------------------------
-    | Architecture Tests Path
-    |--------------------------------------------------------------------------
-    |
-    | The directory where architecture tests are generated, relative to base_path().
-    |
-    */
-    'arch_tests_path' => 'tests/Feature/Architecture',
-];
-```
 
 | Option | Default | Description |
 |--------|---------|-------------|
@@ -912,6 +849,7 @@ return [
 | `auto_discover` | `true` | Auto-register `{Context}ServiceProvider` from each context |
 | `auto_load` | `true` | Auto-register PSR-4 autoloading for all `src/` contexts |
 | `arch_tests_path` | `tests/Feature/Architecture` | Where generated architecture tests are stored |
+| `unit_tests_path` | `tests/Unit/Domain` | Where generated domain unit tests are stored |
 
 ---
 
@@ -945,12 +883,14 @@ App\Shipping\   --> src/Shipping/
 
 The `clean:context` and `clean:arch-test` commands generate Pest architecture tests that **enforce DDD dependency rules** automatically.
 
-Generated tests for each context:
+Generated tests for each context (7 rules):
 
 | Test | What it enforces |
 |------|-----------------|
 | Domain does not depend on Infrastructure | Domain layer has zero external dependencies |
 | Domain does not depend on Application | Domain never calls use cases or handlers |
+| Application does not depend on Presentation | Use cases never reference controllers or requests |
+| Application does not depend on Infrastructure | Use cases never reference Eloquent or providers |
 | Entities are final classes | Prevents inheritance that could break invariants |
 | Repositories in Domain are interfaces | Domain defines contracts, never implementations |
 | Value Objects are readonly | Guarantees immutability |
@@ -980,16 +920,23 @@ Available stubs:
 | Stub | Used by | Placeholders |
 |------|---------|-------------|
 | `entity.stub` | `clean:entity` | `{{Namespace}}`, `{{Class}}` |
-| `repository.stub` | `clean:repository` | `{{Namespace}}`, `{{Class}}` |
-| `eloquent-repository.stub` | `clean:repository` | `{{Namespace}}`, `{{Class}}` |
+| `write-repository.stub` | `clean:repository` | `{{Namespace}}`, `{{Class}}` |
+| `read-repository.stub` | `clean:repository` | `{{Namespace}}`, `{{Class}}` |
+| `write-eloquent-repository.stub` | `clean:repository` | `{{Namespace}}`, `{{Class}}` |
+| `read-eloquent-repository.stub` | `clean:repository` | `{{Namespace}}`, `{{Class}}` |
+| `mapper.stub` | `clean:repository`, `clean:mapper` | `{{Namespace}}`, `{{Class}}` |
 | `value-object.stub` | `clean:value-object` | `{{Namespace}}`, `{{Class}}` |
 | `specification.stub` | `clean:specification` | `{{Namespace}}`, `{{Class}}` |
 | `read-model.stub` | `clean:read-model` | `{{Namespace}}`, `{{Class}}` |
 | `command.stub` | `clean:command` | `{{Namespace}}`, `{{Class}}` |
-| `command-handler.stub` | `clean:command` | `{{Namespace}}`, `{{Class}}` |
+| `command-handler.stub` | `clean:command` | `{{Namespace}}`, `{{Class}}`, `{{EntityImport}}`, `{{EntityConstructor}}` |
 | `query.stub` | `clean:query` | `{{Namespace}}`, `{{Class}}` |
-| `query-handler.stub` | `clean:query` | `{{Namespace}}`, `{{Class}}` |
+| `query-handler.stub` | `clean:query` | `{{Namespace}}`, `{{Class}}`, `{{EntityImport}}`, `{{EntityConstructor}}` |
 | `query-read-model.stub` | `clean:query` | `{{Namespace}}`, `{{Class}}` |
+| `domain-event.stub` | `clean:domain-event` | `{{Namespace}}`, `{{Class}}` |
+| `domain-exception.stub` | `clean:exception` | `{{Namespace}}`, `{{Class}}` |
+| `sanitizer.stub` | `clean:sanitizer` | `{{Namespace}}`, `{{Class}}` |
+| `unit-test.stub` | `clean:test` | `{{Namespace}}`, `{{Class}}` |
 | `service-provider.stub` | `clean:context` | `{{Namespace}}`, `{{Context}}` |
 | `routes.stub` | `clean:context` | `{{prefix}}` |
 | `controller.stub` | `clean:controller` | `{{Namespace}}`, `{{Class}}` |

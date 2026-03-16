@@ -1,0 +1,11 @@
+<?php
+
+namespace {{Namespace}}\Domain\Exceptions;
+
+class {{Class}}Exception extends \DomainException
+{
+    public static function withMessage(string $message): self
+    {
+        return new self($message);
+    }
+}

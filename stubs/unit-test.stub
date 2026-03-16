@@ -1,0 +1,18 @@
+<?php
+
+use {{Namespace}}\Domain\Entities\{{Class}};
+
+test('it can create a {{Class}}', function () {
+    $entity = {{Class}}::create('test-id');
+
+    expect($entity)->toBeInstanceOf({{Class}}::class)
+        ->and($entity->id())->toBe('test-id');
+});
+
+test('it can record and release domain events', function () {
+    $entity = {{Class}}::create('test-id');
+
+    $events = $entity->releaseEvents();
+
+    expect($events)->toBeArray();
+});

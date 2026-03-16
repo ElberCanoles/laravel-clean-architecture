@@ -31,6 +31,9 @@ test('scaffolds all files for an entity', function () {
     expect(file_exists($this->tempDir . '/Billing/Presentation/Requests/InvoiceRequest.php'))->toBeTrue();
     expect(file_exists($this->tempDir . '/Billing/Presentation/Resources/InvoiceResource.php'))->toBeTrue();
     expect(file_exists($this->tempDir . '/Billing/Application/Sanitizers/InvoiceSanitizer.php'))->toBeTrue();
+
+    // Unit test
+    expect(file_exists($this->tempDir . '/tests/Unit/Domain/Billing/InvoiceTest.php'))->toBeTrue();
 });
 
 test('scaffold passes --force to sub-commands', function () {

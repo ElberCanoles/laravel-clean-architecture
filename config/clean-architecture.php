@@ -53,4 +53,14 @@ return [
     |
     */
     'arch_tests_path' => 'tests/Feature/Architecture',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Unit Tests Path
+    |--------------------------------------------------------------------------
+    |
+    | The directory where domain unit tests are generated, relative to base_path().
+    |
+    */
+    'unit_tests_path' => 'tests/Unit/Domain',
 ];
