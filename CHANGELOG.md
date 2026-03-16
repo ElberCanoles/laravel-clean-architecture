@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com), and this project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.2.0] - 2026-03-16
+
+### Added
+
+- **Full CRUD scaffold** — `clean:scaffold` now generates all 5 CRUD operations out of the box:
+  - `CreateEntity` command + handler (already existed)
+  - `UpdateEntity` command + handler (new)
+  - `DeleteEntity` command + handler (new)
+  - `GetEntity` query + handler (already existed)
+  - `ListEntities` collection query + handler with pagination (new)
+- **Eloquent Model generator** — `clean:model {context} {name}` generates a `HasUuids` Eloquent model in `Infrastructure/Models/` with auto-computed table name (`OrderItem` → `order_items`)
+- **Domain Event Dispatcher** — `DispatchesDomainEvents` trait for write repositories; dispatches domain events via Laravel's `event()` helper after entity persistence, with `method_exists()` guard and automatic event clearing to prevent double dispatch
+- `--collection` option on `clean:query` — generates a list/collection query with `$page` and `$perPage` pagination parameters instead of `$id`, and a handler that returns `array`
+- `toPluralStudly()` helper in `BaseGenerator` — computes plural form for entity names (`Invoice` → `Invoices`, `Category` → `Categories`)
+- New stubs: `model.stub`, `list-query.stub`, `list-query-handler.stub`
+- New controller stub placeholders: `{{IndexBody}}`, `{{UpdateBody}}`, `{{DestroyBody}}`
+
+### Changed
+
+- **Controller wiring** — `clean:controller --entity` now injects all 5 handlers (create, update, delete, get, list) and wires all 5 methods (`index`, `show`, `store`, `update`, `destroy`) with working implementations
+- **Repository stubs** — `write-eloquent-repository.stub` and `read-eloquent-repository.stub` now use real `{{Class}}Model` code instead of commented-out `YourEloquentModel` placeholders; write repository includes `DispatchesDomainEvents` trait and dispatches events after save
+- **Mapper stub** — `toEntity()` now type-hints `{{Class}}Model` instead of `object`
+- **Scaffold command** — uses indexed array format internally; generates model, update/delete commands, and list query in addition to existing files
+- `controller.stub` — all 5 methods now use replaceable placeholders instead of hardcoded TODOs
+
+### Fixed
+
+- Generated repositories are now functional out of the box — no more commented-out Eloquent code requiring manual uncommenting
+- Generated controllers wire all 5 RESTful operations instead of leaving `index()`, `update()`, and `destroy()` as TODOs
+
 ## [1.1.0] - 2026-03-16
 
 ### Added
