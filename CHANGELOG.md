@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com), and this project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.1.0] - 2026-03-16
+
+### Added
+
+- **Wired scaffold output** — `clean:scaffold` now produces fully connected files out of the box instead of TODO placeholders:
+  - Controller is generated with `--entity`, injecting `CreateHandler` and `GetHandler` with working `store()` and `show()` methods
+  - ServiceProvider bindings are wired automatically between `// {bindings}` / `// {/bindings}` markers (duplicates are skipped on re-run)
+  - Routes are wired with `Route::apiResource('{plural-kebab}', Controller::class)` between `// {routes}` / `// {/routes}` markers
+- `--entity` option on `clean:controller` — wires CQRS handler imports, constructor injection, and `store()`/`show()` method bodies; without it, TODO placeholders are generated
+- `--routes` option on `clean:context` — controls which route files are generated: `api` (default), `web`, or `both`
+- `toKebabPlural()` helper in `BaseGenerator` — converts PascalCase names to plural kebab-case for route resource names (e.g. `LineItem` → `line-items`)
+- Binding markers (`// {bindings}` / `// {/bindings}`) in `service-provider.stub` — scaffold inserts real bindings here
+- Route markers (`// {routes}` / `// {/routes}`) in `routes.stub` — scaffold inserts apiResource routes here
+- New controller stub placeholders: `{{ControllerImports}}`, `{{ControllerConstructor}}`, `{{ShowBody}}`, `{{StoreBody}}`
+
+### Changed
+
+- `service-provider.stub` — `loadRoutes()` now uses a foreach over `['api', 'web']`, loading both route files if they exist (previously hardcoded to `api.php` only)
+- `write-eloquent-repository.stub` — `Mapper::toArray($entity)` call is now uncommented in `save()` (only the Eloquent model line remains as TODO)
+- `clean:scaffold` now passes `--entity` to `clean:controller` for automatic handler wiring
+- `clean:context` `generateRoutes()` respects the new `--routes` option
+
+### Fixed
+
+- Scaffold no longer generates disconnected files — controllers, service providers, and routes are wired together automatically when a bounded context exists
+- Graceful handling when scaffolding without a prior `clean:context` — warns about missing ServiceProvider/routes instead of failing
+
 ## [1.0.0] - 2026-03-15
 
 ### Added
