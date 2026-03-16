@@ -14,7 +14,7 @@ class {{Class}}WriteEloquentRepository implements {{Class}}WriteRepository
     public function save({{Class}} $entity): void
     {
         $data = {{Class}}Mapper::toArray($entity);
-        {{Class}}Model::updateOrCreate(['id' => $entity->id()], $data);
+        {{Class}}Model::query()->updateOrCreate(['id' => $entity->id()], $data);
         $this->dispatchDomainEvents($entity);
     }
 

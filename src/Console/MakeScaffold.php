@@ -93,11 +93,6 @@ class MakeScaffold extends BaseGenerator
                 'name' => $name,
                 '--force' => $force,
             ]],
-            ['clean:test', [
-                'context' => $context,
-                'name' => $name,
-                '--force' => $force,
-            ]],
         ];
 
         foreach ($commands as [$command, $arguments]) {

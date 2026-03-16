@@ -40,16 +40,22 @@ class MakeQuery extends BaseGenerator
         if ($entity) {
             $entityImport = "use {$namespace}\\Application\\Contracts\\{$entity}ReadRepository;\nuse {$namespace}\\Application\\ReadModels\\{$entity}ReadModel;";
             $entityConstructor = "private readonly {$entity}ReadRepository \$repository,";
-            $returnType = "{$entity}ReadModel";
+            $returnType = $isCollection ? "{$entity}ReadModel" : "?{$entity}ReadModel";
+            $handlerBody = $isCollection
+                ? 'return $this->repository->findAll();'
+                : 'return $this->repository->findById($query->id);';
         } else {
             $entityImport = '';
             $entityConstructor = '// TODO: Inject your ReadRepository';
-            $returnType = 'mixed';
+            $returnType = $isCollection ? 'mixed' : 'mixed';
+            $handlerBody = $isCollection
+                ? "// TODO: Use repository to fetch and return read models\n        return [];"
+                : "// TODO: Use repository to fetch and return read model\n        return null;";
         }
 
         $handlerContent = str_replace(
-            ['{{Namespace}}', '{{Class}}', '{{EntityImport}}', '{{EntityConstructor}}', '{{ReturnType}}'],
-            [$namespace, $name, $entityImport, $entityConstructor, $returnType],
+            ['{{Namespace}}', '{{Class}}', '{{EntityImport}}', '{{EntityConstructor}}', '{{ReturnType}}', '{{HandlerBody}}'],
+            [$namespace, $name, $entityImport, $entityConstructor, $returnType, $handlerBody],
             $handlerStub
         );
 

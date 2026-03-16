@@ -10,16 +10,16 @@ class {{Class}}ReadEloquentRepository implements {{Class}}ReadRepository
 {
     public function findById(string $id): ?{{Class}}ReadModel
     {
-        $model = {{Class}}Model::find($id);
+        $model = {{Class}}Model::query()->find($id);
 
-        return $model ? {{Class}}Mapper::toEntity($model) : null;
+        return $model ? new {{Class}}ReadModel($model->id) : null;
     }
 
     /** @return {{Class}}ReadModel[] */
     public function findAll(): array
     {
-        return {{Class}}Model::all()
-            ->map(fn ({{Class}}Model $model) => {{Class}}Mapper::toEntity($model))
+        return {{Class}}Model::query()->get()
+            ->map(fn ({{Class}}Model $model) => new {{Class}}ReadModel($model->id))
             ->all();
     }
 }

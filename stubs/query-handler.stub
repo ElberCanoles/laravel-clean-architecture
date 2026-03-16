@@ -13,6 +13,6 @@ class {{Class}}Handler
 
     public function handle({{Class}}Query $query): {{ReturnType}}
     {
-        // TODO: Use repository to fetch and return read model
+        {{HandlerBody}}
     }
 }

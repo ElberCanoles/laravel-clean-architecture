@@ -23,24 +23,26 @@ test('creates query and handler files', function () {
     expect($handlerContent)
         ->toContain('class ListInvoicesHandler')
         ->toContain('public function handle(ListInvoicesQuery $query): mixed')
-        ->toContain('// TODO: Inject your ReadRepository');
+        ->toContain('// TODO: Inject your ReadRepository')
+        ->toContain('return null;');
 });
 
 test('creates handler with entity injection when --entity is provided', function () {
     $this->artisan('clean:query', [
         'context' => 'Billing',
-        'name' => 'ListInvoices',
+        'name' => 'GetInvoice',
         '--entity' => 'Invoice',
     ])->assertSuccessful();
 
-    $handlerFile = $this->tempDir . '/Billing/Application/Queries/ListInvoices/ListInvoicesHandler.php';
+    $handlerFile = $this->tempDir . '/Billing/Application/Queries/GetInvoice/GetInvoiceHandler.php';
     $handlerContent = file_get_contents($handlerFile);
 
     expect($handlerContent)
         ->toContain('use App\Billing\Application\Contracts\InvoiceReadRepository;')
         ->toContain('use App\Billing\Application\ReadModels\InvoiceReadModel;')
         ->toContain('private readonly InvoiceReadRepository $repository,')
-        ->toContain('public function handle(ListInvoicesQuery $query): InvoiceReadModel');
+        ->toContain('public function handle(GetInvoiceQuery $query): ?InvoiceReadModel')
+        ->toContain('return $this->repository->findById($query->id);');
 });
 
 test('warns when query files exist without --force', function () {
@@ -79,7 +81,8 @@ test('creates collection query with --collection flag', function () {
 
     $handlerContent = file_get_contents($handlerFile);
     expect($handlerContent)
-        ->toContain('public function handle(ListInvoicesQuery $query): array');
+        ->toContain('public function handle(ListInvoicesQuery $query): array')
+        ->toContain('return [];');
 });
 
 test('creates collection query with entity injection', function () {
@@ -98,5 +101,6 @@ test('creates collection query with entity injection', function () {
         ->toContain('use App\Billing\Application\ReadModels\InvoiceReadModel;')
         ->toContain('private readonly InvoiceReadRepository $repository,')
         ->toContain('/** @return InvoiceReadModel[] */')
-        ->toContain('public function handle(ListInvoicesQuery $query): array');
+        ->toContain('public function handle(ListInvoicesQuery $query): array')
+        ->toContain('return $this->repository->findAll();');
 });

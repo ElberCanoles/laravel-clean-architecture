@@ -38,7 +38,7 @@ test('creates CQRS repository interfaces, eloquent implementations and mapper', 
         ->toContain('class InvoiceWriteEloquentRepository implements InvoiceWriteRepository')
         ->toContain('use DispatchesDomainEvents;')
         ->toContain('$data = InvoiceMapper::toArray($entity)')
-        ->toContain('InvoiceModel::updateOrCreate')
+        ->toContain('InvoiceModel::query()->updateOrCreate')
         ->toContain('$this->dispatchDomainEvents($entity)')
         ->toContain('InvoiceModel::destroy($id)');
 
@@ -47,8 +47,9 @@ test('creates CQRS repository interfaces, eloquent implementations and mapper', 
         ->toContain('namespace App\Billing\Infrastructure;')
         ->toContain('use App\Billing\Infrastructure\Models\InvoiceModel;')
         ->toContain('class InvoiceReadEloquentRepository implements InvoiceReadRepository')
-        ->toContain('InvoiceModel::find($id)')
-        ->toContain('InvoiceModel::all()');
+        ->toContain('InvoiceModel::query()->find($id)')
+        ->toContain('new InvoiceReadModel($model->id)')
+        ->toContain('InvoiceModel::query()->get()');
 
     $mapperContent = file_get_contents($mapper);
     expect($mapperContent)

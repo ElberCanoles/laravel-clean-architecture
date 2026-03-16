@@ -14,6 +14,6 @@ class {{Class}}Handler
     /** @return {{ReturnType}}[] */
     public function handle({{Class}}Query $query): array
     {
-        // TODO: Use repository to fetch and return read models
+        {{HandlerBody}}
     }
 }
