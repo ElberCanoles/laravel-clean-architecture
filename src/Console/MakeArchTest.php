@@ -14,7 +14,7 @@ class MakeArchTest extends BaseGenerator
         $context = $this->argument('context');
         $namespace = $this->buildNamespace($context);
 
-        $path = base_path(config('clean-architecture.arch_tests_path', 'tests/Architecture'));
+        $path = base_path(config('clean-architecture.arch_tests_path', 'tests/Feature/Architecture'));
         File::makeDirectory($path, 0755, true, true);
 
         $content = str_replace(

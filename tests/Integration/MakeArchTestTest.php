@@ -4,7 +4,7 @@ test('creates architecture test file with correct content', function () {
     $this->artisan('clean:arch-test', ['context' => 'Billing'])
         ->assertSuccessful();
 
-    $file = $this->tempDir . '/tests/Architecture/BillingArchTest.php';
+    $file = $this->tempDir . '/tests/Feature/Architecture/BillingArchTest.php';
     expect(file_exists($file))->toBeTrue();
 
     $content = file_get_contents($file);
@@ -22,7 +22,7 @@ test('uses configured namespace prefix in arch tests', function () {
     $this->artisan('clean:arch-test', ['context' => 'Sales'])
         ->assertSuccessful();
 
-    $file = $this->tempDir . '/tests/Architecture/SalesArchTest.php';
+    $file = $this->tempDir . '/tests/Feature/Architecture/SalesArchTest.php';
     $content = file_get_contents($file);
 
     expect($content)->toContain("expect('Domain\Sales\Domain')");

@@ -65,7 +65,7 @@ test('generates architecture test for context', function () {
     $this->artisan('clean:context', ['name' => 'Billing'])
         ->assertSuccessful();
 
-    $file = $this->tempDir . '/tests/Architecture/BillingArchTest.php';
+    $file = $this->tempDir . '/tests/Feature/Architecture/BillingArchTest.php';
     expect(file_exists($file))->toBeTrue();
 });
 

@@ -1,7 +1,5 @@
 <?php
 
-use function Pest\Arch\expect;
-
 test('{{Context}} domain does not depend on infrastructure', function () {
     expect('{{Namespace}}\Domain')
         ->toUseNothing()
