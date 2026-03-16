@@ -33,7 +33,8 @@ test('creates CQRS repository interfaces, eloquent implementations and mapper', 
     $writeEloquentContent = file_get_contents($writeEloquent);
     expect($writeEloquentContent)
         ->toContain('namespace App\Billing\Infrastructure;')
-        ->toContain('class InvoiceWriteEloquentRepository implements InvoiceWriteRepository');
+        ->toContain('class InvoiceWriteEloquentRepository implements InvoiceWriteRepository')
+        ->toContain('$data = InvoiceMapper::toArray($entity)');
 
     $readEloquentContent = file_get_contents($readEloquent);
     expect($readEloquentContent)

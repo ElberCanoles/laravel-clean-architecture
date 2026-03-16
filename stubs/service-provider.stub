@@ -13,6 +13,7 @@ class {{Context}}ServiceProvider extends ServiceProvider
         // when 'auto_discover' is enabled in config/clean-architecture.php.
         // No manual registration in bootstrap/providers.php is needed.
 
+        // {bindings}
         // TODO: Bind repository interfaces to implementations
         // $this->app->bind(
         //     \{{Namespace}}\Domain\Repositories\YourWriteRepository::class,
@@ -22,6 +23,7 @@ class {{Context}}ServiceProvider extends ServiceProvider
         //     \{{Namespace}}\Application\Contracts\YourReadRepository::class,
         //     \{{Namespace}}\Infrastructure\YourReadEloquentRepository::class,
         // );
+        // {/bindings}
     }
 
     public function boot(): void
@@ -31,10 +33,14 @@ class {{Context}}ServiceProvider extends ServiceProvider
 
     protected function loadRoutes(): void
     {
-        $routesPath = __DIR__ . '/../Presentation/Routes/api.php';
+        $routesPath = __DIR__ . '/../Presentation/Routes';
 
-        if (file_exists($routesPath)) {
-            Route::middleware('api')->group($routesPath);
+        foreach (['api', 'web'] as $type) {
+            $file = "$routesPath/$type.php";
+
+            if (file_exists($file)) {
+                Route::middleware($type)->group($file);
+            }
         }
     }
 }

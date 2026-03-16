@@ -4,6 +4,7 @@ namespace CleanArchitecture\Console;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 
 abstract class BaseGenerator extends Command
 {
@@ -49,6 +50,13 @@ abstract class BaseGenerator extends Command
                 "Invalid $label: '$value'. Must start with an uppercase letter and contain only alphanumeric characters (e.g. 'Billing', 'Invoice')."
             );
         }
+    }
+
+    protected function toKebabPlural(string $name): string
+    {
+        $kebab = strtolower(preg_replace('/([a-z])([A-Z])/', '$1-$2', $name));
+
+        return Str::plural($kebab);
     }
 
     protected function writeFile(string $filePath, string $content): bool

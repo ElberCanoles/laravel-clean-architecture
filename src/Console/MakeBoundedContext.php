@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\File;
 
 class MakeBoundedContext extends BaseGenerator
 {
-    protected $signature = 'clean:context {name} {--force}';
+    protected $signature = 'clean:context {name} {--routes=api : Route types to generate (api, web, both)} {--force}';
     protected $description = 'Create a new bounded context with DDD folder structure';
 
     public function handle(): void
@@ -14,6 +14,14 @@ class MakeBoundedContext extends BaseGenerator
         $name = $this->argument('name');
 
         $this->validateName($name, 'context');
+
+        $routes = $this->option('routes');
+
+        if (! in_array($routes, ['api', 'web', 'both'])) {
+            throw new \InvalidArgumentException(
+                "Invalid --routes value: '$routes'. Must be 'api', 'web', or 'both'."
+            );
+        }
 
         $base = base_path(config('clean-architecture.contexts_path') . "/$name");
         $namespace = $this->buildNamespace($name);
@@ -42,7 +50,7 @@ class MakeBoundedContext extends BaseGenerator
         }
 
         $this->generateServiceProvider($base, $name, $namespace);
-        $this->generateRoutes($base, $name);
+        $this->generateRoutes($base, $name, $routes);
 
         $this->info("Bounded context [$name] created.");
 
@@ -67,20 +75,24 @@ class MakeBoundedContext extends BaseGenerator
         }
     }
 
-    protected function generateRoutes(string $base, string $context): void
+    protected function generateRoutes(string $base, string $context, string $routes): void
     {
         $prefix = strtolower(preg_replace('/([a-z])([A-Z])/', '$1-$2', $context));
 
-        $content = str_replace(
+        $stubContent = str_replace(
             '{{prefix}}',
             $prefix,
             $this->getStub('routes')
         );
 
-        $file = "$base/Presentation/Routes/api.php";
+        $types = $routes === 'both' ? ['api', 'web'] : [$routes];
 
-        if ($this->writeFile($file, $content)) {
-            $this->info("Routes created: $file");
+        foreach ($types as $type) {
+            $file = "$base/Presentation/Routes/$type.php";
+
+            if ($this->writeFile($file, $stubContent)) {
+                $this->info("Routes created: $file");
+            }
         }
     }
 }
