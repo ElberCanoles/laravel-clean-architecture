@@ -4,83 +4,45 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com), and this project adheres to [Semantic Versioning](https://semver.org).
 
-## [2.0.0] - 2026-03-15
-
-### Added
-
-- **CQRS Repository Split**: `clean:repository` now generates 5 files — `WriteRepository` interface (Domain), `ReadRepository` interface (Application/Contracts), `WriteEloquentRepository`, `ReadEloquentRepository`, and `Mapper` (Infrastructure)
-- `clean:mapper` command to generate Entity↔Model mappers individually
-- `clean:sanitizer` command to generate input sanitizers in `Application/Sanitizers/`
-- `clean:domain-event` command to generate readonly domain events with timestamp in `Domain/Events/`
-- `clean:exception` command to generate domain exceptions extending `\DomainException` in `Domain/Exceptions/`
-- `clean:test` command to generate Pest unit tests for domain entities in configurable `unit_tests_path`
-- `clean:scaffold` command to scaffold a full entity across all layers in one command (17+ files)
-- `--entity` flag on `clean:command` and `clean:query` to auto-inject typed repository dependencies into handlers
-- `unit_tests_path` configuration option (default: `tests/Unit/Domain`)
-- New folders created by `clean:context`: `Application/Contracts`, `Application/Sanitizers`, `Domain/Events`, `Domain/Exceptions`
-- New stubs: `write-repository`, `read-repository`, `write-eloquent-repository`, `read-eloquent-repository`, `mapper`, `sanitizer`, `domain-event`, `domain-exception`, `unit-test`
-- Architecture tests now enforce 7 rules per context (added Application→Presentation and Application→Infrastructure dependency checks)
-
-### Changed
-
-- Entity stub now includes `create()` factory method, `recordEvent()`, and `releaseEvents()` for domain event support
-- Value Object stub now self-validates in constructor (throws `InvalidArgumentException` on empty value)
-- Specification stub now includes `and()`, `or()`, `not()` composition methods
-- Command and Query stubs are now `readonly class`
-- Command handler stub supports conditional `WriteRepository` injection via `{{EntityImport}}`/`{{EntityConstructor}}` placeholders
-- Query handler stub supports conditional `ReadRepository` injection via same placeholders
-- Controller stub now imports Request/Resource, includes constructor and full CQRS dispatch pattern (index, show, store, update, destroy)
-- Service Provider stub now includes repository binding examples and auto-discovery comment
-- Resource stub now maps fields explicitly instead of delegating to `parent::toArray()`
-- Request stub now includes `authorize()` with TODO and rule examples
-- Architecture test stub adds Application layer dependency rules
-- Query read model stub differentiates from standalone with query-specific comment
-- README fully rewritten to reflect CQRS/DDD patterns, all new commands, and updated stubs table
-
-### Removed
-
-- `repository.stub` (replaced by `write-repository.stub` and `read-repository.stub`)
-- `eloquent-repository.stub` (replaced by `write-eloquent-repository.stub` and `read-eloquent-repository.stub`)
-
-## [1.0.2] - 2026-03-15
-
-### Fixed
-
-- Removed invalid `use function Pest\Arch\expect` import from `arch-test.stub` (`expect()` is already a global Pest function)
-- Changed default architecture tests path from `tests/Architecture` to `tests/Feature/Architecture` so generated tests are included in PHPUnit's `Feature` suite
-
-## [1.0.1] - 2026-03-15
-
-### Added
-
-- `clean:controller` command to generate controllers in the Presentation layer with CRUD methods
-- `clean:request` command to generate form requests in the Presentation layer
-- `clean:resource` command to generate API resources (JsonResource) in the Presentation layer
-- Route file generation (`Presentation/Routes/api.php`) when creating a bounded context
-- Automatic route loading in the context ServiceProvider with `api` middleware
-- Kebab-case route prefix derived from context name (e.g. `OrderManagement` -> `order-management`)
-- Presentation subfolders (`Controllers`, `Requests`, `Resources`, `Routes`) created by `clean:context`
-- New stubs: `controller.stub`, `request.stub`, `resource.stub`, `routes.stub`
-
-### Changed
-
-- `service-provider.stub` now includes `loadRoutes()` method for automatic route registration
-- `clean:context` generates `Presentation/` with organized subfolders instead of an empty directory
-
 ## [1.0.0] - 2026-03-15
 
 ### Added
 
 - `clean:context` command to scaffold a full bounded context with DDD folder structure
-- `clean:entity` command to generate final domain entities
-- `clean:value-object` command to generate readonly value objects
-- `clean:repository` command to generate repository interface and Eloquent implementation
-- `clean:specification` command to generate domain specifications
-- `clean:command` command to generate CQRS command and handler pair
-- `clean:query` command to generate CQRS query, handler, and read model
-- `clean:read-model` command to generate standalone read models
-- `clean:arch-test` command to generate Pest architecture tests enforcing DDD rules
-- Auto-discovery of context ServiceProviders via `ModuleLoader`
+- `clean:entity` command to generate final domain entities with `create()` factory method and domain event recording (`recordEvent()`/`releaseEvents()`)
+- `clean:value-object` command to generate readonly value objects with self-validation
+- `clean:repository` command to generate CQRS repository split — `WriteRepository` interface (Domain), `ReadRepository` interface (Application/Contracts), `WriteEloquentRepository`, `ReadEloquentRepository`, and `Mapper` (Infrastructure)
+- `clean:specification` command to generate composable domain specifications with `and()`/`or()`/`not()`
+- `clean:command` command to generate CQRS command and handler pair with optional `--entity` flag for `WriteRepository` injection
+- `clean:query` command to generate CQRS query, handler, and read model with optional `--entity` flag for `ReadRepository` injection
+- `clean:read-model` command to generate standalone application read models
+- `clean:mapper` command to generate Entity↔Model mappers in Infrastructure layer
+- `clean:sanitizer` command to generate input sanitizers in `Application/Sanitizers/`
+- `clean:domain-event` command to generate readonly domain events with timestamp in `Domain/Events/`
+- `clean:exception` command to generate domain exceptions extending `\DomainException` in `Domain/Exceptions/`
+- `clean:controller` command to generate controllers with CQRS dispatch pattern in Presentation layer
+- `clean:request` command to generate form requests with authorization in Presentation layer
+- `clean:resource` command to generate API resources with field mapping in Presentation layer
+- `clean:test` command to generate Pest unit tests for domain entities (configurable via `unit_tests_path`)
+- `clean:arch-test` command to generate Pest architecture tests enforcing 7 DDD dependency rules
+- `clean:scaffold` command to scaffold a full entity across all layers in one command (17+ files)
+- Auto-discovery of context ServiceProviders via `ModuleLoader` with error handling (failed providers are reported, not fatal)
 - Auto-registration of PSR-4 autoloading for bounded contexts
+- Input validation on all commands — context and name must be PascalCase (e.g. `Billing`, `Invoice`)
+- Improved error messages when stub files are missing (shows searched paths and suggests publishing stubs)
 - Publishable configuration (`clean-architecture-config`)
 - Publishable stubs (`clean-architecture-stubs`) for customization
+- Route file generation (`Presentation/Routes/api.php`) with kebab-case prefix derived from context name
+- Automatic route loading in context ServiceProvider with `api` middleware
+- 24 customizable stubs with `{{Namespace}}`, `{{Class}}`, `{{Context}}`, `{{EntityImport}}`, `{{EntityConstructor}}`, and `{{prefix}}` placeholders
+
+### Configuration
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `contexts_path` | `src` | Directory where bounded contexts live |
+| `namespace_prefix` | `App` | Root namespace for contexts |
+| `auto_discover` | `true` | Auto-register context ServiceProviders |
+| `auto_load` | `true` | Auto-register PSR-4 autoloading |
+| `arch_tests_path` | `tests/Feature/Architecture` | Where architecture tests are generated |
+| `unit_tests_path` | `tests/Unit/Domain` | Where domain unit tests are generated |
