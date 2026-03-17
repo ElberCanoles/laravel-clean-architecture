@@ -45,18 +45,21 @@ class MakeScaffold extends BaseGenerator
                 'context' => $context,
                 'name' => "Create{$name}",
                 '--entity' => $name,
+                '--crud' => 'create',
                 '--force' => $force,
             ]],
             ['clean:command', [
                 'context' => $context,
                 'name' => "Update{$name}",
                 '--entity' => $name,
+                '--crud' => 'update',
                 '--force' => $force,
             ]],
             ['clean:command', [
                 'context' => $context,
                 'name' => "Delete{$name}",
                 '--entity' => $name,
+                '--crud' => 'delete',
                 '--force' => $force,
             ]],
             ['clean:query', [

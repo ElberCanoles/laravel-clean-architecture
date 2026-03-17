@@ -42,7 +42,7 @@ class MakeQuery extends BaseGenerator
             $entityConstructor = "private readonly {$entity}ReadRepository \$repository,";
             $returnType = $isCollection ? "{$entity}ReadModel" : "?{$entity}ReadModel";
             $handlerBody = $isCollection
-                ? 'return $this->repository->findAll();'
+                ? 'return $this->repository->findAll($query->page, $query->perPage);'
                 : 'return $this->repository->findById($query->id);';
         } else {
             $entityImport = '';

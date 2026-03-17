@@ -92,7 +92,7 @@ test('scaffold wires list query handler with repository', function () {
     expect($content)
         ->toContain('private readonly InvoiceReadRepository $repository,')
         ->toContain('public function handle(ListInvoicesQuery $query): array')
-        ->toContain('return $this->repository->findAll();');
+        ->toContain('return $this->repository->findAll($query->page, $query->perPage);');
 });
 
 test('scaffold wires controller with all CQRS handlers', function () {
@@ -115,9 +115,46 @@ test('scaffold wires controller with all CQRS handlers', function () {
         ->toContain('$this->listHandler->handle(new ListInvoicesQuery())')
         ->toContain('$this->getHandler->handle(new GetInvoiceQuery($id))')
         ->toContain('InvoiceSanitizer::sanitize($request->validated())')
-        ->toContain('$this->createHandler->handle(new CreateInvoiceCommand(...$sanitized))')
-        ->toContain('$this->updateHandler->handle(new UpdateInvoiceCommand($id, ...$sanitized))')
+        ->toContain('$this->createHandler->handle(new CreateInvoiceCommand($sanitized))')
+        ->toContain('$this->updateHandler->handle(new UpdateInvoiceCommand($id, $sanitized))')
         ->toContain('$this->deleteHandler->handle(new DeleteInvoiceCommand($id))');
+});
+
+test('scaffold wires crud-specific command constructors and handlers', function () {
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice']);
+
+    // Create command: array $data constructor, entity create + save handler
+    $createCommand = file_get_contents($this->tempDir . '/Billing/Application/Commands/CreateInvoice/CreateInvoiceCommand.php');
+    expect($createCommand)->toContain('public array $data,');
+
+    $createHandler = file_get_contents($this->tempDir . '/Billing/Application/Commands/CreateInvoice/CreateInvoiceHandler.php');
+    expect($createHandler)
+        ->toContain('Invoice::create(Str::uuid()->toString())')
+        ->toContain('$this->repository->save($entity);');
+
+    // Update command: string $id + array $data constructor
+    $updateCommand = file_get_contents($this->tempDir . '/Billing/Application/Commands/UpdateInvoice/UpdateInvoiceCommand.php');
+    expect($updateCommand)
+        ->toContain('public string $id,')
+        ->toContain('public array $data,');
+
+    // Delete command: string $id constructor, repository delete handler
+    $deleteCommand = file_get_contents($this->tempDir . '/Billing/Application/Commands/DeleteInvoice/DeleteInvoiceCommand.php');
+    expect($deleteCommand)
+        ->toContain('public string $id,')
+        ->not->toContain('public array $data,');
+
+    $deleteHandler = file_get_contents($this->tempDir . '/Billing/Application/Commands/DeleteInvoice/DeleteInvoiceHandler.php');
+    expect($deleteHandler)->toContain('$this->repository->delete($command->id);');
+});
+
+test('scaffold wires controller show with null handling', function () {
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice']);
+
+    $file = $this->tempDir . '/Billing/Presentation/Controllers/InvoiceController.php';
+    $content = file_get_contents($file);
+
+    expect($content)->toContain('abort_if(! $readModel, 404)');
 });
 
 test('scaffold generates list query as collection', function () {

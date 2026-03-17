@@ -49,9 +49,9 @@ class MakeController extends BaseGenerator
                 . "        private readonly List{$plural}Handler \$listHandler,";
 
             $indexBody = "\$readModels = \$this->listHandler->handle(new List{$plural}Query());\n\n        return {$entity}Resource::collection(\$readModels)->response();";
-            $showBody = "\$readModel = \$this->getHandler->handle(new Get{$entity}Query(\$id));\n\n        return (new {$entity}Resource(\$readModel))->response();";
-            $storeBody = "\$sanitized = {$entity}Sanitizer::sanitize(\$request->validated());\n        \$this->createHandler->handle(new Create{$entity}Command(...\$sanitized));\n\n        return response()->json([], 201);";
-            $updateBody = "\$sanitized = {$entity}Sanitizer::sanitize(\$request->validated());\n        \$this->updateHandler->handle(new Update{$entity}Command(\$id, ...\$sanitized));\n\n        return response()->json([]);";
+            $showBody = "\$readModel = \$this->getHandler->handle(new Get{$entity}Query(\$id));\n        abort_if(! \$readModel, 404);\n\n        return (new {$entity}Resource(\$readModel))->response();";
+            $storeBody = "\$sanitized = {$entity}Sanitizer::sanitize(\$request->validated());\n        \$this->createHandler->handle(new Create{$entity}Command(\$sanitized));\n\n        return response()->json([], 201);";
+            $updateBody = "\$sanitized = {$entity}Sanitizer::sanitize(\$request->validated());\n        \$this->updateHandler->handle(new Update{$entity}Command(\$id, \$sanitized));\n\n        return response()->json([]);";
             $destroyBody = "\$this->deleteHandler->handle(new Delete{$entity}Command(\$id));\n\n        return response()->json([], 204);";
         } else {
             $imports = '';

@@ -102,5 +102,5 @@ test('creates collection query with entity injection', function () {
         ->toContain('private readonly InvoiceReadRepository $repository,')
         ->toContain('/** @return InvoiceReadModel[] */')
         ->toContain('public function handle(ListInvoicesQuery $query): array')
-        ->toContain('return $this->repository->findAll();');
+        ->toContain('return $this->repository->findAll($query->page, $query->perPage);');
 });

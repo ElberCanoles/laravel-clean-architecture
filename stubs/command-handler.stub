@@ -13,6 +13,6 @@ class {{Class}}Handler
 
     public function handle({{Class}}Command $command): void
     {
-        // TODO: Load or create entity, execute domain logic, persist via repository
+        {{HandlerBody}}
     }
 }

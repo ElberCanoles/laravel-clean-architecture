@@ -5,7 +5,7 @@ namespace {{Namespace}}\Application\Commands\{{Class}};
 readonly class {{Class}}Command
 {
     public function __construct(
-        public string $id,
+        {{CommandConstructor}}
     ) {
     }
 }

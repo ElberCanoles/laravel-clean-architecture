@@ -82,11 +82,12 @@ test('controller with --entity wires all CQRS handlers', function () {
         ->toContain('InvoiceResource::collection($readModels)')
         // show
         ->toContain('$this->getHandler->handle(new GetInvoiceQuery($id))')
+        ->toContain('abort_if(! $readModel, 404)')
         // store
         ->toContain('InvoiceSanitizer::sanitize($request->validated())')
-        ->toContain('$this->createHandler->handle(new CreateInvoiceCommand(...$sanitized))')
+        ->toContain('$this->createHandler->handle(new CreateInvoiceCommand($sanitized))')
         // update
-        ->toContain('$this->updateHandler->handle(new UpdateInvoiceCommand($id, ...$sanitized))')
+        ->toContain('$this->updateHandler->handle(new UpdateInvoiceCommand($id, $sanitized))')
         // destroy
         ->toContain('$this->deleteHandler->handle(new DeleteInvoiceCommand($id))');
 });

@@ -9,5 +9,5 @@ interface {{Class}}ReadRepository
     public function findById(string $id): ?{{Class}}ReadModel;
 
     /** @return {{Class}}ReadModel[] */
-    public function findAll(): array;
+    public function findAll(int $page = 1, int $perPage = 15): array;
 }

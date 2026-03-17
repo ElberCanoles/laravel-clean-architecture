@@ -28,7 +28,7 @@ test('creates CQRS repository interfaces, eloquent implementations and mapper', 
         ->toContain('namespace App\Billing\Application\Contracts;')
         ->toContain('interface InvoiceReadRepository')
         ->toContain('public function findById(string $id): ?InvoiceReadModel')
-        ->toContain('public function findAll(): array');
+        ->toContain('public function findAll(int $page = 1, int $perPage = 15): array');
 
     $writeEloquentContent = file_get_contents($writeEloquent);
     expect($writeEloquentContent)
@@ -49,7 +49,8 @@ test('creates CQRS repository interfaces, eloquent implementations and mapper', 
         ->toContain('class InvoiceReadEloquentRepository implements InvoiceReadRepository')
         ->toContain('InvoiceModel::query()->find($id)')
         ->toContain('new InvoiceReadModel($model->id)')
-        ->toContain('InvoiceModel::query()->get()');
+        ->toContain('->forPage($page, $perPage)')
+        ->toContain('->get()');
 
     $mapperContent = file_get_contents($mapper);
     expect($mapperContent)

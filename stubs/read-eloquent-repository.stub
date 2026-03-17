@@ -16,9 +16,11 @@ class {{Class}}ReadEloquentRepository implements {{Class}}ReadRepository
     }
 
     /** @return {{Class}}ReadModel[] */
-    public function findAll(): array
+    public function findAll(int $page = 1, int $perPage = 15): array
     {
-        return {{Class}}Model::query()->get()
+        return {{Class}}Model::query()
+            ->forPage($page, $perPage)
+            ->get()
             ->map(fn ({{Class}}Model $model) => new {{Class}}ReadModel($model->id))
             ->all();
     }
