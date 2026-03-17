@@ -9,30 +9,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com), and this 
 ### Added
 
 - **Full CRUD scaffold** — `clean:scaffold` now generates all 5 CRUD operations out of the box:
-  - `CreateEntity` command + handler (already existed)
-  - `UpdateEntity` command + handler (new)
-  - `DeleteEntity` command + handler (new)
-  - `GetEntity` query + handler (already existed)
-  - `ListEntities` collection query + handler with pagination (new)
+  - `CreateEntity` command + handler with `array $data` constructor and `Entity::create()` + `repository->save()` handler body
+  - `UpdateEntity` command + handler with `string $id` + `array $data` constructor
+  - `DeleteEntity` command + handler with `string $id` constructor and `repository->delete()` handler body
+  - `GetEntity` query + handler with nullable `?ReadModel` return and wired `findById()` call
+  - `ListEntities` collection query + handler with pagination passthrough (`$query->page`, `$query->perPage`)
 - **Eloquent Model generator** — `clean:model {context} {name}` generates a `HasUuids` Eloquent model in `Infrastructure/Models/` with auto-computed table name (`OrderItem` → `order_items`)
 - **Domain Event Dispatcher** — `DispatchesDomainEvents` trait for write repositories; dispatches domain events via Laravel's `event()` helper after entity persistence, with `method_exists()` guard and automatic event clearing to prevent double dispatch
+- `--crud` option on `clean:command` — generates CRUD-specific constructors and handler bodies (`create`, `update`, `delete`); scaffold passes this flag automatically
 - `--collection` option on `clean:query` — generates a list/collection query with `$page` and `$perPage` pagination parameters instead of `$id`, and a handler that returns `array`
 - `toPluralStudly()` helper in `BaseGenerator` — computes plural form for entity names (`Invoice` → `Invoices`, `Category` → `Categories`)
 - New stubs: `model.stub`, `list-query.stub`, `list-query-handler.stub`
+- New command stub placeholders: `{{CommandConstructor}}`, `{{HandlerBody}}`
 - New controller stub placeholders: `{{IndexBody}}`, `{{UpdateBody}}`, `{{DestroyBody}}`
 
 ### Changed
 
-- **Controller wiring** — `clean:controller --entity` now injects all 5 handlers (create, update, delete, get, list) and wires all 5 methods (`index`, `show`, `store`, `update`, `destroy`) with working implementations
-- **Repository stubs** — `write-eloquent-repository.stub` and `read-eloquent-repository.stub` now use real `{{Class}}Model` code instead of commented-out `YourEloquentModel` placeholders; write repository includes `DispatchesDomainEvents` trait and dispatches events after save
+- **Controller wiring** — `clean:controller --entity` now injects all 5 handlers (create, update, delete, get, list) and wires all 5 methods (`index`, `show`, `store`, `update`, `destroy`) with working implementations; `show()` includes `abort_if(! $readModel, 404)` null handling; `store()` and `update()` pass sanitized data as `array` (not spread)
+- **Repository stubs** — `write-eloquent-repository.stub` and `read-eloquent-repository.stub` now use real `{{Class}}Model` code with explicit `::query()->` builder calls; write repository includes `DispatchesDomainEvents` trait and dispatches events after save; read repository uses `forPage()` for pagination
+- **Read repository interface** — `findAll()` now accepts `int $page = 1, int $perPage = 15` pagination parameters
+- **Query handlers** — both `query-handler.stub` and `list-query-handler.stub` now use `{{HandlerBody}}` placeholder; wired handlers include actual return statements (`findById()`, `findAll()` with pagination passthrough)
 - **Mapper stub** — `toEntity()` now type-hints `{{Class}}Model` instead of `object`
-- **Scaffold command** — uses indexed array format internally; generates model, update/delete commands, and list query in addition to existing files
+- **Scaffold command** — uses indexed array format internally; generates model, update/delete commands with `--crud` flag, and list query in addition to existing files
 - `controller.stub` — all 5 methods now use replaceable placeholders instead of hardcoded TODOs
 
 ### Fixed
 
 - Generated repositories are now functional out of the box — no more commented-out Eloquent code requiring manual uncommenting
 - Generated controllers wire all 5 RESTful operations instead of leaving `index()`, `update()`, and `destroy()` as TODOs
+- Controller `show()` handles null read models with `abort_if` instead of passing null to Resource
+- Controller `store()`/`update()` pass sanitized data as `array` parameter, matching the command constructor signatures (`array $data`)
+- List query handler passes pagination params (`$query->page, $query->perPage`) to `findAll()` instead of calling without arguments
+- All Eloquent calls use explicit `::query()->` builder pattern for PHPStan compatibility and IDE autocompletion
 
 ## [1.1.0] - 2026-03-16
 
