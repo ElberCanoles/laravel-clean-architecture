@@ -9,7 +9,7 @@ test('creates form request in presentation layer', function () {
 
     $content = file_get_contents($file);
     expect($content)
-        ->toContain('namespace App\Billing\Presentation\Requests;')
+        ->toContain('namespace Src\Billing\Presentation\Requests;')
         ->toContain('class StoreInvoiceRequest extends FormRequest')
         ->toContain('public function authorize(): bool')
         ->toContain('// TODO: Implement authorization')

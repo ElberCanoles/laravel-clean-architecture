@@ -9,7 +9,7 @@ test('creates value object with correct content', function () {
 
     $content = file_get_contents($file);
     expect($content)
-        ->toContain('namespace App\Billing\Domain\ValueObjects;')
+        ->toContain('namespace Src\Billing\Domain\ValueObjects;')
         ->toContain('readonly class Money')
         ->toContain("throw new \\InvalidArgumentException('Money cannot be empty.')")
         ->toContain('public function equals(self $other): bool')

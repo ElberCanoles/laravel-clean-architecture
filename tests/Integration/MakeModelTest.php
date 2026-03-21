@@ -9,7 +9,7 @@ test('creates model in infrastructure models directory', function () {
 
     $content = file_get_contents($file);
     expect($content)
-        ->toContain('namespace App\Billing\Infrastructure\Models;')
+        ->toContain('namespace Src\Billing\Infrastructure\Models;')
         ->toContain('use Illuminate\Database\Eloquent\Concerns\HasUuids;')
         ->toContain('use Illuminate\Database\Eloquent\Model;')
         ->toContain('class InvoiceModel extends Model')

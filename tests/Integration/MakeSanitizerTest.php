@@ -9,7 +9,7 @@ test('creates sanitizer in application layer', function () {
 
     $content = file_get_contents($file);
     expect($content)
-        ->toContain('namespace App\Billing\Application\Sanitizers;')
+        ->toContain('namespace Src\Billing\Application\Sanitizers;')
         ->toContain('class InvoiceSanitizer')
         ->toContain('public static function sanitize(array $data): array');
 });

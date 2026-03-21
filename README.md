@@ -168,7 +168,7 @@ src/{Context}/Domain/
 Core business objects with a **unique identity** that persists over time. Two entities are equal if they share the same id, regardless of their attributes.
 
 ```php
-namespace App\Billing\Domain\Entities;
+namespace Src\Billing\Domain\Entities;
 
 final class Invoice
 {
@@ -216,7 +216,7 @@ final class Invoice
 **Immutable** objects defined by their attributes, not by an identity. Two value objects are equal if all their properties match.
 
 ```php
-namespace App\Billing\Domain\ValueObjects;
+namespace Src\Billing\Domain\ValueObjects;
 
 readonly class Money
 {
@@ -253,9 +253,9 @@ Repositories follow the **CQRS pattern**: write operations are separated from re
 
 ```php
 // Domain/Repositories — write operations only
-namespace App\Billing\Domain\Repositories;
+namespace Src\Billing\Domain\Repositories;
 
-use App\Billing\Domain\Entities\Invoice;
+use Src\Billing\Domain\Entities\Invoice;
 
 interface InvoiceWriteRepository
 {
@@ -266,9 +266,9 @@ interface InvoiceWriteRepository
 
 ```php
 // Application/Contracts — read operations, returns ReadModels
-namespace App\Billing\Application\Contracts;
+namespace Src\Billing\Application\Contracts;
 
-use App\Billing\Application\ReadModels\InvoiceReadModel;
+use Src\Billing\Application\ReadModels\InvoiceReadModel;
 
 interface InvoiceReadRepository
 {
@@ -292,7 +292,7 @@ interface InvoiceReadRepository
 **Business rules as reusable, composable objects**. Each specification answers a single yes/no question about a domain object.
 
 ```php
-namespace App\Billing\Domain\Specifications;
+namespace Src\Billing\Domain\Specifications;
 
 class InvoiceOverdueSpecification
 {
@@ -406,7 +406,7 @@ A **Query** represents a request for data. The **Handler** fetches and returns a
 
 ```php
 // Query — immutable DTO with query parameters
-namespace App\Billing\Application\Queries\GetInvoice;
+namespace Src\Billing\Application\Queries\GetInvoice;
 
 readonly class GetInvoiceQuery
 {
@@ -417,10 +417,10 @@ readonly class GetInvoiceQuery
 }
 
 // Handler — fetches data via ReadRepository, injected via --entity flag
-namespace App\Billing\Application\Queries\GetInvoice;
+namespace Src\Billing\Application\Queries\GetInvoice;
 
-use App\Billing\Application\Contracts\InvoiceReadRepository;
-use App\Billing\Application\ReadModels\InvoiceReadModel;
+use Src\Billing\Application\Contracts\InvoiceReadRepository;
+use Src\Billing\Application\ReadModels\InvoiceReadModel;
 
 class GetInvoiceHandler
 {
@@ -446,7 +446,7 @@ For collection/list queries, the `--collection` flag generates a paginated varia
 
 ```php
 // List query — pagination instead of $id
-namespace App\Billing\Application\Queries\ListInvoices;
+namespace Src\Billing\Application\Queries\ListInvoices;
 
 readonly class ListInvoicesQuery
 {
@@ -478,7 +478,7 @@ class ListInvoicesHandler
 Read models in `Application/ReadModels/` are **reusable projections** shared across queries.
 
 ```php
-namespace App\Billing\Application\ReadModels;
+namespace Src\Billing\Application\ReadModels;
 
 readonly class InvoiceSummaryReadModel
 {
@@ -511,12 +511,12 @@ Separate implementations for write and read operations:
 
 ```php
 // Write — works with entities, dispatches domain events after persistence
-namespace App\Billing\Infrastructure;
+namespace Src\Billing\Infrastructure;
 
 use CleanArchitecture\Support\DispatchesDomainEvents;
-use App\Billing\Domain\Entities\Invoice;
-use App\Billing\Domain\Repositories\InvoiceWriteRepository;
-use App\Billing\Infrastructure\Models\InvoiceModel;
+use Src\Billing\Domain\Entities\Invoice;
+use Src\Billing\Domain\Repositories\InvoiceWriteRepository;
+use Src\Billing\Infrastructure\Models\InvoiceModel;
 
 class InvoiceWriteEloquentRepository implements InvoiceWriteRepository
 {
@@ -538,11 +538,11 @@ class InvoiceWriteEloquentRepository implements InvoiceWriteRepository
 
 ```php
 // Read — returns read models via mapper
-namespace App\Billing\Infrastructure;
+namespace Src\Billing\Infrastructure;
 
-use App\Billing\Application\Contracts\InvoiceReadRepository;
-use App\Billing\Application\ReadModels\InvoiceReadModel;
-use App\Billing\Infrastructure\Models\InvoiceModel;
+use Src\Billing\Application\Contracts\InvoiceReadRepository;
+use Src\Billing\Application\ReadModels\InvoiceReadModel;
+use Src\Billing\Infrastructure\Models\InvoiceModel;
 
 class InvoiceReadEloquentRepository implements InvoiceReadRepository
 {
@@ -570,7 +570,7 @@ class InvoiceReadEloquentRepository implements InvoiceReadRepository
 Each scaffolded entity gets a dedicated Eloquent model with UUID support. Table names are auto-computed from the entity name (`OrderItem` → `order_items`).
 
 ```php
-namespace App\Billing\Infrastructure\Models;
+namespace Src\Billing\Infrastructure\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -593,9 +593,9 @@ class InvoiceModel extends Model
 Bridges the gap between entities and Eloquent models:
 
 ```php
-namespace App\Billing\Infrastructure;
+namespace Src\Billing\Infrastructure;
 
-use App\Billing\Infrastructure\Models\InvoiceModel;
+use Src\Billing\Infrastructure\Models\InvoiceModel;
 
 final class InvoiceMapper
 {
@@ -616,7 +616,7 @@ final class InvoiceMapper
 Each bounded context has its own ServiceProvider where you **bind repository interfaces to implementations**. Routes are **automatically loaded** from `Presentation/Routes/` — both `api.php` and `web.php` are loaded if they exist. When you run `clean:scaffold`, bindings are **wired automatically** between the `// {bindings}` markers.
 
 ```php
-namespace App\Billing\Infrastructure;
+namespace Src\Billing\Infrastructure;
 
 class BillingServiceProvider extends ServiceProvider
 {
@@ -676,14 +676,14 @@ src/{Context}/Presentation/
 Handle HTTP requests and delegate to Application layer commands/queries. When generated via `clean:scaffold` or `clean:controller --entity`, the controller comes **pre-wired** with all 5 CQRS handlers and working implementations for every RESTful method:
 
 ```php
-namespace App\Billing\Presentation\Controllers;
+namespace Src\Billing\Presentation\Controllers;
 
-use App\Billing\Application\Commands\CreateInvoice\{CreateInvoiceCommand, CreateInvoiceHandler};
-use App\Billing\Application\Commands\UpdateInvoice\{UpdateInvoiceCommand, UpdateInvoiceHandler};
-use App\Billing\Application\Commands\DeleteInvoice\{DeleteInvoiceCommand, DeleteInvoiceHandler};
-use App\Billing\Application\Queries\GetInvoice\{GetInvoiceHandler, GetInvoiceQuery};
-use App\Billing\Application\Queries\ListInvoices\{ListInvoicesHandler, ListInvoicesQuery};
-use App\Billing\Application\Sanitizers\InvoiceSanitizer;
+use Src\Billing\Application\Commands\CreateInvoice\{CreateInvoiceCommand, CreateInvoiceHandler};
+use Src\Billing\Application\Commands\UpdateInvoice\{UpdateInvoiceCommand, UpdateInvoiceHandler};
+use Src\Billing\Application\Commands\DeleteInvoice\{DeleteInvoiceCommand, DeleteInvoiceHandler};
+use Src\Billing\Application\Queries\GetInvoice\{GetInvoiceHandler, GetInvoiceQuery};
+use Src\Billing\Application\Queries\ListInvoices\{ListInvoicesHandler, ListInvoicesQuery};
+use Src\Billing\Application\Sanitizers\InvoiceSanitizer;
 
 class InvoiceController extends Controller
 {
@@ -739,7 +739,7 @@ Without `--entity`, the controller generates with TODO placeholders for all meth
 Validate incoming HTTP data before it reaches the Application layer.
 
 ```php
-namespace App\Billing\Presentation\Requests;
+namespace Src\Billing\Presentation\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -765,7 +765,7 @@ class InvoiceRequest extends FormRequest
 Transform read models into JSON responses:
 
 ```php
-namespace App\Billing\Presentation\Resources;
+namespace Src\Billing\Presentation\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -791,7 +791,7 @@ When you run `clean:scaffold`, an `apiResource` route is **wired automatically**
 ```php
 // src/Billing/Presentation/Routes/api.php
 use Illuminate\Support\Facades\Route;
-use App\Billing\Presentation\Controllers\InvoiceController;
+use Src\Billing\Presentation\Controllers\InvoiceController;
 
 Route::prefix('billing')->group(function () {
     // {routes}
@@ -1065,7 +1065,7 @@ The ServiceProvider loads both `api.php` and `web.php` automatically if they exi
 | Option | Default | Description |
 |--------|---------|-------------|
 | `contexts_path` | `src` | Directory where bounded contexts live, relative to `base_path()` |
-| `namespace_prefix` | `App` | Root namespace for contexts (`App\Billing`, `App\Inventory`, etc.) |
+| `namespace_prefix` | `Src` | Root namespace for contexts (`Src\Billing`, `Src\Inventory`, etc.) |
 | `auto_discover` | `true` | Auto-register `{Context}ServiceProvider` from each context |
 | `auto_load` | `true` | Auto-register PSR-4 autoloading for all `src/` contexts |
 | `arch_tests_path` | `tests/Feature/Architecture` | Where generated architecture tests are stored |
@@ -1090,9 +1090,9 @@ These providers are **automatically registered** with Laravel's service containe
 When `auto_load` is enabled, the package registers PSR-4 autoloading for every directory in your contexts path:
 
 ```
-App\Billing\    --> src/Billing/
-App\Inventory\  --> src/Inventory/
-App\Shipping\   --> src/Shipping/
+Src\Billing\    --> src/Billing/
+Src\Inventory\  --> src/Inventory/
+Src\Shipping\   --> src/Shipping/
 ```
 
 **No manual `composer.json` changes needed** when you add new bounded contexts.

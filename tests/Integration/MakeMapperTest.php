@@ -9,8 +9,8 @@ test('creates mapper in infrastructure layer', function () {
 
     $content = file_get_contents($file);
     expect($content)
-        ->toContain('namespace App\Billing\Infrastructure;')
-        ->toContain('use App\Billing\Infrastructure\Models\InvoiceModel;')
+        ->toContain('namespace Src\Billing\Infrastructure;')
+        ->toContain('use Src\Billing\Infrastructure\Models\InvoiceModel;')
         ->toContain('final class InvoiceMapper')
         ->toContain('public static function toArray(Invoice $entity): array')
         ->toContain('public static function toEntity(InvoiceModel $model): Invoice');

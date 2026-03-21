@@ -9,7 +9,7 @@ test('creates domain exception with correct content', function () {
 
     $content = file_get_contents($file);
     expect($content)
-        ->toContain('namespace App\Billing\Domain\Exceptions;')
+        ->toContain('namespace Src\Billing\Domain\Exceptions;')
         ->toContain('class InvoiceNotFoundException extends \DomainException')
         ->toContain('public static function withMessage(string $message): self');
 });

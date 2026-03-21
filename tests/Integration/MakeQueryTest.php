@@ -15,7 +15,7 @@ test('creates query and handler files', function () {
 
     $queryContent = file_get_contents($queryFile);
     expect($queryContent)
-        ->toContain('namespace App\Billing\Application\Queries\ListInvoices;')
+        ->toContain('namespace Src\Billing\Application\Queries\ListInvoices;')
         ->toContain('readonly class ListInvoicesQuery')
         ->toContain('public string $id,');
 
@@ -38,8 +38,8 @@ test('creates handler with entity injection when --entity is provided', function
     $handlerContent = file_get_contents($handlerFile);
 
     expect($handlerContent)
-        ->toContain('use App\Billing\Application\Contracts\InvoiceReadRepository;')
-        ->toContain('use App\Billing\Application\ReadModels\InvoiceReadModel;')
+        ->toContain('use Src\Billing\Application\Contracts\InvoiceReadRepository;')
+        ->toContain('use Src\Billing\Application\ReadModels\InvoiceReadModel;')
         ->toContain('private readonly InvoiceReadRepository $repository,')
         ->toContain('public function handle(GetInvoiceQuery $query): ?InvoiceReadModel')
         ->toContain('return $this->repository->findById($query->id);');
@@ -97,8 +97,8 @@ test('creates collection query with entity injection', function () {
     $handlerContent = file_get_contents($handlerFile);
 
     expect($handlerContent)
-        ->toContain('use App\Billing\Application\Contracts\InvoiceReadRepository;')
-        ->toContain('use App\Billing\Application\ReadModels\InvoiceReadModel;')
+        ->toContain('use Src\Billing\Application\Contracts\InvoiceReadRepository;')
+        ->toContain('use Src\Billing\Application\ReadModels\InvoiceReadModel;')
         ->toContain('private readonly InvoiceReadRepository $repository,')
         ->toContain('/** @return InvoiceReadModel[] */')
         ->toContain('public function handle(ListInvoicesQuery $query): array')

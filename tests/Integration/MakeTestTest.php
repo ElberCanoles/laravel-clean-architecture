@@ -9,7 +9,7 @@ test('creates unit test file with correct content', function () {
 
     $content = file_get_contents($file);
     expect($content)
-        ->toContain('use App\Billing\Domain\Entities\Invoice;')
+        ->toContain('use Src\Billing\Domain\Entities\Invoice;')
         ->toContain('it can create a Invoice')
         ->toContain('Invoice::create(')
         ->toContain('it can record and release domain events')

@@ -33,7 +33,7 @@ test('generates service provider for context with route loading', function () {
 
     $content = file_get_contents($file);
     expect($content)
-        ->toContain('namespace App\Billing\Infrastructure;')
+        ->toContain('namespace Src\Billing\Infrastructure;')
         ->toContain('class BillingServiceProvider extends ServiceProvider')
         ->toContain('public function register(): void')
         ->toContain('auto-discovered by the CleanArchitecture package')

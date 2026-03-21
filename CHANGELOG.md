@@ -106,7 +106,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com), and this 
 | Option | Default | Description |
 |--------|---------|-------------|
 | `contexts_path` | `src` | Directory where bounded contexts live |
-| `namespace_prefix` | `App` | Root namespace for contexts |
+| `namespace_prefix` | `Src` | Root namespace for contexts |
 | `auto_discover` | `true` | Auto-register context ServiceProviders |
 | `auto_load` | `true` | Auto-register PSR-4 autoloading |
 | `arch_tests_path` | `tests/Feature/Architecture` | Where architecture tests are generated |

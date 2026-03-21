@@ -9,7 +9,7 @@ test('creates architecture test file with correct content', function () {
 
     $content = file_get_contents($file);
     expect($content)
-        ->toContain("expect('App\Billing\Domain')")
+        ->toContain("expect('Src\Billing\Domain')")
         ->toContain('Billing domain does not depend on infrastructure')
         ->toContain('Billing domain does not depend on application layer')
         ->toContain('Billing application does not depend on presentation')

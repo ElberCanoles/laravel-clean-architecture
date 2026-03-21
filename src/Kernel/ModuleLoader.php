@@ -17,7 +17,7 @@ class ModuleLoader
         }
 
         $directories = File::directories($contextsPath);
-        $namespacePrefix = config('clean-architecture.namespace_prefix', 'App');
+        $namespacePrefix = config('clean-architecture.namespace_prefix', 'Src');
 
         foreach ($directories as $contextPath) {
             $contextName = basename($contextPath);
@@ -43,7 +43,7 @@ class ModuleLoader
             return;
         }
 
-        $namespacePrefix = config('clean-architecture.namespace_prefix', 'App');
+        $namespacePrefix = config('clean-architecture.namespace_prefix', 'Src');
         $directories = File::directories($contextsPath);
 
         /** @var \Composer\Autoload\ClassLoader $loader */

@@ -36,7 +36,7 @@ abstract class TestCase extends BaseTestCase
     protected function defineEnvironment($app): void
     {
         $app['config']->set('clean-architecture.contexts_path', $this->relativeTempDir);
-        $app['config']->set('clean-architecture.namespace_prefix', 'App');
+        $app['config']->set('clean-architecture.namespace_prefix', 'Src');
         $app['config']->set('clean-architecture.arch_tests_path', $this->relativeTempDir . '/tests/Feature/Architecture');
         $app['config']->set('clean-architecture.unit_tests_path', $this->relativeTempDir . '/tests/Unit/Domain');
     }

@@ -9,7 +9,7 @@ test('creates domain event with correct content', function () {
 
     $content = file_get_contents($file);
     expect($content)
-        ->toContain('namespace App\Billing\Domain\Events;')
+        ->toContain('namespace Src\Billing\Domain\Events;')
         ->toContain('readonly class InvoicePaidEvent')
         ->toContain('public string $id,')
         ->toContain('public \DateTimeImmutable $occurredAt');

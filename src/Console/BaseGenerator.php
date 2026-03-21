@@ -32,7 +32,7 @@ abstract class BaseGenerator extends Command
 
     protected function getNamespacePrefix(): string
     {
-        return config('clean-architecture.namespace_prefix', 'App');
+        return config('clean-architecture.namespace_prefix', 'Src');
     }
 
     protected function buildNamespace(string $context): string

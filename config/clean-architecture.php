@@ -17,10 +17,10 @@ return [
     |--------------------------------------------------------------------------
     |
     | The root namespace prefix for all bounded contexts.
-    | e.g. App\Billing, App\Inventory, etc.
+    | e.g. Src\Billing, Src\Inventory, etc.
     |
     */
-    'namespace_prefix' => 'App',
+    'namespace_prefix' => 'Src',
 
     /*
     |--------------------------------------------------------------------------

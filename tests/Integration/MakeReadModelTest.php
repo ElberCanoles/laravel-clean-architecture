@@ -9,7 +9,7 @@ test('creates read model with correct content', function () {
 
     $content = file_get_contents($file);
     expect($content)
-        ->toContain('namespace App\Billing\Application\ReadModels;')
+        ->toContain('namespace Src\Billing\Application\ReadModels;')
         ->toContain('readonly class InvoiceSummaryReadModel');
 });
 

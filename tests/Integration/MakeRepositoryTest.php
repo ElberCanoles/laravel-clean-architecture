@@ -18,23 +18,23 @@ test('creates CQRS repository interfaces, eloquent implementations and mapper', 
 
     $writeInterfaceContent = file_get_contents($writeInterface);
     expect($writeInterfaceContent)
-        ->toContain('namespace App\Billing\Domain\Repositories;')
+        ->toContain('namespace Src\Billing\Domain\Repositories;')
         ->toContain('interface InvoiceWriteRepository')
         ->toContain('public function save(Invoice $entity): void')
         ->toContain('public function delete(string $id): void');
 
     $readInterfaceContent = file_get_contents($readInterface);
     expect($readInterfaceContent)
-        ->toContain('namespace App\Billing\Application\Contracts;')
+        ->toContain('namespace Src\Billing\Application\Contracts;')
         ->toContain('interface InvoiceReadRepository')
         ->toContain('public function findById(string $id): ?InvoiceReadModel')
         ->toContain('public function findAll(int $page = 1, int $perPage = 15): array');
 
     $writeEloquentContent = file_get_contents($writeEloquent);
     expect($writeEloquentContent)
-        ->toContain('namespace App\Billing\Infrastructure;')
+        ->toContain('namespace Src\Billing\Infrastructure;')
         ->toContain('use CleanArchitecture\Support\DispatchesDomainEvents;')
-        ->toContain('use App\Billing\Infrastructure\Models\InvoiceModel;')
+        ->toContain('use Src\Billing\Infrastructure\Models\InvoiceModel;')
         ->toContain('class InvoiceWriteEloquentRepository implements InvoiceWriteRepository')
         ->toContain('use DispatchesDomainEvents;')
         ->toContain('$data = InvoiceMapper::toArray($entity)')
@@ -44,8 +44,8 @@ test('creates CQRS repository interfaces, eloquent implementations and mapper', 
 
     $readEloquentContent = file_get_contents($readEloquent);
     expect($readEloquentContent)
-        ->toContain('namespace App\Billing\Infrastructure;')
-        ->toContain('use App\Billing\Infrastructure\Models\InvoiceModel;')
+        ->toContain('namespace Src\Billing\Infrastructure;')
+        ->toContain('use Src\Billing\Infrastructure\Models\InvoiceModel;')
         ->toContain('class InvoiceReadEloquentRepository implements InvoiceReadRepository')
         ->toContain('InvoiceModel::query()->find($id)')
         ->toContain('new InvoiceReadModel($model->id)')
@@ -54,7 +54,7 @@ test('creates CQRS repository interfaces, eloquent implementations and mapper', 
 
     $mapperContent = file_get_contents($mapper);
     expect($mapperContent)
-        ->toContain('namespace App\Billing\Infrastructure;')
+        ->toContain('namespace Src\Billing\Infrastructure;')
         ->toContain('final class InvoiceMapper')
         ->toContain('public static function toArray(Invoice $entity): array')
         ->toContain('public static function toEntity(InvoiceModel $model): Invoice');

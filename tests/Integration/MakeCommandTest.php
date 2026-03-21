@@ -14,13 +14,13 @@ test('creates command and handler files', function () {
 
     $commandContent = file_get_contents($commandFile);
     expect($commandContent)
-        ->toContain('namespace App\Billing\Application\Commands\PayInvoice;')
+        ->toContain('namespace Src\Billing\Application\Commands\PayInvoice;')
         ->toContain('readonly class PayInvoiceCommand')
         ->toContain('public string $id,');
 
     $handlerContent = file_get_contents($handlerFile);
     expect($handlerContent)
-        ->toContain('namespace App\Billing\Application\Commands\PayInvoice;')
+        ->toContain('namespace Src\Billing\Application\Commands\PayInvoice;')
         ->toContain('class PayInvoiceHandler')
         ->toContain('public function handle(PayInvoiceCommand $command): void')
         ->toContain('// TODO: Inject your WriteRepository');
@@ -37,7 +37,7 @@ test('creates handler with entity injection when --entity is provided', function
     $handlerContent = file_get_contents($handlerFile);
 
     expect($handlerContent)
-        ->toContain('use App\Billing\Domain\Repositories\InvoiceWriteRepository;')
+        ->toContain('use Src\Billing\Domain\Repositories\InvoiceWriteRepository;')
         ->toContain('private readonly InvoiceWriteRepository $repository,');
 });
 
@@ -65,7 +65,7 @@ test('creates create command with --crud=create', function () {
 
     $handlerContent = file_get_contents("$base/CreateInvoiceHandler.php");
     expect($handlerContent)
-        ->toContain('use App\Billing\Domain\Entities\Invoice;')
+        ->toContain('use Src\Billing\Domain\Entities\Invoice;')
         ->toContain('use Illuminate\Support\Str;')
         ->toContain('Invoice::create(Str::uuid()->toString())')
         ->toContain('$this->repository->save($entity);');

@@ -65,7 +65,7 @@ test('scaffold wires entity injection in command handler', function () {
     $content = file_get_contents($handlerFile);
 
     expect($content)
-        ->toContain('use App\Billing\Domain\Repositories\InvoiceWriteRepository;')
+        ->toContain('use Src\Billing\Domain\Repositories\InvoiceWriteRepository;')
         ->toContain('private readonly InvoiceWriteRepository $repository,');
 });
 
@@ -76,8 +76,8 @@ test('scaffold wires entity injection in query handler', function () {
     $content = file_get_contents($handlerFile);
 
     expect($content)
-        ->toContain('use App\Billing\Application\Contracts\InvoiceReadRepository;')
-        ->toContain('use App\Billing\Application\ReadModels\InvoiceReadModel;')
+        ->toContain('use Src\Billing\Application\Contracts\InvoiceReadRepository;')
+        ->toContain('use Src\Billing\Application\ReadModels\InvoiceReadModel;')
         ->toContain('private readonly InvoiceReadRepository $repository,')
         ->toContain('public function handle(GetInvoiceQuery $query): ?InvoiceReadModel')
         ->toContain('return $this->repository->findById($query->id);');
@@ -102,11 +102,11 @@ test('scaffold wires controller with all CQRS handlers', function () {
     $content = file_get_contents($file);
 
     expect($content)
-        ->toContain('use App\Billing\Application\Commands\CreateInvoice\CreateInvoiceHandler;')
-        ->toContain('use App\Billing\Application\Commands\UpdateInvoice\UpdateInvoiceHandler;')
-        ->toContain('use App\Billing\Application\Commands\DeleteInvoice\DeleteInvoiceHandler;')
-        ->toContain('use App\Billing\Application\Queries\GetInvoice\GetInvoiceHandler;')
-        ->toContain('use App\Billing\Application\Queries\ListInvoices\ListInvoicesHandler;')
+        ->toContain('use Src\Billing\Application\Commands\CreateInvoice\CreateInvoiceHandler;')
+        ->toContain('use Src\Billing\Application\Commands\UpdateInvoice\UpdateInvoiceHandler;')
+        ->toContain('use Src\Billing\Application\Commands\DeleteInvoice\DeleteInvoiceHandler;')
+        ->toContain('use Src\Billing\Application\Queries\GetInvoice\GetInvoiceHandler;')
+        ->toContain('use Src\Billing\Application\Queries\ListInvoices\ListInvoicesHandler;')
         ->toContain('private readonly CreateInvoiceHandler $createHandler,')
         ->toContain('private readonly UpdateInvoiceHandler $updateHandler,')
         ->toContain('private readonly DeleteInvoiceHandler $deleteHandler,')
@@ -193,7 +193,7 @@ test('scaffold wires routes with plural kebab-case', function () {
 
     expect($content)
         ->toContain("Route::apiResource('invoices', InvoiceController::class)")
-        ->toContain('use App\Billing\Presentation\Controllers\InvoiceController;');
+        ->toContain('use Src\Billing\Presentation\Controllers\InvoiceController;');
 });
 
 test('scaffold warns when service provider has no markers', function () {

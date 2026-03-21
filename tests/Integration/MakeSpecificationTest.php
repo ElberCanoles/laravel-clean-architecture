@@ -9,7 +9,7 @@ test('creates specification with correct content', function () {
 
     $content = file_get_contents($file);
     expect($content)
-        ->toContain('namespace App\Billing\Domain\Specifications;')
+        ->toContain('namespace Src\Billing\Domain\Specifications;')
         ->toContain('class InvoiceOverdueSpecification')
         ->toContain('public function isSatisfiedBy(mixed $candidate): bool')
         ->toContain('public function and(self $other): static')

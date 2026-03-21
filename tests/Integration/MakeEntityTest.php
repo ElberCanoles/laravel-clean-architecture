@@ -9,7 +9,7 @@ test('creates entity file with correct content', function () {
 
     $content = file_get_contents($file);
     expect($content)
-        ->toContain('namespace App\Billing\Domain\Entities;')
+        ->toContain('namespace Src\Billing\Domain\Entities;')
         ->toContain('final class Invoice')
         ->toContain('public static function create(string $id): self')
         ->toContain('protected function recordEvent(object $event): void')
