@@ -3,7 +3,7 @@
 [![CI](https://github.com/ElberCanoles/laravel-clean-architecture/actions/workflows/ci.yml/badge.svg)](https://github.com/ElberCanoles/laravel-clean-architecture/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![PHP 8.2+](https://img.shields.io/badge/PHP-8.2%2B-8892BF.svg)](https://php.net)
-[![Laravel 11+](https://img.shields.io/badge/Laravel-11%2B-FF2D20.svg)](https://laravel.com)
+[![Laravel 11–13](https://img.shields.io/badge/Laravel-11--13-FF2D20.svg)](https://laravel.com)
 
 A Laravel package that provides scaffolding for **Domain-Driven Design (DDD)**, **Clean Architecture**, and **CQRS**. It generates bounded contexts with separated read/write repositories, domain events, mappers, sanitizers, and architecture tests — enforcing clean dependency rules from day one.
 
@@ -1171,7 +1171,7 @@ Available stubs:
 ## Requirements
 
 - PHP 8.2+
-- Laravel 11.0+ or 12.0+
+- Laravel 11.0+, 12.0+, or 13.0+
 
 ### Dev dependencies (for architecture tests)
 

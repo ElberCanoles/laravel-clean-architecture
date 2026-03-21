@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com), and this project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.2.2] - 2026-03-21
+
+### Added
+
+- **Laravel 13 compatibility** — `illuminate/support ^13.0` and `orchestra/testbench ^11.0` now supported
+- **PHP 8.5 CI coverage** — added PHP 8.5 to the GitHub Actions test matrix
+
 ## [1.2.1] - 2026-03-20
 
 ### Changed
