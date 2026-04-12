@@ -4,6 +4,42 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com), and this project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.3.0] - 2026-04-12
+
+### Added
+
+- **`HasDomainEvents` interface** — formal contract (`CleanArchitecture\Support\HasDomainEvents`) for entities that record domain events, replacing duck typing via `method_exists()`
+- **`PaginatedResult` DTO** — generic `CleanArchitecture\Support\PaginatedResult<T>` for paginated read repository results, with `meta()` helper returning `total`, `page`, and `per_page`
+- **Migration generation** — `clean:scaffold` now generates a database migration with UUID primary key and timestamps; warns if migration already exists
+- **`fromPersistence()` factory method** — entities now have a dedicated static factory for reconstituting from database, keeping the `create()` method for new instances
+- **`migration.stub`** — new stub for scaffold-generated database migrations
+
+### Changed
+
+- **Entity constructor is now `private`** — forces creation through `create()` or `fromPersistence()` factory methods, preventing invalid state
+- **Entity `recordEvent()` is now `private`** — event recording is an internal concern, not part of the public API
+- **Sanitizer passes through data by default** — generated sanitizers use `...$data` spread to prevent silent data loss
+- **Read repository `findAll()` returns `PaginatedResult`** — replaces raw `array` return, providing items + pagination metadata
+- **Read Eloquent repository uses `PaginatedResult`** — includes count query and `forPage()` pagination with proper DTO construction
+- **List query handler returns `PaginatedResult`** — instead of `array`, matching the updated read repository contract
+- **Controller `index()` receives `Request` parameter** — passes `$request->query('page')` and `$request->query('per_page')` to list query, making pagination functional from the API
+- **Controller `index()` returns pagination metadata** — uses `->additional(['meta' => $result->meta()])` on the resource collection
+- **Create handler uses `Str::uuid7()`** — time-ordered UUIDs replace `Str::uuid()->toString()` for better database indexing
+- **Mapper uses `fromPersistence()`** — `toEntity()` calls `Entity::fromPersistence()` instead of `new Entity()` for proper reconstitution semantics
+- **`DispatchesDomainEvents` checks `HasDomainEvents` interface** — type-safe check replaces `method_exists()` duck typing
+- **Architecture tests allow `CleanArchitecture\Support` in Domain** — `->ignoring('CleanArchitecture\Support')` permits the `HasDomainEvents` interface dependency
+- **All console commands return `int`** — `handle()` methods return `self::SUCCESS` instead of `void`, following Laravel command conventions
+- **`toKebab()` extracted in `BaseGenerator`** — shared kebab-case logic, `toKebabPlural()` delegates to it
+- **Scaffold `wireRoutes()` uses correct method** — `Route::apiResource()` for `api.php`, `Route::resource()` for `web.php`
+
+### Fixed
+
+- **Controller pagination was non-functional** — `index()` created `ListQuery()` with no arguments, always defaulting to page 1; now passes request parameters
+- **Unused entity import in delete command** — `clean:command --entity --crud=delete` no longer imports the Entity class (only write repository is needed)
+- **`DispatchesDomainEvents` duck typing** — replaced fragile `method_exists()` with `HasDomainEvents` interface check
+- **Sanitizer silent data loss** — generated sanitizers returned empty array by default; now spread `...$data` to pass through all fields
+- **`wireRoutes()` used `Route::apiResource` for web routes** — now correctly uses `Route::resource()` for `web.php`
+
 ## [1.2.2] - 2026-03-21
 
 ### Added
