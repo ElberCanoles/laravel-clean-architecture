@@ -9,7 +9,7 @@ class MakeSpecification extends BaseGenerator
     protected $signature = 'clean:specification {context} {name} {--force}';
     protected $description = 'Create a domain specification';
 
-    public function handle(): void
+    public function handle(): int
     {
         $context = $this->argument('context');
         $name = $this->argument('name');
@@ -33,5 +33,7 @@ class MakeSpecification extends BaseGenerator
         if ($this->writeFile($file, $content)) {
             $this->info("Specification created: $file");
         }
+
+        return self::SUCCESS;
     }
 }

@@ -11,6 +11,7 @@ test('creates architecture test file with correct content', function () {
     expect($content)
         ->toContain("expect('Src\Billing\Domain')")
         ->toContain('Billing domain does not depend on infrastructure')
+        ->toContain("->ignoring('CleanArchitecture\Support')")
         ->toContain('Billing domain does not depend on application layer')
         ->toContain('Billing application does not depend on presentation')
         ->toContain('Billing application does not depend on infrastructure')

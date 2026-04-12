@@ -9,7 +9,7 @@ class MakeTest extends BaseGenerator
     protected $signature = 'clean:test {context} {name} {--force}';
     protected $description = 'Create a Pest unit test for a domain object';
 
-    public function handle(): void
+    public function handle(): int
     {
         $context = $this->argument('context');
         $name = $this->argument('name');
@@ -33,5 +33,7 @@ class MakeTest extends BaseGenerator
         if ($this->writeFile($file, $content)) {
             $this->info("Unit test created: $file");
         }
+
+        return self::SUCCESS;
     }
 }

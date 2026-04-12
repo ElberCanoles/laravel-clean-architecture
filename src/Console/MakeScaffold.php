@@ -3,13 +3,14 @@
 namespace CleanArchitecture\Console;
 
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 
 class MakeScaffold extends BaseGenerator
 {
     protected $signature = 'clean:scaffold {context} {name} {--force}';
     protected $description = 'Scaffold a full entity with repository, read model, CQRS, controller, request, resource, and sanitizer';
 
-    public function handle(): void
+    public function handle(): int
     {
         $context = $this->argument('context');
         $name = $this->argument('name');
@@ -105,8 +106,11 @@ class MakeScaffold extends BaseGenerator
         $namespace = $this->buildNamespace($context);
         $this->wireServiceProviderBindings($context, $name, $namespace);
         $this->wireRoutes($context, $name, $namespace);
+        $this->generateMigration($name);
 
         $this->info("Scaffold for [$name] in [$context] created successfully.");
+
+        return self::SUCCESS;
     }
 
     protected function wireServiceProviderBindings(string $context, string $name, string $namespace): void
@@ -207,7 +211,8 @@ class MakeScaffold extends BaseGenerator
                 continue;
             }
 
-            $route = "    Route::apiResource('$plural', {$controllerClass}::class);";
+            $routeMethod = $routeFile === 'api.php' ? 'apiResource' : 'resource';
+            $route = "    Route::{$routeMethod}('$plural', {$controllerClass}::class);";
 
             // Add controller import if not present
             $import = "use $controllerFqn;";
@@ -253,5 +258,29 @@ class MakeScaffold extends BaseGenerator
 
             File::put($routePath, $content);
         }
+    }
+
+    protected function generateMigration(string $name): void
+    {
+        $table = Str::snake(Str::pluralStudly($name));
+        $migrationPath = database_path('migrations');
+
+        File::makeDirectory($migrationPath, 0755, true, true);
+
+        // Skip if a migration for this table already exists
+        $existing = File::glob("$migrationPath/*_create_{$table}_table.php");
+
+        if (! empty($existing) && ! $this->option('force')) {
+            $this->warn("Migration already exists for table '$table'.");
+
+            return;
+        }
+
+        $timestamp = date('Y_m_d_His');
+        $content = str_replace('{{table}}', $table, $this->getStub('migration'));
+        $file = "$migrationPath/{$timestamp}_create_{$table}_table.php";
+
+        File::put($file, $content);
+        $this->info("Migration created: $file");
     }
 }

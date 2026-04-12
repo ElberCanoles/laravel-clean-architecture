@@ -1,5 +1,7 @@
 <?php
 
+use Illuminate\Support\Facades\File;
+
 test('scaffolds all files for an entity', function () {
     $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice'])
         ->assertSuccessful();
@@ -83,15 +85,16 @@ test('scaffold wires entity injection in query handler', function () {
         ->toContain('return $this->repository->findById($query->id);');
 });
 
-test('scaffold wires list query handler with repository', function () {
+test('scaffold wires list query handler with repository and pagination', function () {
     $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice']);
 
     $handlerFile = $this->tempDir . '/Billing/Application/Queries/ListInvoices/ListInvoicesHandler.php';
     $content = file_get_contents($handlerFile);
 
     expect($content)
+        ->toContain('use CleanArchitecture\Support\PaginatedResult;')
         ->toContain('private readonly InvoiceReadRepository $repository,')
-        ->toContain('public function handle(ListInvoicesQuery $query): array')
+        ->toContain('public function handle(ListInvoicesQuery $query): PaginatedResult')
         ->toContain('return $this->repository->findAll($query->page, $query->perPage);');
 });
 
@@ -112,7 +115,9 @@ test('scaffold wires controller with all CQRS handlers', function () {
         ->toContain('private readonly DeleteInvoiceHandler $deleteHandler,')
         ->toContain('private readonly GetInvoiceHandler $getHandler,')
         ->toContain('private readonly ListInvoicesHandler $listHandler,')
-        ->toContain('$this->listHandler->handle(new ListInvoicesQuery())')
+        ->toContain('$this->listHandler->handle(new ListInvoicesQuery(')
+        ->toContain("page: (int) \$request->query('page', 1)")
+        ->toContain('InvoiceResource::collection($result->items)')
         ->toContain('$this->getHandler->handle(new GetInvoiceQuery($id))')
         ->toContain('InvoiceSanitizer::sanitize($request->validated())')
         ->toContain('$this->createHandler->handle(new CreateInvoiceCommand($sanitized))')
@@ -129,7 +134,7 @@ test('scaffold wires crud-specific command constructors and handlers', function 
 
     $createHandler = file_get_contents($this->tempDir . '/Billing/Application/Commands/CreateInvoice/CreateInvoiceHandler.php');
     expect($createHandler)
-        ->toContain('Invoice::create(Str::uuid()->toString())')
+        ->toContain('Invoice::create((string) Str::uuid7())')
         ->toContain('$this->repository->save($entity);');
 
     // Update command: string $id + array $data constructor
@@ -196,6 +201,19 @@ test('scaffold wires routes with plural kebab-case', function () {
         ->toContain('use Src\Billing\Presentation\Controllers\InvoiceController;');
 });
 
+test('scaffold wires web routes with Route::resource', function () {
+    $this->artisan('clean:context', ['name' => 'Billing', '--routes' => 'both']);
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice', '--force' => true]);
+
+    $apiFile = $this->tempDir . '/Billing/Presentation/Routes/api.php';
+    $apiContent = file_get_contents($apiFile);
+    expect($apiContent)->toContain("Route::apiResource('invoices', InvoiceController::class)");
+
+    $webFile = $this->tempDir . '/Billing/Presentation/Routes/web.php';
+    $webContent = file_get_contents($webFile);
+    expect($webContent)->toContain("Route::resource('invoices', InvoiceController::class)");
+});
+
 test('scaffold warns when service provider has no markers', function () {
     $this->artisan('clean:context', ['name' => 'Billing']);
 
@@ -225,4 +243,34 @@ test('scaffold does not duplicate bindings on re-run', function () {
     $content = file_get_contents($spFile);
 
     expect(substr_count($content, 'InvoiceWriteRepository::class'))->toBe(1);
+});
+
+test('scaffold generates migration', function () {
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice'])
+        ->assertSuccessful()
+        ->expectsOutputToContain('Migration created');
+
+    $migrations = File::glob(database_path('migrations') . '/*_create_invoices_table.php');
+    expect($migrations)->not->toBeEmpty();
+
+    $content = file_get_contents($migrations[0]);
+    expect($content)
+        ->toContain("Schema::create('invoices'")
+        ->toContain("\$table->uuid('id')->primary()")
+        ->toContain("\$table->timestamps()");
+});
+
+test('scaffold warns when migration already exists', function () {
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice']);
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice'])
+        ->expectsOutputToContain('Migration already exists');
+});
+
+test('scaffold sanitizer passes through data by default', function () {
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice']);
+
+    $file = $this->tempDir . '/Billing/Application/Sanitizers/InvoiceSanitizer.php';
+    $content = file_get_contents($file);
+
+    expect($content)->toContain('...$data,');
 });

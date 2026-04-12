@@ -10,9 +10,12 @@ test('creates entity file with correct content', function () {
     $content = file_get_contents($file);
     expect($content)
         ->toContain('namespace Src\Billing\Domain\Entities;')
-        ->toContain('final class Invoice')
+        ->toContain('use CleanArchitecture\Support\HasDomainEvents;')
+        ->toContain('final class Invoice implements HasDomainEvents')
+        ->toContain('private function __construct(')
         ->toContain('public static function create(string $id): self')
-        ->toContain('protected function recordEvent(object $event): void')
+        ->toContain('public static function fromPersistence(string $id): self')
+        ->toContain('private function recordEvent(object $event): void')
         ->toContain('public function releaseEvents(): array');
 });
 

@@ -57,11 +57,14 @@ abstract class BaseGenerator extends Command
         return Str::plural($name);
     }
 
+    protected function toKebab(string $name): string
+    {
+        return strtolower(preg_replace('/([a-z])([A-Z])/', '$1-$2', $name));
+    }
+
     protected function toKebabPlural(string $name): string
     {
-        $kebab = strtolower(preg_replace('/([a-z])([A-Z])/', '$1-$2', $name));
-
-        return Str::plural($kebab);
+        return Str::plural($this->toKebab($name));
     }
 
     protected function writeFile(string $filePath, string $content): bool

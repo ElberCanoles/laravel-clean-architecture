@@ -13,7 +13,8 @@ test('creates mapper in infrastructure layer', function () {
         ->toContain('use Src\Billing\Infrastructure\Models\InvoiceModel;')
         ->toContain('final class InvoiceMapper')
         ->toContain('public static function toArray(Invoice $entity): array')
-        ->toContain('public static function toEntity(InvoiceModel $model): Invoice');
+        ->toContain('public static function toEntity(InvoiceModel $model): Invoice')
+        ->toContain('Invoice::fromPersistence(');
 });
 
 test('warns when mapper exists without --force', function () {

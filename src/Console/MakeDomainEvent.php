@@ -9,7 +9,7 @@ class MakeDomainEvent extends BaseGenerator
     protected $signature = 'clean:domain-event {context} {name} {--force}';
     protected $description = 'Create a domain event';
 
-    public function handle(): void
+    public function handle(): int
     {
         $context = $this->argument('context');
         $name = $this->argument('name');
@@ -33,5 +33,7 @@ class MakeDomainEvent extends BaseGenerator
         if ($this->writeFile($file, $content)) {
             $this->info("Domain event created: $file");
         }
+
+        return self::SUCCESS;
     }
 }

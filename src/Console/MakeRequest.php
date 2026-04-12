@@ -9,7 +9,7 @@ class MakeRequest extends BaseGenerator
     protected $signature = 'clean:request {context} {name} {--force}';
     protected $description = 'Create a form request in the Presentation layer';
 
-    public function handle(): void
+    public function handle(): int
     {
         $context = $this->argument('context');
         $name = $this->argument('name');
@@ -33,5 +33,7 @@ class MakeRequest extends BaseGenerator
         if ($this->writeFile($file, $content)) {
             $this->info("Request created: $file");
         }
+
+        return self::SUCCESS;
     }
 }

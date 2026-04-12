@@ -9,7 +9,7 @@ class MakeArchTest extends BaseGenerator
     protected $signature = 'clean:arch-test {context} {--force}';
     protected $description = 'Create architecture tests for a bounded context';
 
-    public function handle(): void
+    public function handle(): int
     {
         $context = $this->argument('context');
 
@@ -31,5 +31,7 @@ class MakeArchTest extends BaseGenerator
         if ($this->writeFile($file, $content)) {
             $this->info("Architecture test created: $file");
         }
+
+        return self::SUCCESS;
     }
 }

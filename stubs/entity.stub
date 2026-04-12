@@ -2,12 +2,14 @@
 
 namespace {{Namespace}}\Domain\Entities;
 
-final class {{Class}}
+use CleanArchitecture\Support\HasDomainEvents;
+
+final class {{Class}} implements HasDomainEvents
 {
     /** @var object[] */
     private array $domainEvents = [];
 
-    public function __construct(
+    private function __construct(
         private readonly string $id,
     ) {
     }
@@ -17,12 +19,18 @@ final class {{Class}}
         return new self($id);
     }
 
+    /** @internal Used only for persistence reconstitution */
+    public static function fromPersistence(string $id): self
+    {
+        return new self($id);
+    }
+
     public function id(): string
     {
         return $this->id;
     }
 
-    protected function recordEvent(object $event): void
+    private function recordEvent(object $event): void
     {
         $this->domainEvents[] = $event;
     }

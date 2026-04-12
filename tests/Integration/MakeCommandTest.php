@@ -38,7 +38,8 @@ test('creates handler with entity injection when --entity is provided', function
 
     expect($handlerContent)
         ->toContain('use Src\Billing\Domain\Repositories\InvoiceWriteRepository;')
-        ->toContain('private readonly InvoiceWriteRepository $repository,');
+        ->toContain('private readonly InvoiceWriteRepository $repository,')
+        ->not->toContain('use Src\Billing\Domain\Entities\Invoice;');
 });
 
 test('warns when command files exist without --force', function () {
@@ -67,7 +68,7 @@ test('creates create command with --crud=create', function () {
     expect($handlerContent)
         ->toContain('use Src\Billing\Domain\Entities\Invoice;')
         ->toContain('use Illuminate\Support\Str;')
-        ->toContain('Invoice::create(Str::uuid()->toString())')
+        ->toContain('Invoice::create((string) Str::uuid7())')
         ->toContain('$this->repository->save($entity);');
 });
 
@@ -88,6 +89,8 @@ test('creates update command with --crud=update', function () {
 
     $handlerContent = file_get_contents("$base/UpdateInvoiceHandler.php");
     expect($handlerContent)
+        ->toContain('use Src\Billing\Domain\Entities\Invoice;')
+        ->toContain('use Src\Billing\Domain\Repositories\InvoiceWriteRepository;')
         ->toContain('// TODO: Load entity, apply changes from $command->data, persist via repository');
 });
 
@@ -108,6 +111,8 @@ test('creates delete command with --crud=delete', function () {
 
     $handlerContent = file_get_contents("$base/DeleteInvoiceHandler.php");
     expect($handlerContent)
+        ->toContain('use Src\Billing\Domain\Repositories\InvoiceWriteRepository;')
+        ->not->toContain('use Src\Billing\Domain\Entities\Invoice;')
         ->toContain('$this->repository->delete($command->id);');
 });
 

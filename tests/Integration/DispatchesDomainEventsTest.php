@@ -1,6 +1,7 @@
 <?php
 
 use CleanArchitecture\Support\DispatchesDomainEvents;
+use CleanArchitecture\Support\HasDomainEvents;
 use Illuminate\Support\Facades\Event;
 
 test('dispatches events from entity via event helper', function () {
@@ -10,7 +11,7 @@ test('dispatches events from entity via event helper', function () {
     {
     };
 
-    $entity = new class($event)
+    $entity = new class($event) implements HasDomainEvents
     {
         private array $events;
 
@@ -43,7 +44,7 @@ test('dispatches events from entity via event helper', function () {
     Event::assertDispatched(get_class($event));
 });
 
-test('does nothing when entity has no releaseEvents method', function () {
+test('does nothing when entity does not implement HasDomainEvents', function () {
     Event::fake();
 
     $entity = new class
@@ -72,7 +73,7 @@ test('clears events after dispatching to prevent double dispatch', function () {
     {
     };
 
-    $entity = new class($event)
+    $entity = new class($event) implements HasDomainEvents
     {
         private array $events;
 

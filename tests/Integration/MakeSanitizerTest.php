@@ -11,7 +11,8 @@ test('creates sanitizer in application layer', function () {
     expect($content)
         ->toContain('namespace Src\Billing\Application\Sanitizers;')
         ->toContain('class InvoiceSanitizer')
-        ->toContain('public static function sanitize(array $data): array');
+        ->toContain('public static function sanitize(array $data): array')
+        ->toContain('...$data,');
 });
 
 test('warns when sanitizer exists without --force', function () {

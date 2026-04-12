@@ -6,7 +6,7 @@ trait DispatchesDomainEvents
 {
     protected function dispatchDomainEvents(object $entity): void
     {
-        if (! method_exists($entity, 'releaseEvents')) {
+        if (! $entity instanceof HasDomainEvents) {
             return;
         }
 

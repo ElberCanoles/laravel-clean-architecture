@@ -9,7 +9,7 @@ class MakeController extends BaseGenerator
     protected $signature = 'clean:controller {context} {name} {--entity= : Entity name to wire CQRS handlers} {--force}';
     protected $description = 'Create a controller in the Presentation layer';
 
-    public function handle(): void
+    public function handle(): int
     {
         $context = $this->argument('context');
         $name = $this->argument('name');
@@ -48,7 +48,13 @@ class MakeController extends BaseGenerator
                 . "        private readonly Get{$entity}Handler \$getHandler,\n"
                 . "        private readonly List{$plural}Handler \$listHandler,";
 
-            $indexBody = "\$readModels = \$this->listHandler->handle(new List{$plural}Query());\n\n        return {$entity}Resource::collection(\$readModels)->response();";
+            $indexBody = "\$result = \$this->listHandler->handle(new List{$plural}Query(\n"
+                . "            page: (int) \$request->query('page', 1),\n"
+                . "            perPage: (int) \$request->query('per_page', 15),\n"
+                . "        ));\n\n"
+                . "        return {$entity}Resource::collection(\$result->items)\n"
+                . "            ->additional(['meta' => \$result->meta()])\n"
+                . "            ->response();";
             $showBody = "\$readModel = \$this->getHandler->handle(new Get{$entity}Query(\$id));\n        abort_if(! \$readModel, 404);\n\n        return (new {$entity}Resource(\$readModel))->response();";
             $storeBody = "\$sanitized = {$entity}Sanitizer::sanitize(\$request->validated());\n        \$this->createHandler->handle(new Create{$entity}Command(\$sanitized));\n\n        return response()->json([], 201);";
             $updateBody = "\$sanitized = {$entity}Sanitizer::sanitize(\$request->validated());\n        \$this->updateHandler->handle(new Update{$entity}Command(\$id, \$sanitized));\n\n        return response()->json([]);";
@@ -56,7 +62,7 @@ class MakeController extends BaseGenerator
         } else {
             $imports = '';
             $constructor = '// TODO: Inject command/query handlers';
-            $indexBody = "// TODO: Implement list query\n        return response()->json([]);";
+            $indexBody = "// TODO: Implement list query using \$request->query('page') and \$request->query('per_page')\n        return response()->json([]);";
             $showBody = "// TODO: Implement show query\n        return response()->json([]);";
             $storeBody = "// TODO: Implement create command\n        return response()->json([], 201);";
             $updateBody = "// TODO: Implement update command\n        return response()->json([]);";
@@ -74,5 +80,7 @@ class MakeController extends BaseGenerator
         if ($this->writeFile($file, $content)) {
             $this->info("Controller created: $file");
         }
+
+        return self::SUCCESS;
     }
 }

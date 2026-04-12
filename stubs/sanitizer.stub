@@ -11,6 +11,7 @@ class {{Class}}Sanitizer
             // TODO: Normalize input data before passing to domain
             // 'email' => strtolower(trim($data['email'] ?? '')),
             // 'name' => trim($data['name'] ?? ''),
+            ...$data,
         ];
     }
 }

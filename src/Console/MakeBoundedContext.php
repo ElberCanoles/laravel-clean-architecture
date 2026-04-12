@@ -9,7 +9,7 @@ class MakeBoundedContext extends BaseGenerator
     protected $signature = 'clean:context {name} {--routes=api : Route types to generate (api, web, both)} {--force}';
     protected $description = 'Create a new bounded context with DDD folder structure';
 
-    public function handle(): void
+    public function handle(): int
     {
         $name = $this->argument('name');
 
@@ -58,6 +58,8 @@ class MakeBoundedContext extends BaseGenerator
             'context' => $name,
             '--force' => $this->option('force'),
         ]);
+
+        return self::SUCCESS;
     }
 
     protected function generateServiceProvider(string $base, string $context, string $namespace): void
@@ -77,7 +79,7 @@ class MakeBoundedContext extends BaseGenerator
 
     protected function generateRoutes(string $base, string $context, string $routes): void
     {
-        $prefix = strtolower(preg_replace('/([a-z])([A-Z])/', '$1-$2', $context));
+        $prefix = $this->toKebab($context);
 
         $stubContent = str_replace(
             '{{prefix}}',

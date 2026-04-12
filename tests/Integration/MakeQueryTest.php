@@ -98,9 +98,8 @@ test('creates collection query with entity injection', function () {
 
     expect($handlerContent)
         ->toContain('use Src\Billing\Application\Contracts\InvoiceReadRepository;')
-        ->toContain('use Src\Billing\Application\ReadModels\InvoiceReadModel;')
+        ->toContain('use CleanArchitecture\Support\PaginatedResult;')
         ->toContain('private readonly InvoiceReadRepository $repository,')
-        ->toContain('/** @return InvoiceReadModel[] */')
-        ->toContain('public function handle(ListInvoicesQuery $query): array')
+        ->toContain('public function handle(ListInvoicesQuery $query): PaginatedResult')
         ->toContain('return $this->repository->findAll($query->page, $query->perPage);');
 });

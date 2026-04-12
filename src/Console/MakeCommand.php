@@ -9,7 +9,7 @@ class MakeCommand extends BaseGenerator
     protected $signature = 'clean:command {context} {name} {--entity= : Entity name to inject WriteRepository} {--crud= : CRUD operation type (create, update, delete)} {--force}';
     protected $description = 'Create a CQRS command with handler';
 
-    public function handle(): void
+    public function handle(): int
     {
         $context = $this->argument('context');
         $name = $this->argument('name');
@@ -45,13 +45,9 @@ class MakeCommand extends BaseGenerator
         $handlerStub = $this->getStub('command-handler');
 
         if ($entity) {
-            $entityImport = "use {$namespace}\\Domain\\Entities\\{$entity};\nuse {$namespace}\\Domain\\Repositories\\{$entity}WriteRepository;";
+            $entityImport = $this->buildEntityImport($namespace, $entity, $crud);
             $entityConstructor = "private readonly {$entity}WriteRepository \$repository,";
             $handlerBody = $this->buildHandlerBody($crud, $entity);
-
-            if ($crud === 'create') {
-                $entityImport .= "\nuse Illuminate\\Support\\Str;";
-            }
         } else {
             $entityImport = '';
             $entityConstructor = '// TODO: Inject your WriteRepository';
@@ -77,6 +73,8 @@ class MakeCommand extends BaseGenerator
         if ($created) {
             $this->info("Command created: $base");
         }
+
+        return self::SUCCESS;
     }
 
     protected function buildCommandConstructor(?string $crud): string
@@ -89,10 +87,23 @@ class MakeCommand extends BaseGenerator
         };
     }
 
+    protected function buildEntityImport(string $namespace, string $entity, ?string $crud): string
+    {
+        $imports = "use {$namespace}\\Domain\\Repositories\\{$entity}WriteRepository;";
+
+        if ($crud === 'create') {
+            $imports = "use {$namespace}\\Domain\\Entities\\{$entity};\n{$imports}\nuse Illuminate\\Support\\Str;";
+        } elseif ($crud === 'update') {
+            $imports = "use {$namespace}\\Domain\\Entities\\{$entity};\n{$imports}";
+        }
+
+        return $imports;
+    }
+
     protected function buildHandlerBody(?string $crud, string $entity): string
     {
         return match ($crud) {
-            'create' => "\$entity = {$entity}::create(Str::uuid()->toString());\n        \$this->repository->save(\$entity);",
+            'create' => "\$entity = {$entity}::create((string) Str::uuid7());\n        \$this->repository->save(\$entity);",
             'update' => '// TODO: Load entity, apply changes from $command->data, persist via repository',
             'delete' => '$this->repository->delete($command->id);',
             default => '// TODO: Load or create entity, execute domain logic, persist via repository',

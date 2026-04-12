@@ -10,7 +10,7 @@ class MakeModel extends BaseGenerator
     protected $signature = 'clean:model {context} {name} {--force}';
     protected $description = 'Create an Eloquent model in the Infrastructure layer';
 
-    public function handle(): void
+    public function handle(): int
     {
         $context = $this->argument('context');
         $name = $this->argument('name');
@@ -35,5 +35,7 @@ class MakeModel extends BaseGenerator
         if ($this->writeFile($file, $content)) {
             $this->info("Model created: $file");
         }
+
+        return self::SUCCESS;
     }
 }

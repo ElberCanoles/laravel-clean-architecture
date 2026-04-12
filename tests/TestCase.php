@@ -25,6 +25,13 @@ abstract class TestCase extends BaseTestCase
     {
         File::deleteDirectory($this->tempDir);
 
+        // Clean up any generated migration files
+        $migrations = File::glob(database_path('migrations') . '/*.php');
+
+        foreach ($migrations as $migration) {
+            File::delete($migration);
+        }
+
         parent::tearDown();
     }
 

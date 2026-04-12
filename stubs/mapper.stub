@@ -18,7 +18,7 @@ final class {{Class}}Mapper
 
     public static function toEntity({{Class}}Model $model): {{Class}}
     {
-        return new {{Class}}(
+        return {{Class}}::fromPersistence(
             id: $model->id,
             // TODO: Map model properties
         );

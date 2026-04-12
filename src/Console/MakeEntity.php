@@ -9,7 +9,7 @@ class MakeEntity extends BaseGenerator
     protected $signature = 'clean:entity {context} {name} {--force}';
     protected $description = 'Create a domain entity';
 
-    public function handle(): void
+    public function handle(): int
     {
         $context = $this->argument('context');
         $name = $this->argument('name');
@@ -33,5 +33,7 @@ class MakeEntity extends BaseGenerator
         if ($this->writeFile($file, $content)) {
             $this->info("Entity created: $file");
         }
+
+        return self::SUCCESS;
     }
 }

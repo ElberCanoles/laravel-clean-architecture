@@ -2,12 +2,13 @@
 
 namespace {{Namespace}}\Application\Contracts;
 
+use CleanArchitecture\Support\PaginatedResult;
 use {{Namespace}}\Application\ReadModels\{{Class}}ReadModel;
 
 interface {{Class}}ReadRepository
 {
     public function findById(string $id): ?{{Class}}ReadModel;
 
-    /** @return {{Class}}ReadModel[] */
-    public function findAll(int $page = 1, int $perPage = 15): array;
+    /** @return PaginatedResult<{{Class}}ReadModel> */
+    public function findAll(int $page = 1, int $perPage = 15): PaginatedResult;
 }

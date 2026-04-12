@@ -9,7 +9,7 @@ class MakeSanitizer extends BaseGenerator
     protected $signature = 'clean:sanitizer {context} {name} {--force}';
     protected $description = 'Create a sanitizer in the Application layer';
 
-    public function handle(): void
+    public function handle(): int
     {
         $context = $this->argument('context');
         $name = $this->argument('name');
@@ -33,5 +33,7 @@ class MakeSanitizer extends BaseGenerator
         if ($this->writeFile($file, $content)) {
             $this->info("Sanitizer created: $file");
         }
+
+        return self::SUCCESS;
     }
 }

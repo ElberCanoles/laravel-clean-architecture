@@ -9,7 +9,7 @@ class MakeMapper extends BaseGenerator
     protected $signature = 'clean:mapper {context} {name} {--force}';
     protected $description = 'Create an entity-model mapper in the Infrastructure layer';
 
-    public function handle(): void
+    public function handle(): int
     {
         $context = $this->argument('context');
         $name = $this->argument('name');
@@ -33,5 +33,7 @@ class MakeMapper extends BaseGenerator
         if ($this->writeFile($file, $content)) {
             $this->info("Mapper created: $file");
         }
+
+        return self::SUCCESS;
     }
 }

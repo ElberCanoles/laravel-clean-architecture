@@ -14,7 +14,8 @@ test('creates controller in presentation layer', function () {
         ->toContain('use Src\Billing\Presentation\Resources\InvoiceResource;')
         ->toContain('class InvoiceController extends Controller')
         ->toContain('public function __construct(')
-        ->toContain('public function index(): JsonResponse')
+        ->toContain('use Illuminate\Http\Request;')
+        ->toContain('public function index(Request $request): JsonResponse')
         ->toContain('public function show(string $id): JsonResponse')
         ->toContain('public function store(InvoiceRequest $request): JsonResponse')
         ->toContain('public function update(InvoiceRequest $request, string $id): JsonResponse')
@@ -44,7 +45,7 @@ test('controller without --entity keeps TODO comments', function () {
 
     expect($content)
         ->toContain('// TODO: Inject command/query handlers')
-        ->toContain('// TODO: Implement list query')
+        ->toContain("// TODO: Implement list query using \$request->query('page')")
         ->toContain('// TODO: Implement show query')
         ->toContain('// TODO: Implement create command')
         ->toContain('// TODO: Implement update command')
@@ -77,9 +78,12 @@ test('controller with --entity wires all CQRS handlers', function () {
         ->toContain('private readonly DeleteInvoiceHandler $deleteHandler,')
         ->toContain('private readonly GetInvoiceHandler $getHandler,')
         ->toContain('private readonly ListInvoicesHandler $listHandler,')
-        // index
-        ->toContain('$this->listHandler->handle(new ListInvoicesQuery())')
-        ->toContain('InvoiceResource::collection($readModels)')
+        // index — paginated with request parameters
+        ->toContain('$this->listHandler->handle(new ListInvoicesQuery(')
+        ->toContain("page: (int) \$request->query('page', 1)")
+        ->toContain("perPage: (int) \$request->query('per_page', 15)")
+        ->toContain('InvoiceResource::collection($result->items)')
+        ->toContain("->additional(['meta' => \$result->meta()])")
         // show
         ->toContain('$this->getHandler->handle(new GetInvoiceQuery($id))')
         ->toContain('abort_if(! $readModel, 404)')

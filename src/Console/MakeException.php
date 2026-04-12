@@ -9,7 +9,7 @@ class MakeException extends BaseGenerator
     protected $signature = 'clean:exception {context} {name} {--force}';
     protected $description = 'Create a domain exception';
 
-    public function handle(): void
+    public function handle(): int
     {
         $context = $this->argument('context');
         $name = $this->argument('name');
@@ -33,5 +33,7 @@ class MakeException extends BaseGenerator
         if ($this->writeFile($file, $content)) {
             $this->info("Domain exception created: $file");
         }
+
+        return self::SUCCESS;
     }
 }

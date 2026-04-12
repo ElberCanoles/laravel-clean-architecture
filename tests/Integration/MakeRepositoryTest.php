@@ -26,9 +26,10 @@ test('creates CQRS repository interfaces, eloquent implementations and mapper', 
     $readInterfaceContent = file_get_contents($readInterface);
     expect($readInterfaceContent)
         ->toContain('namespace Src\Billing\Application\Contracts;')
+        ->toContain('use CleanArchitecture\Support\PaginatedResult;')
         ->toContain('interface InvoiceReadRepository')
         ->toContain('public function findById(string $id): ?InvoiceReadModel')
-        ->toContain('public function findAll(int $page = 1, int $perPage = 15): array');
+        ->toContain('public function findAll(int $page = 1, int $perPage = 15): PaginatedResult');
 
     $writeEloquentContent = file_get_contents($writeEloquent);
     expect($writeEloquentContent)
@@ -45,12 +46,15 @@ test('creates CQRS repository interfaces, eloquent implementations and mapper', 
     $readEloquentContent = file_get_contents($readEloquent);
     expect($readEloquentContent)
         ->toContain('namespace Src\Billing\Infrastructure;')
+        ->toContain('use CleanArchitecture\Support\PaginatedResult;')
         ->toContain('use Src\Billing\Infrastructure\Models\InvoiceModel;')
         ->toContain('class InvoiceReadEloquentRepository implements InvoiceReadRepository')
         ->toContain('InvoiceModel::query()->find($id)')
         ->toContain('new InvoiceReadModel($model->id)')
+        ->toContain('InvoiceModel::query()->count()')
         ->toContain('->forPage($page, $perPage)')
-        ->toContain('->get()');
+        ->toContain('->get()')
+        ->toContain('new PaginatedResult(');
 
     $mapperContent = file_get_contents($mapper);
     expect($mapperContent)

@@ -5,6 +5,7 @@ namespace {{Namespace}}\Presentation\Controllers;
 {{ControllerImports}}use {{Namespace}}\Presentation\Requests\{{Class}}Request;
 use {{Namespace}}\Presentation\Resources\{{Class}}Resource;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
 class {{Class}}Controller extends Controller
@@ -14,7 +15,7 @@ class {{Class}}Controller extends Controller
     ) {
     }
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         {{IndexBody}}
     }

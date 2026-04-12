@@ -2,6 +2,7 @@
 
 namespace {{Namespace}}\Infrastructure;
 
+use CleanArchitecture\Support\PaginatedResult;
 use {{Namespace}}\Application\Contracts\{{Class}}ReadRepository;
 use {{Namespace}}\Application\ReadModels\{{Class}}ReadModel;
 use {{Namespace}}\Infrastructure\Models\{{Class}}Model;
@@ -15,13 +16,17 @@ class {{Class}}ReadEloquentRepository implements {{Class}}ReadRepository
         return $model ? new {{Class}}ReadModel($model->id) : null;
     }
 
-    /** @return {{Class}}ReadModel[] */
-    public function findAll(int $page = 1, int $perPage = 15): array
+    /** @return PaginatedResult<{{Class}}ReadModel> */
+    public function findAll(int $page = 1, int $perPage = 15): PaginatedResult
     {
-        return {{Class}}Model::query()
+        $total = {{Class}}Model::query()->count();
+
+        $items = {{Class}}Model::query()
             ->forPage($page, $perPage)
             ->get()
             ->map(fn ({{Class}}Model $model) => new {{Class}}ReadModel($model->id))
             ->all();
+
+        return new PaginatedResult(items: $items, total: $total, page: $page, perPage: $perPage);
     }
 }

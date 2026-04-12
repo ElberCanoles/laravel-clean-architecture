@@ -9,7 +9,7 @@ class MakeResource extends BaseGenerator
     protected $signature = 'clean:resource {context} {name} {--force}';
     protected $description = 'Create an API resource in the Presentation layer';
 
-    public function handle(): void
+    public function handle(): int
     {
         $context = $this->argument('context');
         $name = $this->argument('name');
@@ -33,5 +33,7 @@ class MakeResource extends BaseGenerator
         if ($this->writeFile($file, $content)) {
             $this->info("Resource created: $file");
         }
+
+        return self::SUCCESS;
     }
 }

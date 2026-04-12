@@ -11,8 +11,7 @@ class {{Class}}Handler
     ) {
     }
 
-    /** @return {{ReturnType}}[] */
-    public function handle({{Class}}Query $query): array
+    public function handle({{Class}}Query $query): {{ReturnType}}
     {
         {{HandlerBody}}
     }

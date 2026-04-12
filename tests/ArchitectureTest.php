@@ -10,3 +10,9 @@ test('console commands extend Illuminate Command', function () {
     expect('CleanArchitecture\Console')
         ->toExtend(\Illuminate\Console\Command::class);
 });
+
+test('console commands return int from handle', function () {
+    expect('CleanArchitecture\Console')
+        ->toHaveMethod('handle')
+        ->ignoring('CleanArchitecture\Console\BaseGenerator');
+});

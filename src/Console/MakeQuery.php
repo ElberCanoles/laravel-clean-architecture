@@ -9,7 +9,7 @@ class MakeQuery extends BaseGenerator
     protected $signature = 'clean:query {context} {name} {--entity= : Entity name to inject ReadRepository} {--collection : Generate a list/collection query} {--force}';
     protected $description = 'Create a CQRS query with handler and read model';
 
-    public function handle(): void
+    public function handle(): int
     {
         $context = $this->argument('context');
         $name = $this->argument('name');
@@ -38,16 +38,22 @@ class MakeQuery extends BaseGenerator
         $handlerStub = $this->getStub($isCollection ? 'list-query-handler' : 'query-handler');
 
         if ($entity) {
-            $entityImport = "use {$namespace}\\Application\\Contracts\\{$entity}ReadRepository;\nuse {$namespace}\\Application\\ReadModels\\{$entity}ReadModel;";
             $entityConstructor = "private readonly {$entity}ReadRepository \$repository,";
-            $returnType = $isCollection ? "{$entity}ReadModel" : "?{$entity}ReadModel";
             $handlerBody = $isCollection
                 ? 'return $this->repository->findAll($query->page, $query->perPage);'
                 : 'return $this->repository->findById($query->id);';
+
+            if ($isCollection) {
+                $entityImport = "use {$namespace}\\Application\\Contracts\\{$entity}ReadRepository;\nuse CleanArchitecture\\Support\\PaginatedResult;";
+                $returnType = 'PaginatedResult';
+            } else {
+                $entityImport = "use {$namespace}\\Application\\Contracts\\{$entity}ReadRepository;\nuse {$namespace}\\Application\\ReadModels\\{$entity}ReadModel;";
+                $returnType = "?{$entity}ReadModel";
+            }
         } else {
             $entityImport = '';
             $entityConstructor = '// TODO: Inject your ReadRepository';
-            $returnType = $isCollection ? 'mixed' : 'mixed';
+            $returnType = $isCollection ? 'array' : 'mixed';
             $handlerBody = $isCollection
                 ? "// TODO: Use repository to fetch and return read models\n        return [];"
                 : "// TODO: Use repository to fetch and return read model\n        return null;";
@@ -72,5 +78,7 @@ class MakeQuery extends BaseGenerator
         if ($created) {
             $this->info("Query created: $base");
         }
+
+        return self::SUCCESS;
     }
 }

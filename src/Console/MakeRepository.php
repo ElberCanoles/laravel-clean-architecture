@@ -9,7 +9,7 @@ class MakeRepository extends BaseGenerator
     protected $signature = 'clean:repository {context} {name} {--force}';
     protected $description = 'Create CQRS repository interfaces and Eloquent implementations with mapper';
 
-    public function handle(): void
+    public function handle(): int
     {
         $context = $this->argument('context');
         $name = $this->argument('name');
@@ -24,6 +24,8 @@ class MakeRepository extends BaseGenerator
         $this->createWriteEloquentImplementation($context, $name, $namespace);
         $this->createReadEloquentImplementation($context, $name, $namespace);
         $this->createMapper($context, $name, $namespace);
+
+        return self::SUCCESS;
     }
 
     protected function createWriteInterface(string $context, string $name, string $namespace): void
