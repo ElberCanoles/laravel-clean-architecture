@@ -24,6 +24,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Primary Key Type
+    |--------------------------------------------------------------------------
+    |
+    | The identifier strategy used by generated models, migrations, and
+    | create-command handlers. Supported: 'uuid', 'ulid'.
+    | Can be overridden per command with the --id-type option.
+    |
+    */
+    'id_type' => 'uuid',
+
+    /*
+    |--------------------------------------------------------------------------
     | Auto-discover Contexts
     |--------------------------------------------------------------------------
     |

@@ -116,6 +116,60 @@ test('creates delete command with --crud=delete', function () {
         ->toContain('$this->repository->delete($command->id);');
 });
 
+test('create handler generates ULIDs with --id-type=ulid', function () {
+    $this->artisan('clean:command', [
+        'context' => 'Billing',
+        'name' => 'CreateInvoice',
+        '--entity' => 'Invoice',
+        '--crud' => 'create',
+        '--id-type' => 'ulid',
+    ])->assertSuccessful();
+
+    $handlerContent = file_get_contents(
+        $this->tempDir . '/Billing/Application/Commands/CreateInvoice/CreateInvoiceHandler.php'
+    );
+
+    expect($handlerContent)
+        ->toContain('use Illuminate\Support\Str;')
+        ->toContain('Invoice::create((string) Str::ulid())')
+        ->not->toContain('Str::uuid7()');
+});
+
+test('create handler honours id_type config', function () {
+    config()->set('clean-architecture.id_type', 'ulid');
+
+    $this->artisan('clean:command', [
+        'context' => 'Billing',
+        'name' => 'CreateInvoice',
+        '--entity' => 'Invoice',
+        '--crud' => 'create',
+    ])->assertSuccessful();
+
+    $handlerContent = file_get_contents(
+        $this->tempDir . '/Billing/Application/Commands/CreateInvoice/CreateInvoiceHandler.php'
+    );
+
+    expect($handlerContent)->toContain('Invoice::create((string) Str::ulid())');
+});
+
+test('rejects invalid --id-type value on command', function () {
+    $this->artisan('clean:command', [
+        'context' => 'Billing',
+        'name' => 'CreateInvoice',
+        '--entity' => 'Invoice',
+        '--crud' => 'create',
+        '--id-type' => 'snowflake',
+    ]);
+})->throws(\InvalidArgumentException::class);
+
+test('rejects invalid --id-type even when no entity is injected', function () {
+    $this->artisan('clean:command', [
+        'context' => 'Billing',
+        'name' => 'PayInvoice',
+        '--id-type' => 'snowflake',
+    ]);
+})->throws(\InvalidArgumentException::class);
+
 test('rejects invalid --crud value', function () {
     $this->artisan('clean:command', [
         'context' => 'Billing',

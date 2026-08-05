@@ -266,6 +266,45 @@ test('scaffold warns when migration already exists', function () {
         ->expectsOutputToContain('Migration already exists');
 });
 
+test('scaffold generates ULID migration, model and create handler with --id-type=ulid', function () {
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice', '--id-type' => 'ulid'])
+        ->assertSuccessful();
+
+    $migrations = File::glob(database_path('migrations') . '/*_create_invoices_table.php');
+    expect($migrations)->not->toBeEmpty();
+
+    expect(file_get_contents($migrations[0]))
+        ->toContain("\$table->ulid('id')->primary()")
+        ->not->toContain("\$table->uuid('id')");
+
+    expect(file_get_contents($this->tempDir . '/Billing/Infrastructure/Models/InvoiceModel.php'))
+        ->toContain('use HasUlids;')
+        ->not->toContain('HasUuids');
+
+    expect(file_get_contents($this->tempDir . '/Billing/Application/Commands/CreateInvoice/CreateInvoiceHandler.php'))
+        ->toContain('Invoice::create((string) Str::ulid())')
+        ->not->toContain('Str::uuid7()');
+});
+
+test('scaffold honours id_type config across every generated file', function () {
+    config()->set('clean-architecture.id_type', 'ulid');
+
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice'])
+        ->assertSuccessful();
+
+    $migrations = File::glob(database_path('migrations') . '/*_create_invoices_table.php');
+
+    expect(file_get_contents($migrations[0]))->toContain("\$table->ulid('id')->primary()");
+    expect(file_get_contents($this->tempDir . '/Billing/Infrastructure/Models/InvoiceModel.php'))
+        ->toContain('use HasUlids;');
+    expect(file_get_contents($this->tempDir . '/Billing/Application/Commands/CreateInvoice/CreateInvoiceHandler.php'))
+        ->toContain('Invoice::create((string) Str::ulid())');
+});
+
+test('scaffold rejects invalid --id-type value', function () {
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice', '--id-type' => 'snowflake']);
+})->throws(\InvalidArgumentException::class);
+
 test('scaffold sanitizer passes through data by default', function () {
     $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice']);
 

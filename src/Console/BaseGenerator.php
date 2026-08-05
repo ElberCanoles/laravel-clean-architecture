@@ -8,6 +8,9 @@ use Illuminate\Support\Str;
 
 abstract class BaseGenerator extends Command
 {
+    /** Identifier strategies supported by the generators. */
+    protected const ID_TYPES = ['uuid', 'ulid'];
+
     protected function getStub(string $name): string
     {
         $customPath = base_path("stubs/clean-architecture/$name.stub");
@@ -50,6 +53,60 @@ abstract class BaseGenerator extends Command
                 "Invalid $label: '$value'. Must start with an uppercase letter and contain only alphanumeric characters (e.g. 'Billing', 'Invoice')."
             );
         }
+    }
+
+    /**
+     * Resolve the identifier strategy: --id-type option first, then config, then 'uuid'.
+     */
+    protected function resolveIdType(): string
+    {
+        $idType = ($this->hasOption('id-type') ? $this->option('id-type') : null)
+            ?: config('clean-architecture.id_type', 'uuid');
+
+        if (! in_array($idType, self::ID_TYPES, true)) {
+            throw new \InvalidArgumentException(
+                "Invalid id type: '$idType'. Must be " . $this->humanizeIdTypes() . '.'
+            );
+        }
+
+        return $idType;
+    }
+
+    /**
+     * The Eloquent concern that generates keys for the given identifier strategy.
+     */
+    protected function idTrait(string $idType): string
+    {
+        return $idType === 'ulid' ? 'HasUlids' : 'HasUuids';
+    }
+
+    /**
+     * The Str expression that produces a new identifier, ready to be embedded in generated code.
+     */
+    protected function idFactoryCall(string $idType): string
+    {
+        return $idType === 'ulid' ? 'Str::ulid()' : 'Str::uuid7()';
+    }
+
+    protected function humanizeIdTypes(): string
+    {
+        return "'" . implode("' or '", self::ID_TYPES) . "'";
+    }
+
+    /**
+     * Stubs published before ULID support hardcode the identifier, so the placeholder
+     * is missing and the resolved id type would be dropped without a trace.
+     */
+    protected function warnIfStubIgnoresIdType(string $stub, string $stubName, string $placeholder): void
+    {
+        if (str_contains($stub, $placeholder)) {
+            return;
+        }
+
+        $this->warn(
+            "Custom stub '$stubName.stub' has no $placeholder placeholder — the id type was not applied. "
+            . 'Re-publish stubs with: php artisan vendor:publish --tag=clean-architecture-stubs --force'
+        );
     }
 
     protected function toPluralStudly(string $name): string

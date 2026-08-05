@@ -2,12 +2,12 @@
 
 namespace {{Namespace}}\Infrastructure\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Concerns\{{IdTrait}};
 use Illuminate\Database\Eloquent\Model;
 
 class {{Class}}Model extends Model
 {
-    use HasUuids;
+    use {{IdTrait}};
 
     protected $table = '{{table}}';
 

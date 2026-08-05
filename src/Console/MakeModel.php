@@ -7,7 +7,7 @@ use Illuminate\Support\Str;
 
 class MakeModel extends BaseGenerator
 {
-    protected $signature = 'clean:model {context} {name} {--force}';
+    protected $signature = 'clean:model {context} {name} {--id-type= : Primary key type (uuid, ulid)} {--force}';
     protected $description = 'Create an Eloquent model in the Infrastructure layer';
 
     public function handle(): int
@@ -20,14 +20,18 @@ class MakeModel extends BaseGenerator
 
         $namespace = $this->buildNamespace($context);
         $table = Str::snake(Str::pluralStudly($name));
+        $idTrait = $this->idTrait($this->resolveIdType());
 
         $path = base_path(config('clean-architecture.contexts_path') . "/$context/Infrastructure/Models");
         File::makeDirectory($path, 0755, true, true);
 
+        $stub = $this->getStub('model');
+        $this->warnIfStubIgnoresIdType($stub, 'model', '{{IdTrait}}');
+
         $content = str_replace(
-            ['{{Namespace}}', '{{Class}}', '{{table}}'],
-            [$namespace, $name, $table],
-            $this->getStub('model')
+            ['{{Namespace}}', '{{Class}}', '{{table}}', '{{IdTrait}}'],
+            [$namespace, $name, $table, $idTrait],
+            $stub
         );
 
         $file = "$path/{$name}Model.php";

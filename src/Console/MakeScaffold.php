@@ -7,7 +7,7 @@ use Illuminate\Support\Str;
 
 class MakeScaffold extends BaseGenerator
 {
-    protected $signature = 'clean:scaffold {context} {name} {--force}';
+    protected $signature = 'clean:scaffold {context} {name} {--id-type= : Primary key type (uuid, ulid)} {--force}';
     protected $description = 'Scaffold a full entity with repository, read model, CQRS, controller, request, resource, and sanitizer';
 
     public function handle(): int
@@ -21,6 +21,9 @@ class MakeScaffold extends BaseGenerator
         $force = $this->option('force');
         $plural = $this->toPluralStudly($name);
 
+        // Resolved once so every generated file shares the same identifier strategy.
+        $idType = $this->resolveIdType();
+
         $commands = [
             ['clean:entity', [
                 'context' => $context,
@@ -30,6 +33,7 @@ class MakeScaffold extends BaseGenerator
             ['clean:model', [
                 'context' => $context,
                 'name' => $name,
+                '--id-type' => $idType,
                 '--force' => $force,
             ]],
             ['clean:repository', [
@@ -47,6 +51,7 @@ class MakeScaffold extends BaseGenerator
                 'name' => "Create{$name}",
                 '--entity' => $name,
                 '--crud' => 'create',
+                '--id-type' => $idType,
                 '--force' => $force,
             ]],
             ['clean:command', [
@@ -106,7 +111,7 @@ class MakeScaffold extends BaseGenerator
         $namespace = $this->buildNamespace($context);
         $this->wireServiceProviderBindings($context, $name, $namespace);
         $this->wireRoutes($context, $name, $namespace);
-        $this->generateMigration($name);
+        $this->generateMigration($name, $idType);
 
         $this->info("Scaffold for [$name] in [$context] created successfully.");
 
@@ -260,7 +265,7 @@ class MakeScaffold extends BaseGenerator
         }
     }
 
-    protected function generateMigration(string $name): void
+    protected function generateMigration(string $name, string $idType): void
     {
         $table = Str::snake(Str::pluralStudly($name));
         $migrationPath = database_path('migrations');
@@ -277,7 +282,14 @@ class MakeScaffold extends BaseGenerator
         }
 
         $timestamp = date('Y_m_d_His');
-        $content = str_replace('{{table}}', $table, $this->getStub('migration'));
+        $stub = $this->getStub('migration');
+        $this->warnIfStubIgnoresIdType($stub, 'migration', '{{idType}}');
+
+        $content = str_replace(
+            ['{{table}}', '{{idType}}'],
+            [$table, $idType],
+            $stub
+        );
         $file = "$migrationPath/{$timestamp}_create_{$table}_table.php";
 
         File::put($file, $content);

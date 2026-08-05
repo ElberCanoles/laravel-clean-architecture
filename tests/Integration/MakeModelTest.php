@@ -44,6 +44,61 @@ test('overwrites model with --force', function () {
         ->expectsOutputToContain('Model created');
 });
 
+test('creates model with HasUlids when --id-type=ulid', function () {
+    $this->artisan('clean:model', ['context' => 'Billing', 'name' => 'Invoice', '--id-type' => 'ulid'])
+        ->assertSuccessful();
+
+    $content = file_get_contents($this->tempDir . '/Billing/Infrastructure/Models/InvoiceModel.php');
+
+    expect($content)
+        ->toContain('use Illuminate\Database\Eloquent\Concerns\HasUlids;')
+        ->toContain('use HasUlids;')
+        ->not->toContain('HasUuids');
+});
+
+test('creates model with HasUuids when --id-type=uuid', function () {
+    $this->artisan('clean:model', ['context' => 'Billing', 'name' => 'Invoice', '--id-type' => 'uuid'])
+        ->assertSuccessful();
+
+    $content = file_get_contents($this->tempDir . '/Billing/Infrastructure/Models/InvoiceModel.php');
+
+    expect($content)
+        ->toContain('use HasUuids;')
+        ->not->toContain('HasUlids');
+});
+
+test('model honours id_type config when no option is given', function () {
+    config()->set('clean-architecture.id_type', 'ulid');
+
+    $this->artisan('clean:model', ['context' => 'Billing', 'name' => 'Invoice'])
+        ->assertSuccessful();
+
+    $content = file_get_contents($this->tempDir . '/Billing/Infrastructure/Models/InvoiceModel.php');
+
+    expect($content)->toContain('use HasUlids;');
+});
+
+test('--id-type option overrides id_type config', function () {
+    config()->set('clean-architecture.id_type', 'ulid');
+
+    $this->artisan('clean:model', ['context' => 'Billing', 'name' => 'Invoice', '--id-type' => 'uuid'])
+        ->assertSuccessful();
+
+    $content = file_get_contents($this->tempDir . '/Billing/Infrastructure/Models/InvoiceModel.php');
+
+    expect($content)->toContain('use HasUuids;');
+});
+
+test('rejects invalid --id-type value', function () {
+    $this->artisan('clean:model', ['context' => 'Billing', 'name' => 'Invoice', '--id-type' => 'snowflake']);
+})->throws(\InvalidArgumentException::class);
+
+test('rejects invalid id_type config value', function () {
+    config()->set('clean-architecture.id_type', 'snowflake');
+
+    $this->artisan('clean:model', ['context' => 'Billing', 'name' => 'Invoice']);
+})->throws(\InvalidArgumentException::class);
+
 test('rejects invalid name', function () {
     $this->artisan('clean:model', ['context' => 'Billing', 'name' => 'bad-name']);
 })->throws(\InvalidArgumentException::class);
