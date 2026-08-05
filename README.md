@@ -116,7 +116,7 @@ flowchart TD
         end
 
         subgraph Infrastructure ["Infrastructure Layer"]
-            Models["Eloquent Models\nHasUuids, fillable, casts"]
+            Models["Eloquent Models\nHasUuids/HasUlids, fillable, casts"]
             WriteEloquent["WriteEloquent Repositories\nwith DispatchesDomainEvents"]
             ReadEloquent["ReadEloquent Repositories"]
             Mappers["Mappers\nEntity ↔ Model"]
@@ -378,6 +378,8 @@ class CreateInvoiceHandler
 }
 ```
 
+> With `id_type` set to `ulid` (or `--id-type=ulid`), the handler generates `Str::ulid()` instead. See [Identifier Strategy](#the---id-type-flag).
+
 ```php
 // Delete command — receives entity id
 readonly class DeleteInvoiceCommand
@@ -581,7 +583,7 @@ class InvoiceReadEloquentRepository implements InvoiceReadRepository
 
 #### Eloquent Model
 
-Each scaffolded entity gets a dedicated Eloquent model with UUID support. Table names are auto-computed from the entity name (`OrderItem` → `order_items`).
+Each scaffolded entity gets a dedicated Eloquent model with UUID (default) or ULID keys — see [Identifier Strategy](#the---id-type-flag). Table names are auto-computed from the entity name (`OrderItem` → `order_items`).
 
 ```php
 namespace Src\Billing\Infrastructure\Models;
@@ -601,6 +603,8 @@ class InvoiceModel extends Model
     ];
 }
 ```
+
+With `--id-type=ulid`, the same model is generated with `HasUlids` and the migration uses `$table->ulid('id')->primary()`.
 
 #### Mapper
 
@@ -886,10 +890,11 @@ php artisan vendor:publish --tag=clean-architecture-stubs
 php artisan clean:context Billing
 
 # 2. Scaffold a full entity with all layers in one command
+#    (add --id-type=ulid for ULID primary keys instead of UUIDs)
 php artisan clean:scaffold Billing Invoice
 ```
 
-This generates **22+ fully wired files**: entity (with `HasDomainEvents` interface, private constructor, `create()` and `fromPersistence()` factory methods), Eloquent model (`HasUuids`), CQRS repositories (write + read with real Eloquent code and `PaginatedResult`), mapper (uses `fromPersistence()` for reconstitution), read model, commands (`CreateInvoice` with `array $data` and `Str::uuid7()`, `UpdateInvoice` with `string $id` + `array $data`, `DeleteInvoice` with `string $id`) with CRUD-specific handlers, queries (`GetInvoice` with nullable return, `ListInvoices` returning `PaginatedResult`) with handlers wired to `InvoiceReadRepository`, controller with all 5 handlers injected and working `index()` (with request-driven pagination + metadata)/`show()`/`store()`/`update()`/`destroy()` methods, request, resource, sanitizer (with `...$data` pass-through), and a database migration. Write repositories dispatch domain events automatically via the `HasDomainEvents` interface. If a bounded context exists, the scaffold also **wires the ServiceProvider bindings** and **registers a resource route** automatically (`apiResource` for API, `resource` for web).
+This generates **22+ fully wired files**: entity (with `HasDomainEvents` interface, private constructor, `create()` and `fromPersistence()` factory methods), Eloquent model (`HasUuids`, or `HasUlids` with `--id-type=ulid`), CQRS repositories (write + read with real Eloquent code and `PaginatedResult`), mapper (uses `fromPersistence()` for reconstitution), read model, commands (`CreateInvoice` with `array $data` and `Str::uuid7()`, `UpdateInvoice` with `string $id` + `array $data`, `DeleteInvoice` with `string $id`) with CRUD-specific handlers, queries (`GetInvoice` with nullable return, `ListInvoices` returning `PaginatedResult`) with handlers wired to `InvoiceReadRepository`, controller with all 5 handlers injected and working `index()` (with request-driven pagination + metadata)/`show()`/`store()`/`update()`/`destroy()` methods, request, resource, sanitizer (with `...$data` pass-through), and a database migration. Write repositories dispatch domain events automatically via the `HasDomainEvents` interface. If a bounded context exists, the scaffold also **wires the ServiceProvider bindings** and **registers a resource route** automatically (`apiResource` for API, `resource` for web).
 
 ### Option B: Generate piece by piece
 
@@ -965,7 +970,7 @@ src/Billing/
 ├── Infrastructure/
 │   ├── BillingServiceProvider.php             # with auto-wired bindings
 │   ├── Models/
-│   │   └── InvoiceModel.php                   # HasUuids Eloquent model
+│   │   └── InvoiceModel.php                   # HasUuids/HasUlids Eloquent model
 │   ├── InvoiceWriteEloquentRepository.php     # dispatches domain events
 │   ├── InvoiceReadEloquentRepository.php
 │   └── InvoiceMapper.php                      # Entity ↔ Model bridge
@@ -995,16 +1000,16 @@ All commands support the `--force` flag to overwrite existing files.
 | Command | Description | Output |
 |---------|-------------|--------|
 | `clean:context {name} [--routes=]` | Create bounded context with folders, ServiceProvider, routes, arch tests | Full folder structure |
-| `clean:scaffold {context} {name}` | Scaffold full CRUD entity across all layers (wires controller, SP bindings, routes) | 22+ files |
+| `clean:scaffold {context} {name} [--id-type=]` | Scaffold full CRUD entity across all layers (wires controller, SP bindings, routes) | 22+ files |
 | `clean:entity {context} {name}` | Domain entity with factory method and event recording | `Domain/Entities/{Name}.php` |
-| `clean:model {context} {name}` | Eloquent model with HasUuids and auto-computed table name | `Infrastructure/Models/{Name}Model.php` |
+| `clean:model {context} {name} [--id-type=]` | Eloquent model with `HasUuids`/`HasUlids` and auto-computed table name | `Infrastructure/Models/{Name}Model.php` |
 | `clean:repository {context} {name}` | CQRS repositories (Write + Read interfaces, Eloquent impls, mapper) | 5 files |
 | `clean:read-model {context} {name}` | Standalone readonly read model | `Application/ReadModels/{Name}ReadModel.php` |
 | `clean:value-object {context} {name}` | Readonly value object with validation | `Domain/ValueObjects/{Name}.php` |
 | `clean:specification {context} {name}` | Composable specification with `and()`/`or()`/`not()` | `Domain/Specifications/{Name}Specification.php` |
 | `clean:domain-event {context} {name}` | Readonly domain event with timestamp | `Domain/Events/{Name}Event.php` |
 | `clean:exception {context} {name}` | Domain exception extending `\DomainException` | `Domain/Exceptions/{Name}Exception.php` |
-| `clean:command {context} {name} [--entity=] [--crud=]` | CQRS command + handler (optionally injects WriteRepository with CRUD-specific logic) | `Application/Commands/{Name}/` |
+| `clean:command {context} {name} [--entity=] [--crud=] [--id-type=]` | CQRS command + handler (optionally injects WriteRepository with CRUD-specific logic) | `Application/Commands/{Name}/` |
 | `clean:query {context} {name} [--entity=] [--collection]` | CQRS query + handler (optionally injects ReadRepository) | `Application/Queries/{Name}/` |
 | `clean:mapper {context} {name}` | Entity-Model mapper | `Infrastructure/{Name}Mapper.php` |
 | `clean:sanitizer {context} {name}` | Input sanitizer | `Application/Sanitizers/{Name}Sanitizer.php` |
@@ -1066,6 +1071,36 @@ php artisan clean:query Billing ListInvoices --entity=Invoice --collection
 
 The `clean:scaffold` command uses this flag automatically for the `ListEntities` query.
 
+### The `--id-type` flag
+
+The package supports two identifier strategies for generated models, migrations, and create handlers: `uuid` (default) and `ulid`.
+
+```bash
+# UUIDv7 keys — the default
+php artisan clean:scaffold Billing Invoice
+
+# ULID keys
+php artisan clean:scaffold Billing Invoice --id-type=ulid
+```
+
+| `--id-type` | Eloquent model | Migration | Create handler |
+|-------------|----------------|-----------|----------------|
+| `uuid` _(default)_ | `use HasUuids;` | `$table->uuid('id')->primary()` | `Entity::create((string) Str::uuid7())` |
+| `ulid` | `use HasUlids;` | `$table->ulid('id')->primary()` | `Entity::create((string) Str::ulid())` |
+
+Both are time-ordered, so either choice keeps primary keys index-friendly. ULIDs are shorter (26 chars vs 36) and are lexicographically sortable as strings.
+
+To switch the default for the whole project, publish the config and set `id_type`:
+
+```php
+// config/clean-architecture.php
+'id_type' => 'ulid',
+```
+
+The flag takes precedence over the config value, and `clean:scaffold` resolves it once and forwards it to `clean:model` and `clean:command`, so every generated file for an entity shares the same strategy. Accepted by `clean:scaffold`, `clean:model`, and `clean:command`; any other value fails fast with an `InvalidArgumentException`.
+
+Domain entities are unaffected — they take a plain `string $id` regardless of strategy, keeping the domain layer free of persistence concerns.
+
 ### The `--routes` flag
 
 The `clean:context` command accepts an optional `--routes` flag to control which route files are generated:
@@ -1086,6 +1121,7 @@ The ServiceProvider loads both `api.php` and `web.php` automatically if they exi
 |--------|---------|-------------|
 | `contexts_path` | `src` | Directory where bounded contexts live, relative to `base_path()` |
 | `namespace_prefix` | `Src` | Root namespace for contexts (`Src\Billing`, `Src\Inventory`, etc.) |
+| `id_type` | `uuid` | Identifier strategy for models, migrations and create handlers (`uuid` or `ulid`) |
 | `auto_discover` | `true` | Auto-register `{Context}ServiceProvider` from each context |
 | `auto_load` | `true` | Auto-register PSR-4 autoloading for all `src/` contexts |
 | `arch_tests_path` | `tests/Feature/Architecture` | Where generated architecture tests are stored |
@@ -1157,12 +1193,14 @@ php artisan vendor:publish --tag=clean-architecture-stubs
 
 This copies all stubs to `stubs/clean-architecture/`. Edit them to match your team's conventions. The generators will use your custom stubs instead of the defaults.
 
+> **Upgrading to 1.4:** stubs published before ULID support hardcode the identifier and lack the `{{IdTrait}}` / `{{idType}}` placeholders, so `--id-type` has no effect on them. The generators warn when this happens; re-publish with `--force` (or add the placeholders by hand) to pick up the new behaviour.
+
 Available stubs:
 
 | Stub | Used by | Placeholders |
 |------|---------|-------------|
 | `entity.stub` | `clean:entity` | `{{Namespace}}`, `{{Class}}` |
-| `model.stub` | `clean:model` | `{{Namespace}}`, `{{Class}}`, `{{table}}` |
+| `model.stub` | `clean:model` | `{{Namespace}}`, `{{Class}}`, `{{table}}`, `{{IdTrait}}` |
 | `write-repository.stub` | `clean:repository` | `{{Namespace}}`, `{{Class}}` |
 | `read-repository.stub` | `clean:repository` | `{{Namespace}}`, `{{Class}}` |
 | `write-eloquent-repository.stub` | `clean:repository` | `{{Namespace}}`, `{{Class}}` |
@@ -1186,7 +1224,7 @@ Available stubs:
 | `controller.stub` | `clean:controller` | `{{Namespace}}`, `{{Class}}`, `{{ControllerImports}}`, `{{ControllerConstructor}}`, `{{IndexBody}}`, `{{ShowBody}}`, `{{StoreBody}}`, `{{UpdateBody}}`, `{{DestroyBody}}` |
 | `request.stub` | `clean:request` | `{{Namespace}}`, `{{Class}}` |
 | `resource.stub` | `clean:resource` | `{{Namespace}}`, `{{Class}}` |
-| `migration.stub` | `clean:scaffold` | `{{table}}` |
+| `migration.stub` | `clean:scaffold` | `{{table}}`, `{{idType}}` |
 | `arch-test.stub` | `clean:arch-test` | `{{Namespace}}`, `{{Context}}` |
 
 ---

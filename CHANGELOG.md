@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com), and this project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.4.0] - 2026-08-05
+
+### Added
+
+- **ULID support** — generated models, migrations, and create handlers can now use ULIDs instead of UUIDs
+- **`id_type` config option** — sets the project-wide identifier strategy (`uuid` by default, or `ulid`)
+- **`--id-type` option** — per-command override accepted by `clean:scaffold`, `clean:model`, and `clean:command`; takes precedence over the config value and fails fast on any value other than `uuid` or `ulid`
+- **`idTrait()` and `idFactoryCall()` helpers in `BaseGenerator`** — map the resolved strategy to `HasUuids`/`HasUlids` and to `Str::uuid7()`/`Str::ulid()`
+- **Stale stub detection** — `clean:model` and `clean:scaffold` warn when a published custom stub lacks the `{{IdTrait}}` / `{{idType}}` placeholder, so `--id-type` is never dropped silently; re-publish with `php artisan vendor:publish --tag=clean-architecture-stubs --force`
+
+### Changed
+
+- **`model.stub` uses `{{IdTrait}}`** — the Eloquent concern is injected by the generator instead of being hardcoded to `HasUuids`
+- **`migration.stub` uses `{{idType}}`** — the primary key column is now `$table->{{idType}}('id')->primary()`
+- **`clean:scaffold` resolves the identifier strategy once** — the resolved value is forwarded to `clean:model` and `clean:command`, so every file generated for an entity shares the same strategy
+
+Defaults are unchanged: without `id_type` or `--id-type`, generators keep emitting `HasUuids`, `$table->uuid('id')`, and `Str::uuid7()`. Domain entities are unaffected — they still take a plain `string $id`.
+
 ## [1.3.0] - 2026-04-12
 
 ### Added
