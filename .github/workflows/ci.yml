@@ -90,8 +90,6 @@ jobs:
   windows:
     runs-on: windows-latest
     name: Windows (PHP 8.5 - Laravel 13)
-    # First Windows leg for a filesystem-heavy generator — flip to false once green.
-    continue-on-error: true
 
     steps:
       - uses: actions/checkout@v5
@@ -100,8 +98,9 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
-          # Windows PHP builds ship fileinfo as an optional DLL; flysystem-local requires it.
-          extensions: fileinfo
+          # Windows PHP builds ship these as optional DLLs (built-in on Linux):
+          # flysystem-local needs fileinfo; the migration E2E test needs pdo_sqlite.
+          extensions: fileinfo, pdo_sqlite
           coverage: none
 
       - name: Install dependencies
