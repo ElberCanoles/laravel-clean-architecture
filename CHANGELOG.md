@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com), and this 
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-08-19
+
 ### Added
 
 - **`clean:cache` / `clean:clear`** — cache discovered contexts, providers, and PSR-4 mappings into `bootstrap/cache/clean-architecture.php`, skipping all filesystem scans on cached production boots
@@ -238,7 +240,8 @@ Defaults are unchanged: without `id_type` or `--id-type`, generators keep emitti
 | `arch_tests_path` | `tests/Feature/Architecture` | Where architecture tests are generated |
 | `unit_tests_path` | `tests/Unit/Domain` | Where domain unit tests are generated |
 
-[Unreleased]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v1.2.2...v1.3.0
 [1.2.2]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v1.2.1...v1.2.2

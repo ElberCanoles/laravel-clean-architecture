@@ -9,7 +9,7 @@ with `--force`. If you published custom stubs, re-publish after upgrading:
 php artisan vendor:publish --tag=clean-architecture-stubs --force
 ```
 
-## To 1.5 (Unreleased)
+## To 1.5
 
 ### Requirements
 
