@@ -1,0 +1,30 @@
+<?php
+
+declare(strict_types=1);
+
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+
+// NOTE: Context routes register under '/{{routeBase}}'. If your bootstrap/app.php
+// gives the api group a prefix (e.g. /api), prepend it to the paths below.
+
+test('creates a {{Class}} over HTTP', function () {
+    $response = $this->postJson('/{{routeBase}}', [
+        // TODO: A valid payload according to Store{{Class}}Request::rules()
+    ]);
+
+    $response->assertCreated()
+        ->assertJsonStructure(['id'])
+        ->assertHeader('Location');
+});
+
+test('lists {{Class}} records with pagination metadata', function () {
+    $this->getJson('/{{routeBase}}')
+        ->assertOk()
+        ->assertJsonStructure(['data', 'meta' => ['total', 'page', 'per_page', 'last_page']]);
+});
+
+test('returns 404 for a missing {{Class}}', function () {
+    $this->getJson('/{{routeBase}}/missing')->assertNotFound();
+});

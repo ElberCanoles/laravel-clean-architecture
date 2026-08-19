@@ -28,6 +28,16 @@ abstract class SingleFileGenerator extends BaseGenerator
         return '';
     }
 
+    /**
+     * Extra placeholder => value pairs a subclass wants substituted.
+     *
+     * @return array<string, string>
+     */
+    protected function replacements(string $namespace, string $context, string $name): array
+    {
+        return [];
+    }
+
     public function handle(): int
     {
         $context = $this->cleanName($this->stringArgument('context'), 'context');
@@ -38,9 +48,14 @@ abstract class SingleFileGenerator extends BaseGenerator
         $path = $this->contextPath($context, $this->subPath());
         File::ensureDirectoryExists($path);
 
+        $replacements = array_merge(
+            ['{{Namespace}}' => $namespace, '{{Class}}' => $name],
+            $this->replacements($namespace, $context, $name)
+        );
+
         $content = str_replace(
-            ['{{Namespace}}', '{{Class}}'],
-            [$namespace, $name],
+            array_keys($replacements),
+            array_values($replacements),
             $this->getStub($this->stubName())
         );
 

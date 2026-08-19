@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace {{Namespace}}\Presentation\Controllers;
 
-{{ControllerImports}}use {{Namespace}}\Presentation\Requests\{{Class}}Request;
+{{ControllerImports}}use {{Namespace}}\Presentation\Requests\Store{{Class}}Request;
+use {{Namespace}}\Presentation\Requests\Update{{Class}}Request;
 use {{Namespace}}\Presentation\Resources\{{Class}}Resource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -28,12 +29,12 @@ class {{Class}}Controller extends Controller
         {{ShowBody}}
     }
 
-    public function store({{Class}}Request $request): JsonResponse
+    public function store(Store{{Class}}Request $request): JsonResponse
     {
         {{StoreBody}}
     }
 
-    public function update({{Class}}Request $request, string $id): Response
+    public function update(Update{{Class}}Request $request, string $id): Response
     {
         {{UpdateBody}}
     }

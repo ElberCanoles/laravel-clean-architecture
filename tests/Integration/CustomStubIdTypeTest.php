@@ -86,3 +86,18 @@ test('warns when a custom migration stub has no idType placeholder', function ()
         ->expectsOutputToContain('has no {{idType}} placeholder')
         ->assertSuccessful();
 });
+
+test('honours a custom stubs_path for published stubs', function () {
+    config()->set('clean-architecture.stubs_path', $this->relativeTempDir . '/my-stubs');
+
+    File::ensureDirectoryExists($this->tempDir . '/my-stubs');
+    File::put(
+        $this->tempDir . '/my-stubs/value-object.stub',
+        "<?php\n\nnamespace {{Namespace}}\\Domain\\ValueObjects;\n\n// customized stub\nfinal readonly class {{Class}}\n{\n}\n"
+    );
+
+    $this->artisan('clean:value-object', ['context' => 'Billing', 'name' => 'Money'])->assertSuccessful();
+
+    expect(file_get_contents($this->tempDir . '/Billing/Domain/ValueObjects/Money.php'))
+        ->toContain('// customized stub');
+});

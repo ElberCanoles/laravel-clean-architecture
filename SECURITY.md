@@ -4,15 +4,16 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 1.x     | :white_check_mark: |
+| 2.x     | :white_check_mark: |
+| 1.x     | :x:                |
 
 Only the latest release receives security fixes. Please keep the package up to date.
 
 ## Supported Laravel Versions
 
-This package follows Laravel's own [support policy](https://laravel.com/docs/releases#support-policy).
-Laravel 11 reached end of life in March 2026: the package still installs on Laravel 11.17+,
-but that support is deprecated and will be removed in v2.0. We recommend Laravel 12 or 13.
+This package follows Laravel's own [support policy](https://laravel.com/docs/releases#support-policy)
+and supports Laravel 12 and 13. Laravel 11 support was removed in v2.0 — Laravel 11 is
+end of life upstream and carries unpatched security advisories.
 
 ## Reporting a Vulnerability
 

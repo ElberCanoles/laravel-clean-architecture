@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace CleanArchitecture\Console;
 
-use CleanArchitecture\Kernel\MarkerBlockWriter;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
 class MakeScaffold extends BaseGenerator
 {
-    protected $signature = 'clean:scaffold {context} {name} {--id-type= : Primary key type (uuid, ulid)} {--force : Overwrite existing files}';
+    use Concerns\ScaffoldManifest;
+    use Concerns\WiresContext;
+
+    protected $signature = 'clean:scaffold {context} {name} {--id-type= : Primary key type (uuid, ulid)} {--table= : Override the derived table name} {--plural= : Override the derived plural form} {--dry-run : List what would be generated without writing anything} {--force : Overwrite existing files}';
 
     protected $description = 'Scaffold a full entity with repository, read model, CQRS, controller, request, resource, and sanitizer';
 
@@ -20,10 +22,14 @@ class MakeScaffold extends BaseGenerator
         $name = $this->cleanName($this->stringArgument('name'), 'name');
 
         $force = $this->option('force');
-        $plural = $this->toPluralStudly($name);
+        $plural = $this->pluralName($name);
 
         // Resolved once so every generated file shares the same identifier strategy.
         $idType = $this->resolveIdType();
+
+        if ($this->option('dry-run')) {
+            return $this->renderPlan($context, $name);
+        }
 
         $commands = [
             ['clean:entity', [
@@ -35,6 +41,7 @@ class MakeScaffold extends BaseGenerator
                 'context' => $context,
                 'name' => $name,
                 '--id-type' => $idType,
+                '--table' => $this->stringOption('table'),
                 '--force' => $force,
             ]],
             ['clean:repository', [
@@ -116,7 +123,7 @@ class MakeScaffold extends BaseGenerator
 
         $namespace = $this->buildNamespace($context);
         $wiredBindings = $this->wireServiceProviderBindings($context, $name, $namespace);
-        $wiredRoutes = $this->wireRoutes($context, $name, $namespace);
+        $wiredRoutes = $this->wireRoutes($context, $name, $namespace, $this->toKebab($plural));
         $migrated = $this->generateMigration($name, $idType);
 
         if ($failed || ! $wiredBindings || ! $wiredRoutes || ! $migrated) {
@@ -130,142 +137,34 @@ class MakeScaffold extends BaseGenerator
         return self::SUCCESS;
     }
 
-    protected function wireServiceProviderBindings(string $context, string $name, string $namespace): bool
+    protected function renderPlan(string $context, string $name): int
     {
-        $spPath = $this->contextPath($context, "Infrastructure/{$context}ServiceProvider.php");
+        $basePath = base_path();
 
-        if (! File::exists($spPath)) {
-            $this->warn('ServiceProvider not found — skipping binding wiring.');
-
-            return true;
+        foreach ($this->scaffoldFiles($context, $name) as $label => $path) {
+            $relative = ltrim(str_replace($basePath, '', $path), '/\\');
+            $suffix = File::exists($path) ? ' (exists — needs --force)' : '';
+            $this->components->twoColumnDetail($label, $relative . $suffix);
         }
 
-        $content = File::get($spPath);
+        $this->components->twoColumnDetail('Migration', 'database/migrations/*_create_' . Str::snake(Str::pluralStudly($name)) . '_table.php');
+        $this->components->twoColumnDetail('Wiring', "{$context}ServiceProvider bindings + resource route");
+        $this->newLine();
+        $this->info('Dry run — nothing was written.');
 
-        if (! str_contains($content, '// {bindings}')) {
-            $this->warn('No binding markers found in ServiceProvider — skipping wiring.');
-
-            return true;
-        }
-
-        // Skip if already wired for this entity. The leading backslash anchors the
-        // match so an entity whose name is a suffix of another (User vs SuperUser)
-        // is not mistaken for an existing binding.
-        if (str_contains($content, "\\{$name}WriteRepository::class")) {
-            return true;
-        }
-
-        $binding = "\$this->app->bind(\n"
-            . "            \\{$namespace}\\Domain\\Repositories\\{$name}WriteRepository::class,\n"
-            . "            \\{$namespace}\\Infrastructure\\{$name}WriteEloquentRepository::class,\n"
-            . "        );\n"
-            . "        \$this->app->bind(\n"
-            . "            \\{$namespace}\\Application\\Contracts\\{$name}ReadRepository::class,\n"
-            . "            \\{$namespace}\\Infrastructure\\{$name}ReadEloquentRepository::class,\n"
-            . '        );';
-
-        $updated = MarkerBlockWriter::insert($content, 'bindings', "        $binding");
-
-        // A PCRE failure (e.g. backtrack limit) returns null; writing it would
-        // truncate the user's ServiceProvider to an empty file.
-        if ($updated === null) {
-            $this->components->error(
-                'Could not wire bindings in ServiceProvider (' . preg_last_error_msg() . ') — file left untouched.'
-            );
-
-            return false;
-        }
-
-        if (File::put($spPath, $updated) === false) {
-            $this->components->error("Could not write file: $spPath");
-
-            return false;
-        }
-
-        return true;
+        return self::SUCCESS;
     }
 
-    protected function wireRoutes(string $context, string $name, string $namespace): bool
+    protected function pluralName(string $name): string
     {
-        $routesDir = $this->contextPath($context, 'Presentation/Routes');
+        $plural = $this->stringOption('plural');
 
-        if (! File::isDirectory($routesDir)) {
-            return true;
-        }
-
-        $plural = $this->toKebabPlural($name);
-        $controllerClass = "{$name}Controller";
-        $controllerFqn = "{$namespace}\\Presentation\\Controllers\\{$controllerClass}";
-        $wired = true;
-
-        foreach (['api.php', 'web.php'] as $routeFile) {
-            $routePath = "$routesDir/$routeFile";
-
-            if (! File::exists($routePath)) {
-                continue;
-            }
-
-            $content = File::get($routePath);
-
-            if (! str_contains($content, '// {routes}')) {
-                $this->warn("No route markers found in $routeFile — skipping route wiring.");
-
-                continue;
-            }
-
-            // Skip if already wired
-            if (str_contains($content, "'$plural'")) {
-                continue;
-            }
-
-            $routeMethod = $routeFile === 'api.php' ? 'apiResource' : 'resource';
-
-            // Add the controller import; fall back to the FQCN in the route line
-            // so the file never references a class it does not import.
-            $controllerRef = $controllerClass;
-            $import = "use $controllerFqn;";
-
-            if (! str_contains($content, $import)) {
-                $anchor = 'use Illuminate\Support\Facades\Route;';
-
-                if (str_contains($content, $anchor)) {
-                    $content = str_replace($anchor, "$anchor\n$import", $content);
-                } elseif (preg_match_all('/^[ \t]*use\s+[^;]+;/m', $content, $useMatches, PREG_OFFSET_CAPTURE) > 0 && $useMatches[0] !== []) {
-                    $lastUse = $useMatches[0][array_key_last($useMatches[0])];
-                    $position = (int) $lastUse[1] + strlen($lastUse[0]);
-                    $content = substr($content, 0, $position) . "\n$import" . substr($content, $position);
-                } else {
-                    $this->warn("Could not add the controller import to $routeFile — using the fully qualified class name.");
-                    $controllerRef = "\\$controllerFqn";
-                }
-            }
-
-            $route = "    Route::{$routeMethod}('$plural', {$controllerRef}::class);";
-
-            $updated = MarkerBlockWriter::insert($content, 'routes', $route);
-
-            // A PCRE failure returns null; writing it would truncate the routes file.
-            if ($updated === null) {
-                $this->components->error(
-                    "Could not wire routes in $routeFile (" . preg_last_error_msg() . ') — file left untouched.'
-                );
-                $wired = false;
-
-                continue;
-            }
-
-            if (File::put($routePath, $updated) === false) {
-                $this->components->error("Could not write file: $routePath");
-                $wired = false;
-            }
-        }
-
-        return $wired;
+        return $plural !== null ? $this->cleanName($plural, 'plural') : $this->toPluralStudly($name);
     }
 
     protected function generateMigration(string $name, string $idType): bool
     {
-        $table = Str::snake(Str::pluralStudly($name));
+        $table = $this->stringOption('table') ?? Str::snake(Str::pluralStudly($name));
         $migrationPath = database_path('migrations');
 
         File::makeDirectory($migrationPath, 0755, true, true);

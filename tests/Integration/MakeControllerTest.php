@@ -10,15 +10,16 @@ test('creates controller in presentation layer', function () {
     $content = file_get_contents($file);
     expect($content)
         ->toContain('namespace Src\Billing\Presentation\Controllers;')
-        ->toContain('use Src\Billing\Presentation\Requests\InvoiceRequest;')
+        ->toContain('use Src\Billing\Presentation\Requests\StoreInvoiceRequest;')
+        ->toContain('use Src\Billing\Presentation\Requests\UpdateInvoiceRequest;')
         ->toContain('use Src\Billing\Presentation\Resources\InvoiceResource;')
         ->toContain('class InvoiceController extends Controller')
         ->toContain('public function __construct(')
         ->toContain('use Illuminate\Http\Request;')
         ->toContain('public function index(Request $request): JsonResponse')
         ->toContain('public function show(string $id): JsonResponse')
-        ->toContain('public function store(InvoiceRequest $request): JsonResponse')
-        ->toContain('public function update(InvoiceRequest $request, string $id): Response')
+        ->toContain('public function store(StoreInvoiceRequest $request): JsonResponse')
+        ->toContain('public function update(UpdateInvoiceRequest $request, string $id): Response')
         ->toContain('public function destroy(string $id): Response');
 });
 

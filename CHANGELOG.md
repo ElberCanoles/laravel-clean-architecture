@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com), and this 
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-08-19
+
+### Added
+
+- **Seven new generators** — `clean:enum` (backed enums in Domain), `clean:policy`, `clean:factory` + `clean:seeder`, `clean:listener` (Application-layer, `--event` wires the type hint from your domain events), `clean:job` (queued, delegating to Application handlers), and `clean:domain-service`
+- **Test generation for every layer** — `clean:test --handler` scaffolds a use-case suite that runs against the in-memory repositories (create/update/delete incl. the NotFound guards and the creation event), and `clean:test --feature` scaffolds an HTTP test for the wired endpoints; new `handler_tests_path` and `feature_tests_path` config keys
+- **`clean:wire`** — wire ServiceProvider bindings and the resource route for entities generated piece by piece (previously only the scaffold could)
+- **`clean:destroy`** — delete everything the scaffold generated for an entity, with a confirmation prompt and an optional `--with-migration`
+- **`clean:doctor`** — diagnose context discovery, wiring markers, and configuration
+- **`clean:scaffold --dry-run`** — list the full plan (with exists/needs-`--force` annotations) without writing anything
+- **Inflection overrides** — `--plural=` and `--table=` on the scaffold (and `--table=` on `clean:model`) for irregular names the inflector gets wrong (`Person`/`People`, `APIKey`)
+- **`CleanArchitecture\Support\AggregateRoot`** — entities extend it instead of hand-rolling event plumbing; `recordEvent()`/`releaseEvents()` live in one place
+- **Configurable stubs location** — new `stubs_path` config key
+- **Prompts for missing input** — generators now ask for missing arguments interactively, like Laravel's own `make:*` commands
+
+### Changed
+
+- **Form requests split into Store and Update** — `clean:request` now generates `Store{Entity}Request` and `Update{Entity}Request` (creation rules vs `sometimes` rules never belonged in one class); generated controllers type-hint them accordingly
+- **Route wiring idempotency anchored to the resource call** — a context prefix matching the resource plural (`People`/`people`) no longer skips wiring
+
+### Removed
+
+- **Laravel 11 support** — Laravel 11 is end of life upstream and carries unpatched security advisories; the constraint is now `illuminate/*: ^12.0|^13.0` and the CI matrix covers Laravel 12–13 × PHP 8.2–8.5
+- **`request.stub`** — replaced by `store-request.stub` and `update-request.stub`
+
 ## [1.6.0] - 2026-08-19
 
 ### Added
@@ -260,7 +285,8 @@ Defaults are unchanged: without `id_type` or `--id-type`, generators keep emitti
 | `arch_tests_path` | `tests/Feature/Architecture` | Where architecture tests are generated |
 | `unit_tests_path` | `tests/Unit/Domain` | Where domain unit tests are generated |
 
-[Unreleased]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v1.6.0...v2.0.0
 [1.6.0]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v1.3.0...v1.4.0

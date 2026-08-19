@@ -1,0 +1,51 @@
+<?php
+
+declare(strict_types=1);
+
+use {{Namespace}}\Application\Commands\Create{{Class}}\Create{{Class}}Command;
+use {{Namespace}}\Application\Commands\Create{{Class}}\Create{{Class}}Handler;
+use {{Namespace}}\Application\Commands\Delete{{Class}}\Delete{{Class}}Command;
+use {{Namespace}}\Application\Commands\Delete{{Class}}\Delete{{Class}}Handler;
+use {{Namespace}}\Application\Commands\Update{{Class}}\Update{{Class}}Command;
+use {{Namespace}}\Application\Commands\Update{{Class}}\Update{{Class}}Handler;
+use {{Namespace}}\Domain\Events\{{Class}}CreatedEvent;
+use {{Namespace}}\Domain\Exceptions\{{Class}}NotFound;
+use {{Namespace}}\Infrastructure\InMemory{{Class}}WriteRepository;
+
+test('create persists the {{Class}} and records its creation event', function () {
+    $repository = new InMemory{{Class}}WriteRepository;
+
+    (new Create{{Class}}Handler($repository))->handle(new Create{{Class}}Command('test-id', []));
+
+    $entity = $repository->ofId('test-id');
+    expect($entity)->not->toBeNull()
+        ->and($entity->releaseEvents()[0])->toBeInstanceOf({{Class}}CreatedEvent::class);
+});
+
+test('update loads the {{Class}}, applies changes, and saves', function () {
+    $repository = new InMemory{{Class}}WriteRepository;
+    (new Create{{Class}}Handler($repository))->handle(new Create{{Class}}Command('test-id', []));
+
+    (new Update{{Class}}Handler($repository))->handle(new Update{{Class}}Command('test-id', [
+        // TODO: Pass changed fields and assert them below
+    ]));
+
+    expect($repository->ofId('test-id'))->not->toBeNull();
+});
+
+test('update rejects a missing {{Class}}', function () {
+    expect(fn () => (new Update{{Class}}Handler(new InMemory{{Class}}WriteRepository))
+        ->handle(new Update{{Class}}Command('missing', [])))
+        ->toThrow({{Class}}NotFound::class);
+});
+
+test('delete removes the {{Class}} and rejects missing ones', function () {
+    $repository = new InMemory{{Class}}WriteRepository;
+    (new Create{{Class}}Handler($repository))->handle(new Create{{Class}}Command('test-id', []));
+
+    (new Delete{{Class}}Handler($repository))->handle(new Delete{{Class}}Command('test-id'));
+    expect($repository->ofId('test-id'))->toBeNull();
+
+    expect(fn () => (new Delete{{Class}}Handler($repository))->handle(new Delete{{Class}}Command('test-id')))
+        ->toThrow({{Class}}NotFound::class);
+});

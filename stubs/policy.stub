@@ -1,0 +1,35 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{Namespace}}\Presentation\Policies;
+
+use Illuminate\Contracts\Auth\Authenticatable;
+
+class {{Class}}Policy
+{
+    public function viewAny(Authenticatable $user): bool
+    {
+        return true; // TODO
+    }
+
+    public function view(Authenticatable $user, string $id): bool
+    {
+        return true; // TODO
+    }
+
+    public function create(Authenticatable $user): bool
+    {
+        return true; // TODO
+    }
+
+    public function update(Authenticatable $user, string $id): bool
+    {
+        return true; // TODO
+    }
+
+    public function delete(Authenticatable $user, string $id): bool
+    {
+        return true; // TODO
+    }
+}

@@ -66,7 +66,8 @@ test('scaffolds all files for an entity', function () {
 
     // Controller, request, resource, sanitizer
     expect(file_exists($this->tempDir . '/Billing/Presentation/Controllers/InvoiceController.php'))->toBeTrue();
-    expect(file_exists($this->tempDir . '/Billing/Presentation/Requests/InvoiceRequest.php'))->toBeTrue();
+    expect(file_exists($this->tempDir . '/Billing/Presentation/Requests/StoreInvoiceRequest.php'))->toBeTrue();
+    expect(file_exists($this->tempDir . '/Billing/Presentation/Requests/UpdateInvoiceRequest.php'))->toBeTrue();
     expect(file_exists($this->tempDir . '/Billing/Presentation/Resources/InvoiceResource.php'))->toBeTrue();
     expect(file_exists($this->tempDir . '/Billing/Application/Sanitizers/InvoiceSanitizer.php'))->toBeTrue();
 
@@ -556,4 +557,39 @@ test('generated handlers are unit-testable with the in-memory repositories', fun
         ->and($page->items[0]->id)->toBe('r3')
         ->and($page->meta()['total'])->toBe(3)
         ->and($page->meta()['last_page'])->toBe(2);
+});
+
+test('scaffold --dry-run lists the plan without writing anything', function () {
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice', '--dry-run' => true])
+        ->expectsOutputToContain('Dry run — nothing was written')
+        ->assertSuccessful();
+
+    expect(File::glob($this->tempDir . '/Billing/**/*.php'))->toBeEmpty();
+    expect(File::glob(database_path('migrations') . '/*_create_invoices_table.php'))->toBeEmpty();
+    expect(is_dir($this->tempDir . '/Billing'))->toBeFalse();
+});
+
+test('scaffold honours --plural and --table overrides', function () {
+    $this->artisan('clean:context', ['name' => 'People']);
+    $this->artisan('clean:scaffold', [
+        'context' => 'People',
+        'name' => 'Person',
+        '--plural' => 'People',
+        '--table' => 'people',
+        '--force' => true,
+    ])->assertSuccessful();
+
+    // Class names use the plural override (default inflection would give "Persons").
+    expect(file_exists($this->tempDir . '/People/Application/Queries/ListPeople/ListPeopleQuery.php'))->toBeTrue();
+    expect(file_exists($this->tempDir . '/People/Application/Queries/ListPersons/ListPersonsQuery.php'))->toBeFalse();
+
+    // Route and table use the overrides too.
+    expect(file_get_contents($this->tempDir . '/People/Presentation/Routes/api.php'))
+        ->toContain("Route::apiResource('people', PersonController::class)");
+
+    $migrations = File::glob(database_path('migrations') . '/*_create_people_table.php');
+    expect($migrations)->toHaveCount(1);
+
+    expect(file_get_contents($this->tempDir . '/People/Infrastructure/Models/PersonModel.php'))
+        ->toContain("protected \$table = 'people';");
 });

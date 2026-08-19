@@ -4,14 +4,11 @@ declare(strict_types=1);
 
 namespace {{Namespace}}\Domain\Entities;
 
-use CleanArchitecture\Support\HasDomainEvents;
+use CleanArchitecture\Support\AggregateRoot;
 use {{Namespace}}\Domain\Events\{{Class}}CreatedEvent;
 
-final class {{Class}} implements HasDomainEvents
+final class {{Class}} extends AggregateRoot
 {
-    /** @var object[] */
-    private array $domainEvents = [];
-
     private function __construct(
         private readonly string $id,
     ) {
@@ -42,19 +39,5 @@ final class {{Class}} implements HasDomainEvents
     public function equals(self $other): bool
     {
         return $this->id === $other->id;
-    }
-
-    private function recordEvent(object $event): void
-    {
-        $this->domainEvents[] = $event;
-    }
-
-    /** @return object[] */
-    public function releaseEvents(): array
-    {
-        $events = $this->domainEvents;
-        $this->domainEvents = [];
-
-        return $events;
     }
 }

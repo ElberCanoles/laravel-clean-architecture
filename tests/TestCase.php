@@ -53,5 +53,7 @@ abstract class TestCase extends BaseTestCase
         $app['config']->set('clean-architecture.namespace_prefix', 'Src');
         $app['config']->set('clean-architecture.arch_tests_path', $this->relativeTempDir . '/tests/Feature/Architecture');
         $app['config']->set('clean-architecture.unit_tests_path', $this->relativeTempDir . '/tests/Unit/Domain');
+        $app['config']->set('clean-architecture.handler_tests_path', $this->relativeTempDir . '/tests/Unit/Application');
+        $app['config']->set('clean-architecture.feature_tests_path', $this->relativeTempDir . '/tests/Feature');
     }
 }

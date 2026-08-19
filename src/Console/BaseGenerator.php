@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace CleanArchitecture\Console;
 
 use Illuminate\Console\Command;
+use Illuminate\Contracts\Console\PromptsForMissingInput;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-abstract class BaseGenerator extends Command
+abstract class BaseGenerator extends Command implements PromptsForMissingInput
 {
     /** Identifier strategies supported by the generators. */
     protected const ID_TYPES = ['uuid', 'ulid'];
@@ -55,7 +56,8 @@ abstract class BaseGenerator extends Command
 
     protected function getStub(string $name): string
     {
-        $customPath = base_path("stubs/clean-architecture/$name.stub");
+        $stubsPath = (string) config('clean-architecture.stubs_path', 'stubs/clean-architecture');
+        $customPath = base_path("$stubsPath/$name.stub");
 
         if (File::exists($customPath)) {
             return File::get($customPath);

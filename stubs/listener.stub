@@ -1,0 +1,23 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{Namespace}}\Application\Listeners;
+
+{{EventImport}}/**
+ * Register this listener in your context ServiceProvider's boot():
+ *
+ *     Event::listen({{EventReference}}::class, {{Class}}Listener::class);
+ */
+class {{Class}}Listener
+{
+    public function __construct(
+        // TODO: Inject the ports you need (repositories, contracts — never Eloquent).
+    ) {
+    }
+
+    public function handle({{EventType}} $event): void
+    {
+        // TODO: React to the event
+    }
+}

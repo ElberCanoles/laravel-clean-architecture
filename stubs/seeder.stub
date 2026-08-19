@@ -1,0 +1,16 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{Namespace}}\Infrastructure\Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use {{Namespace}}\Infrastructure\Database\Factories\{{Class}}ModelFactory;
+
+class {{Class}}Seeder extends Seeder
+{
+    public function run(): void
+    {
+        {{Class}}ModelFactory::new()->count(10)->create();
+    }
+}

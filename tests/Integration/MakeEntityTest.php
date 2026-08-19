@@ -10,16 +10,16 @@ test('creates entity file with correct content', function () {
     $content = file_get_contents($file);
     expect($content)
         ->toContain('namespace Src\Billing\Domain\Entities;')
-        ->toContain('use CleanArchitecture\Support\HasDomainEvents;')
-        ->toContain('final class Invoice implements HasDomainEvents')
+        ->toContain('use CleanArchitecture\Support\AggregateRoot;')
+        ->toContain('final class Invoice extends AggregateRoot')
         ->toContain('private function __construct(')
         ->toContain('public static function create(string $id): self')
         ->toContain('use Src\Billing\Domain\Events\InvoiceCreatedEvent;')
         ->toContain('$entity->recordEvent(new InvoiceCreatedEvent($id));')
         ->toContain('public static function fromPersistence(string $id): self')
         ->toContain('public function equals(self $other): bool')
-        ->toContain('private function recordEvent(object $event): void')
-        ->toContain('public function releaseEvents(): array');
+        // recordEvent()/releaseEvents() now come from the AggregateRoot base
+        ->not->toContain('function releaseEvents');
 
     // The referenced creation event is generated alongside the entity.
     expect(file_exists($this->tempDir . '/Billing/Domain/Events/InvoiceCreatedEvent.php'))->toBeTrue();

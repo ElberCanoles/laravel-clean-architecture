@@ -1,0 +1,15 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{Namespace}}\Domain\Services;
+
+/**
+ * Domain service — business logic that spans multiple aggregates and belongs
+ * to no single entity. Keep it pure: depend only on Domain types.
+ */
+final class {{Class}}
+{
+    // TODO: Implement the domain operation, e.g.:
+    // public function __invoke(SomeEntity $a, OtherEntity $b): Result
+}

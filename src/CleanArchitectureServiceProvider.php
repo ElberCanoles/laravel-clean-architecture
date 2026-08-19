@@ -6,15 +6,23 @@ namespace CleanArchitecture;
 
 use CleanArchitecture\Console\CacheContexts;
 use CleanArchitecture\Console\ClearContexts;
+use CleanArchitecture\Console\DestroyScaffold;
+use CleanArchitecture\Console\DiagnoseContexts;
 use CleanArchitecture\Console\MakeArchTest;
 use CleanArchitecture\Console\MakeBoundedContext;
 use CleanArchitecture\Console\MakeCommand;
 use CleanArchitecture\Console\MakeController;
 use CleanArchitecture\Console\MakeDomainEvent;
+use CleanArchitecture\Console\MakeDomainService;
 use CleanArchitecture\Console\MakeEntity;
+use CleanArchitecture\Console\MakeEnum;
 use CleanArchitecture\Console\MakeException;
+use CleanArchitecture\Console\MakeFactory;
+use CleanArchitecture\Console\MakeJob;
+use CleanArchitecture\Console\MakeListener;
 use CleanArchitecture\Console\MakeMapper;
 use CleanArchitecture\Console\MakeModel;
+use CleanArchitecture\Console\MakePolicy;
 use CleanArchitecture\Console\MakeQuery;
 use CleanArchitecture\Console\MakeReadModel;
 use CleanArchitecture\Console\MakeRepository;
@@ -22,9 +30,11 @@ use CleanArchitecture\Console\MakeRequest;
 use CleanArchitecture\Console\MakeResource;
 use CleanArchitecture\Console\MakeSanitizer;
 use CleanArchitecture\Console\MakeScaffold;
+use CleanArchitecture\Console\MakeSeeder;
 use CleanArchitecture\Console\MakeSpecification;
 use CleanArchitecture\Console\MakeTest;
 use CleanArchitecture\Console\MakeValueObject;
+use CleanArchitecture\Console\WireEntity;
 use CleanArchitecture\Kernel\ModuleLoader;
 use CleanArchitecture\Support\ProvidesHttpStatus;
 use Illuminate\Contracts\Debug\ExceptionHandler;
@@ -57,6 +67,9 @@ class CleanArchitectureServiceProvider extends ServiceProvider
             $this->commands([
                 CacheContexts::class,
                 ClearContexts::class,
+                DestroyScaffold::class,
+                DiagnoseContexts::class,
+                WireEntity::class,
                 MakeBoundedContext::class,
                 MakeCommand::class,
                 MakeQuery::class,
@@ -67,6 +80,13 @@ class CleanArchitectureServiceProvider extends ServiceProvider
                 MakeReadModel::class,
                 MakeArchTest::class,
                 MakeDomainEvent::class,
+                MakeDomainService::class,
+                MakeEnum::class,
+                MakeFactory::class,
+                MakeJob::class,
+                MakeListener::class,
+                MakePolicy::class,
+                MakeSeeder::class,
                 MakeException::class,
                 MakeMapper::class,
                 MakeModel::class,
@@ -83,7 +103,7 @@ class CleanArchitectureServiceProvider extends ServiceProvider
             ], 'clean-architecture-config');
 
             $this->publishes([
-                __DIR__ . '/../stubs' => base_path('stubs/clean-architecture'),
+                __DIR__ . '/../stubs' => base_path((string) config('clean-architecture.stubs_path', 'stubs/clean-architecture')),
             ], 'clean-architecture-stubs');
         }
     }

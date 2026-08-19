@@ -6,11 +6,12 @@ namespace {{Namespace}}\Presentation\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class {{Class}}Request extends FormRequest
+class Store{{Class}}Request extends FormRequest
 {
     public function authorize(): bool
     {
-        // TODO: Implement authorization
+        // TODO: Implement authorization (e.g. delegate to a policy:
+        // return $this->user()?->can('create', {{Class}}Model::class) ?? false;)
         return true;
     }
 
@@ -18,6 +19,7 @@ class {{Class}}Request extends FormRequest
     public function rules(): array
     {
         return [
+            // TODO: Add creation rules, e.g.:
             // 'name' => ['required', 'string', 'max:255'],
         ];
     }

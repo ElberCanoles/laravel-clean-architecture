@@ -4,29 +4,39 @@ declare(strict_types=1);
 
 namespace CleanArchitecture\Console;
 
-class MakeRequest extends SingleFileGenerator
+use Illuminate\Support\Facades\File;
+
+class MakeRequest extends BaseGenerator
 {
     protected $signature = 'clean:request {context} {name} {--force : Overwrite existing files}';
 
-    protected $description = 'Create a form request in the Presentation layer';
+    protected $description = 'Create Store and Update form requests in the Presentation layer';
 
-    protected function subPath(): string
+    public function handle(): int
     {
-        return 'Presentation/Requests';
-    }
+        $context = $this->cleanName($this->stringArgument('context'), 'context');
+        $name = $this->cleanName($this->stringArgument('name'), 'name');
 
-    protected function stubName(): string
-    {
-        return 'request';
-    }
+        $namespace = $this->buildNamespace($context);
+        $path = $this->contextPath($context, 'Presentation/Requests');
+        File::ensureDirectoryExists($path);
 
-    protected function suffix(): string
-    {
-        return 'Request';
-    }
+        $wroteStore = $this->writeFile(
+            "$path/Store{$name}Request.php",
+            str_replace(['{{Namespace}}', '{{Class}}'], [$namespace, $name], $this->getStub('store-request'))
+        );
 
-    protected function label(): string
-    {
-        return 'Request';
+        $wroteUpdate = $this->writeFile(
+            "$path/Update{$name}Request.php",
+            str_replace(['{{Namespace}}', '{{Class}}'], [$namespace, $name], $this->getStub('update-request'))
+        );
+
+        if (! $wroteStore && ! $wroteUpdate) {
+            return self::FAILURE;
+        }
+
+        $this->info("Requests created: $path");
+
+        return self::SUCCESS;
     }
 }

@@ -35,11 +35,17 @@ test('generator honours the create, exists, and force contract', function (strin
     'domain exception' => ['clean:exception', 'InvoiceLocked', 'Billing/Domain/Exceptions/InvoiceLockedException.php'],
     'mapper' => ['clean:mapper', 'Invoice', 'Billing/Infrastructure/InvoiceMapper.php'],
     'sanitizer' => ['clean:sanitizer', 'Invoice', 'Billing/Application/Sanitizers/InvoiceSanitizer.php'],
-    'request' => ['clean:request', 'Invoice', 'Billing/Presentation/Requests/InvoiceRequest.php'],
     'resource' => ['clean:resource', 'Invoice', 'Billing/Presentation/Resources/InvoiceResource.php'],
     'model' => ['clean:model', 'Invoice', 'Billing/Infrastructure/Models/InvoiceModel.php'],
     'controller' => ['clean:controller', 'Invoice', 'Billing/Presentation/Controllers/InvoiceController.php'],
     'unit test' => ['clean:test', 'Invoice', 'tests/Unit/Domain/Billing/InvoiceTest.php'],
+    'enum' => ['clean:enum', 'InvoiceStatus', 'Billing/Domain/Enums/InvoiceStatus.php'],
+    'policy' => ['clean:policy', 'Invoice', 'Billing/Presentation/Policies/InvoicePolicy.php'],
+    'factory' => ['clean:factory', 'Invoice', 'Billing/Infrastructure/Database/Factories/InvoiceModelFactory.php'],
+    'seeder' => ['clean:seeder', 'Invoice', 'Billing/Infrastructure/Database/Seeders/InvoiceSeeder.php'],
+    'listener' => ['clean:listener', 'SendInvoiceMail', 'Billing/Application/Listeners/SendInvoiceMailListener.php'],
+    'job' => ['clean:job', 'SyncInvoice', 'Billing/Infrastructure/Jobs/SyncInvoiceJob.php'],
+    'domain service' => ['clean:domain-service', 'InvoicePricer', 'Billing/Domain/Services/InvoicePricer.php'],
 ]);
 
 test('stubs and generators reference each other with no orphans', function () {
@@ -62,7 +68,8 @@ test('stubs and generators reference each other with no orphans', function () {
 
             return array_merge($direct[1], $conventional[1]);
         })
-        ->merge(['query', 'list-query', 'query-handler'])
+        // Resolved through ternaries (MakeQuery) or match arms (MakeTest).
+        ->merge(['query', 'list-query', 'query-handler', 'unit-test', 'handler-test', 'feature-test'])
         ->unique()
         ->sort()
         ->values();

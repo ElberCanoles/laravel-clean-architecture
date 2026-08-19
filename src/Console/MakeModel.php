@@ -9,7 +9,7 @@ use Illuminate\Support\Str;
 
 class MakeModel extends BaseGenerator
 {
-    protected $signature = 'clean:model {context} {name} {--id-type= : Primary key type (uuid, ulid)} {--force : Overwrite existing files}';
+    protected $signature = 'clean:model {context} {name} {--id-type= : Primary key type (uuid, ulid)} {--table= : Override the derived table name} {--force : Overwrite existing files}';
 
     protected $description = 'Create an Eloquent model in the Infrastructure layer';
 
@@ -19,7 +19,7 @@ class MakeModel extends BaseGenerator
         $name = $this->cleanName($this->stringArgument('name'), 'name');
 
         $namespace = $this->buildNamespace($context);
-        $table = Str::snake(Str::pluralStudly($name));
+        $table = $this->stringOption('table') ?? Str::snake(Str::pluralStudly($name));
         $idTrait = $this->idTrait($this->resolveIdType());
 
         $path = $this->contextPath($context, 'Infrastructure/Models');

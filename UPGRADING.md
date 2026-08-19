@@ -9,6 +9,21 @@ with `--force`. If you published custom stubs, re-publish after upgrading:
 php artisan vendor:publish --tag=clean-architecture-stubs --force
 ```
 
+## To 2.0
+
+### Requirements
+
+- **Laravel 11 support was removed.** The package now requires Laravel 12 or 13 (`illuminate/*: ^12.0|^13.0`). PHP 8.2 remains the floor.
+
+### Generated code (new generations / `--force` re-runs only)
+
+- **Form requests are split**: `clean:request` generates `Store{Entity}Request` + `Update{Entity}Request`, and regenerated controllers type-hint them. If you keep an existing single `{Entity}Request`, your existing controller keeps working — the split applies when you regenerate. `request.stub` was removed: if you had published and customized it, move the customization into `store-request.stub` / `update-request.stub`.
+- **Entities extend `CleanArchitecture\Support\AggregateRoot`** instead of hand-rolling the event plumbing. Hand-written entities that implement `HasDomainEvents` directly keep working — the dispatcher checks the interface, which `AggregateRoot` implements.
+
+### New tooling worth adopting
+
+- `clean:test --handler` / `--feature`, `clean:wire`, `clean:doctor`, `clean:destroy`, `clean:scaffold --dry-run`, and the `--plural=`/`--table=` overrides. See the README command table.
+
 ## To 1.6
 
 - **Domain events now dispatch after the transaction commits** (`DB::afterCommit()`): outside a transaction nothing changes; inside one, listeners run after the outermost commit and never on rollback. If a listener relied on running *before* the commit, adjust it.

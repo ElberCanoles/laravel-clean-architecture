@@ -1,0 +1,18 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{Namespace}}\Domain\Enums;
+
+enum {{Class}}: string
+{
+    // TODO: Define your cases, e.g.:
+    // case Draft = 'draft';
+    // case Published = 'published';
+
+    /** @return list<string> */
+    public static function values(): array
+    {
+        return array_column(self::cases(), 'value');
+    }
+}

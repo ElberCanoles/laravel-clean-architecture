@@ -5,7 +5,7 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/elber/laravel-clean-architecture.svg)](https://packagist.org/packages/elber/laravel-clean-architecture)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![PHP 8.2+](https://img.shields.io/badge/PHP-8.2%2B-8892BF.svg)](https://php.net)
-[![Laravel 11–13](https://img.shields.io/badge/Laravel-11--13-FF2D20.svg)](https://laravel.com)
+[![Laravel 12–13](https://img.shields.io/badge/Laravel-12--13-FF2D20.svg)](https://laravel.com)
 
 A Laravel package that provides scaffolding for **Domain-Driven Design (DDD)**, **Clean Architecture**, and **CQRS**. It generates bounded contexts with separated read/write repositories, domain events, mappers, sanitizers, and architecture tests — enforcing clean dependency rules from day one.
 
@@ -131,7 +131,8 @@ src/Billing/
 │   └── InvoiceMapper.php                        # Entity ↔ Model bridge
 └── Presentation/
     ├── Controllers/InvoiceController.php        # all 5 CQRS handlers wired
-    ├── Requests/InvoiceRequest.php
+    ├── Requests/StoreInvoiceRequest.php
+    ├── Requests/UpdateInvoiceRequest.php
     ├── Resources/InvoiceResource.php
     └── Routes/api.php                           # apiResource auto-wired
 
@@ -184,7 +185,14 @@ vendor/bin/pest tests/Feature/Architecture/
 
 ### 4. Unit test your handlers — no database needed
 
-Every scaffold ships in-memory implementations of both repository ports, so your use cases are testable in microseconds:
+Every scaffold ships in-memory implementations of both repository ports, so your use cases are testable in microseconds. Generate a ready-made suite for them (and an HTTP feature test) with:
+
+```bash
+php artisan clean:test Billing Invoice --handler
+php artisan clean:test Billing Invoice --feature
+```
+
+Or write your own:
 
 ```php
 use Src\Billing\Application\Commands\CreateInvoice\{CreateInvoiceCommand, CreateInvoiceHandler};
@@ -213,9 +221,9 @@ Names must be PascalCase (`Billing`, `Invoice`) and must not be PHP reserved wor
 | Command | Description | Output |
 |---------|-------------|--------|
 | `clean:context {name} [--routes=]` | Create bounded context with folders, ServiceProvider, routes, arch tests | Full folder structure |
-| `clean:scaffold {context} {name} [--id-type=]` | Scaffold full CRUD entity across all layers (wires controller, SP bindings, routes) | 27 files |
+| `clean:scaffold {context} {name} [--id-type=] [--table=] [--plural=] [--dry-run]` | Scaffold full CRUD entity across all layers (wires controller, SP bindings, routes) | 27 files |
 | `clean:entity {context} {name}` | Domain entity with factory method and event recording | `Domain/Entities/{Name}.php` |
-| `clean:model {context} {name} [--id-type=]` | Eloquent model with `HasUuids`/`HasUlids` and auto-computed table name | `Infrastructure/Models/{Name}Model.php` |
+| `clean:model {context} {name} [--id-type=] [--table=]` | Eloquent model with `HasUuids`/`HasUlids` and auto-computed table name | `Infrastructure/Models/{Name}Model.php` |
 | `clean:repository {context} {name}` | CQRS repositories (Write + Read interfaces, Eloquent + in-memory impls, mapper) | 7 files |
 | `clean:read-model {context} {name}` | Standalone readonly read model | `Application/ReadModels/{Name}ReadModel.php` |
 | `clean:value-object {context} {name}` | Readonly value object with validation | `Domain/ValueObjects/{Name}.php` |
@@ -227,10 +235,21 @@ Names must be PascalCase (`Billing`, `Invoice`) and must not be PHP reserved wor
 | `clean:mapper {context} {name}` | Entity-Model mapper | `Infrastructure/{Name}Mapper.php` |
 | `clean:sanitizer {context} {name}` | Input sanitizer | `Application/Sanitizers/{Name}Sanitizer.php` |
 | `clean:controller {context} {name} [--entity=]` | Controller with full CRUD dispatch pattern (optionally wires all 5 handlers) | `Presentation/Controllers/{Name}Controller.php` |
-| `clean:request {context} {name}` | Form request with authorization | `Presentation/Requests/{Name}Request.php` |
+| `clean:request {context} {name}` | Store + Update form requests | `Presentation/Requests/Store{Name}Request.php` + `Update{Name}Request.php` |
+| `clean:enum {context} {name}` | Backed enum in the Domain layer | `Domain/Enums/{Name}.php` |
+| `clean:domain-service {context} {name}` | Pure domain service | `Domain/Services/{Name}.php` |
+| `clean:policy {context} {name}` | Authorization policy | `Presentation/Policies/{Name}Policy.php` |
+| `clean:listener {context} {name} [--event=]` | Event listener in the Application layer | `Application/Listeners/{Name}Listener.php` |
+| `clean:job {context} {name}` | Queued job delegating to an Application handler | `Infrastructure/Jobs/{Name}Job.php` |
+| `clean:factory {context} {name}` | Model factory | `Infrastructure/Database/Factories/{Name}ModelFactory.php` |
+| `clean:seeder {context} {name}` | Database seeder using the factory | `Infrastructure/Database/Seeders/{Name}Seeder.php` |
 | `clean:resource {context} {name}` | API resource with field mapping | `Presentation/Resources/{Name}Resource.php` |
-| `clean:test {context} {name}` | Pest unit test for domain entity | `tests/Unit/Domain/{Context}/{Name}Test.php` |
+| `clean:test {context} {name} [--handler\|--feature]` | Pest test: entity unit test, use-case test against the in-memory repos, or HTTP feature test | `tests/Unit/Domain\|Unit/Application\|Feature/{Context}/…` |
 | `clean:arch-test {context}` | Architecture dependency tests | `tests/Feature/Architecture/{Context}ArchTest.php` |
+| `clean:wire {context} {name}` | Wire ServiceProvider bindings + resource route for a piecemeal entity | — |
+| `clean:destroy {context} {name} [--with-migration]` | Delete everything the scaffold generated for an entity (asks for confirmation) | — |
+| `clean:doctor` | Diagnose context discovery, wiring markers, and configuration | — |
+| `clean:cache` / `clean:clear` | Cache / clear discovered contexts and PSR-4 mappings for faster boots | `bootstrap/cache/clean-architecture.php` |
 
 ### The `--entity` flag
 
@@ -344,6 +363,9 @@ The ServiceProvider loads both `api.php` and `web.php` automatically if they exi
 | `render_domain_exceptions` | `true` | Render uncaught `\DomainException`s as JSON (`422`, or the status from `ProvidesHttpStatus`) on requests expecting JSON |
 | `arch_tests_path` | `tests/Feature/Architecture` | Where generated architecture tests are stored |
 | `unit_tests_path` | `tests/Unit/Domain` | Where generated domain unit tests are stored |
+| `handler_tests_path` | `tests/Unit/Application` | Where `clean:test --handler` tests are stored |
+| `feature_tests_path` | `tests/Feature` | Where `clean:test --feature` tests are stored |
+| `stubs_path` | `stubs/clean-architecture` | Where published (customized) stubs live |
 
 ---
 
@@ -445,7 +467,14 @@ Available stubs:
 | `service-provider.stub` | `clean:context` | `{{Namespace}}`, `{{Context}}`, `// {bindings}` / `// {/bindings}` markers |
 | `routes.stub` | `clean:context` | `{{prefix}}`, `// {routes}` / `// {/routes}` markers |
 | `controller.stub` | `clean:controller` | `{{Namespace}}`, `{{Class}}`, `{{ControllerImports}}`, `{{ControllerConstructor}}`, `{{IndexBody}}`, `{{ShowBody}}`, `{{StoreBody}}`, `{{UpdateBody}}`, `{{DestroyBody}}` |
-| `request.stub` | `clean:request` | `{{Namespace}}`, `{{Class}}` |
+| `store-request.stub` / `update-request.stub` | `clean:request` | `{{Namespace}}`, `{{Class}}` |
+| `enum.stub` | `clean:enum` | `{{Namespace}}`, `{{Class}}` |
+| `policy.stub` | `clean:policy` | `{{Namespace}}`, `{{Class}}` |
+| `factory.stub` / `seeder.stub` | `clean:factory` / `clean:seeder` | `{{Namespace}}`, `{{Class}}` |
+| `listener.stub` | `clean:listener` | `{{Namespace}}`, `{{Class}}`, `{{EventType}}` |
+| `job.stub` | `clean:job` | `{{Namespace}}`, `{{Class}}` |
+| `domain-service.stub` | `clean:domain-service` | `{{Namespace}}`, `{{Class}}` |
+| `handler-test.stub` / `feature-test.stub` | `clean:test --handler` / `--feature` | `{{Namespace}}`, `{{Class}}`, `{{routeBase}}` |
 | `resource.stub` | `clean:resource` | `{{Namespace}}`, `{{Class}}` |
 | `migration.stub` | `clean:scaffold` | `{{table}}`, `{{idType}}` |
 | `arch-test.stub` | `clean:arch-test` | `{{Namespace}}`, `{{Context}}` |
@@ -455,9 +484,9 @@ Available stubs:
 ## Requirements
 
 - PHP 8.2+
-- Laravel 11.17+, 12.0+, or 13.0+
+- Laravel 12.0+ or 13.0+
 
-> **Laravel 11 support is deprecated** and will be removed in v2.0 — Laravel 11 reached end of life in March 2026. Laravel 12 or 13 is recommended. The 11.17 floor exists because generated create handlers use `Str::uuid7()`, introduced in that release.
+> Laravel 11 support was removed in v2.0 — it is end of life upstream and carries unpatched security advisories. See [UPGRADING.md](UPGRADING.md).
 
 ### Dev dependencies (for architecture tests)
 

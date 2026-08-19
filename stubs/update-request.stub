@@ -1,0 +1,25 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{Namespace}}\Presentation\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class Update{{Class}}Request extends FormRequest
+{
+    public function authorize(): bool
+    {
+        // TODO: Implement authorization (e.g. delegate to a policy)
+        return true;
+    }
+
+    /** @return array<string, mixed> */
+    public function rules(): array
+    {
+        return [
+            // TODO: Add update rules — usually 'sometimes' instead of 'required', e.g.:
+            // 'name' => ['sometimes', 'string', 'max:255'],
+        ];
+    }
+}

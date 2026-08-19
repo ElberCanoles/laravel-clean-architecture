@@ -97,3 +97,11 @@ test('normalizes kebab-case names to StudlyCase', function () {
     expect(file_exists($file))->toBeTrue();
     expect(file_get_contents($file))->toContain('line_items');
 });
+
+test('honours a --table override', function () {
+    $this->artisan('clean:model', ['context' => 'Billing', 'name' => 'Person', '--table' => 'people'])
+        ->assertSuccessful();
+
+    expect(file_get_contents($this->tempDir . '/Billing/Infrastructure/Models/PersonModel.php'))
+        ->toContain("protected \$table = 'people';");
+});
