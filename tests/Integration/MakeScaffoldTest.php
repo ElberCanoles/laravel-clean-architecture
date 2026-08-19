@@ -116,7 +116,7 @@ test('scaffold wires controller with all CQRS handlers', function () {
         ->toContain('private readonly GetInvoiceHandler $getHandler,')
         ->toContain('private readonly ListInvoicesHandler $listHandler,')
         ->toContain('$this->listHandler->handle(new ListInvoicesQuery(')
-        ->toContain("page: (int) \$request->query('page', 1)")
+        ->toContain("page: max((int) \$request->query('page', 1), 1)")
         ->toContain('InvoiceResource::collection($result->items)')
         ->toContain('$this->getHandler->handle(new GetInvoiceQuery($id))')
         ->toContain('InvoiceSanitizer::sanitize($request->validated())')
@@ -302,8 +302,10 @@ test('scaffold honours id_type config across every generated file', function () 
 });
 
 test('scaffold rejects invalid --id-type value', function () {
-    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice', '--id-type' => 'snowflake']);
-})->throws(\InvalidArgumentException::class);
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice', '--id-type' => 'snowflake'])
+        ->expectsOutputToContain("Invalid id type: 'snowflake'")
+        ->assertExitCode(2);
+});
 
 test('scaffold sanitizer passes through data by default', function () {
     $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice']);
@@ -312,4 +314,78 @@ test('scaffold sanitizer passes through data by default', function () {
     $content = file_get_contents($file);
 
     expect($content)->toContain('...$data,');
+
+    // The spread must come first so normalized keys override the raw values —
+    // spread-last would silently undo any sanitization the user uncomments.
+    expect(strpos($content, '...$data,'))->toBeLessThan(strpos($content, 'TODO: Normalize'));
+});
+
+test('scaffold --force overwrites the migration instead of duplicating it', function () {
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice'])
+        ->assertSuccessful();
+
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice', '--id-type' => 'ulid', '--force' => true])
+        ->assertSuccessful();
+
+    $migrations = File::glob(database_path('migrations') . '/*_create_invoices_table.php');
+
+    expect($migrations)->toHaveCount(1);
+    expect(file_get_contents($migrations[0]))
+        ->toContain("\$table->ulid('id')->primary()")
+        ->not->toContain("\$table->uuid('id')");
+});
+
+test('scaffold returns failure exit code on a re-run without --force', function () {
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice']);
+
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice'])
+        ->expectsOutputToContain('completed with warnings')
+        ->assertExitCode(1);
+});
+
+test('scaffold wires bindings for an entity whose name is a suffix of another', function () {
+    $this->artisan('clean:context', ['name' => 'Billing']);
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'SuperUser', '--force' => true]);
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'User', '--force' => true]);
+
+    $content = file_get_contents($this->tempDir . '/Billing/Infrastructure/BillingServiceProvider.php');
+
+    expect(substr_count($content, 'Repositories\SuperUserWriteRepository::class'))->toBe(1);
+    expect(substr_count($content, 'Repositories\UserWriteRepository::class'))->toBe(1);
+});
+
+test('scaffold inserts controller import after the last use statement when the Route import is not an exact match', function () {
+    $this->artisan('clean:context', ['name' => 'Billing']);
+
+    $routeFile = $this->tempDir . '/Billing/Presentation/Routes/api.php';
+    $content = file_get_contents($routeFile);
+    file_put_contents($routeFile, str_replace(
+        'use Illuminate\Support\Facades\Route;',
+        'use \Illuminate\Support\Facades\Route;',
+        $content
+    ));
+
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice', '--force' => true]);
+
+    $wired = file_get_contents($routeFile);
+
+    expect($wired)
+        ->toContain('use Src\Billing\Presentation\Controllers\InvoiceController;')
+        ->toContain("Route::apiResource('invoices', InvoiceController::class)");
+});
+
+test('scaffold falls back to the fully qualified controller name when no import can be placed', function () {
+    $this->artisan('clean:context', ['name' => 'Billing']);
+
+    $routeFile = $this->tempDir . '/Billing/Presentation/Routes/api.php';
+    $content = file_get_contents($routeFile);
+    $content = preg_replace('/^use [^;]+;\n/m', '', $content);
+    $content = str_replace('Route::', '\Illuminate\Support\Facades\Route::', $content);
+    file_put_contents($routeFile, $content);
+
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice', '--force' => true])
+        ->expectsOutputToContain('Could not add the controller import');
+
+    expect(file_get_contents($routeFile))
+        ->toContain("\\Src\\Billing\\Presentation\\Controllers\\InvoiceController::class");
 });

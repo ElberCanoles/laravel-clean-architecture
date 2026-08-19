@@ -52,6 +52,7 @@ test('creates CQRS repository interfaces, eloquent implementations and mapper', 
         ->toContain('InvoiceModel::query()->find($id)')
         ->toContain('new InvoiceReadModel($model->id)')
         ->toContain('InvoiceModel::query()->count()')
+        ->toContain("->orderBy('id')")
         ->toContain('->forPage($page, $perPage)')
         ->toContain('->get()')
         ->toContain('new PaginatedResult(');

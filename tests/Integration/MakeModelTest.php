@@ -90,19 +90,27 @@ test('--id-type option overrides id_type config', function () {
 });
 
 test('rejects invalid --id-type value', function () {
-    $this->artisan('clean:model', ['context' => 'Billing', 'name' => 'Invoice', '--id-type' => 'snowflake']);
-})->throws(\InvalidArgumentException::class);
+    $this->artisan('clean:model', ['context' => 'Billing', 'name' => 'Invoice', '--id-type' => 'snowflake'])
+        ->expectsOutputToContain("Invalid id type: 'snowflake'")
+        ->assertExitCode(2);
+});
 
 test('rejects invalid id_type config value', function () {
     config()->set('clean-architecture.id_type', 'snowflake');
 
-    $this->artisan('clean:model', ['context' => 'Billing', 'name' => 'Invoice']);
-})->throws(\InvalidArgumentException::class);
+    $this->artisan('clean:model', ['context' => 'Billing', 'name' => 'Invoice'])
+        ->expectsOutputToContain("Invalid id type: 'snowflake'")
+        ->assertExitCode(2);
+});
 
 test('rejects invalid name', function () {
-    $this->artisan('clean:model', ['context' => 'Billing', 'name' => 'bad-name']);
-})->throws(\InvalidArgumentException::class);
+    $this->artisan('clean:model', ['context' => 'Billing', 'name' => 'bad-name'])
+        ->expectsOutputToContain("Invalid name")
+        ->assertExitCode(2);
+});
 
 test('rejects invalid context', function () {
-    $this->artisan('clean:model', ['context' => 'billing', 'name' => 'Invoice']);
-})->throws(\InvalidArgumentException::class);
+    $this->artisan('clean:model', ['context' => 'billing', 'name' => 'Invoice'])
+        ->expectsOutputToContain("Invalid context")
+        ->assertExitCode(2);
+});

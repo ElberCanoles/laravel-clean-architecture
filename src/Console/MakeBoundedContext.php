@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\File;
 
 class MakeBoundedContext extends BaseGenerator
 {
-    protected $signature = 'clean:context {name} {--routes=api : Route types to generate (api, web, both)} {--force}';
+    protected $signature = 'clean:context {name} {--routes=api : Route types to generate (api, web, both)} {--force : Overwrite existing files}';
     protected $description = 'Create a new bounded context with DDD folder structure';
 
     public function handle(): int
@@ -49,20 +49,22 @@ class MakeBoundedContext extends BaseGenerator
             File::makeDirectory("$base/$folder", 0755, true, true);
         }
 
-        $this->generateServiceProvider($base, $name, $namespace);
-        $this->generateRoutes($base, $name, $routes);
+        $wroteProvider = $this->generateServiceProvider($base, $name, $namespace);
+        $wroteRoutes = $this->generateRoutes($base, $name, $routes);
 
         $this->info("Bounded context [$name] created.");
 
-        $this->call('clean:arch-test', [
+        $archTestResult = $this->call('clean:arch-test', [
             'context' => $name,
             '--force' => $this->option('force'),
         ]);
 
-        return self::SUCCESS;
+        return $wroteProvider && $wroteRoutes && $archTestResult === self::SUCCESS
+            ? self::SUCCESS
+            : self::FAILURE;
     }
 
-    protected function generateServiceProvider(string $base, string $context, string $namespace): void
+    protected function generateServiceProvider(string $base, string $context, string $namespace): bool
     {
         $content = str_replace(
             ['{{Namespace}}', '{{Context}}'],
@@ -72,12 +74,16 @@ class MakeBoundedContext extends BaseGenerator
 
         $file = "$base/Infrastructure/{$context}ServiceProvider.php";
 
-        if ($this->writeFile($file, $content)) {
-            $this->info("ServiceProvider created: $file");
+        if (! $this->writeFile($file, $content)) {
+            return false;
         }
+
+        $this->info("ServiceProvider created: $file");
+
+        return true;
     }
 
-    protected function generateRoutes(string $base, string $context, string $routes): void
+    protected function generateRoutes(string $base, string $context, string $routes): bool
     {
         $prefix = $this->toKebab($context);
 
@@ -88,13 +94,20 @@ class MakeBoundedContext extends BaseGenerator
         );
 
         $types = $routes === 'both' ? ['api', 'web'] : [$routes];
+        $wroteAll = true;
 
         foreach ($types as $type) {
             $file = "$base/Presentation/Routes/$type.php";
 
-            if ($this->writeFile($file, $stubContent)) {
-                $this->info("Routes created: $file");
+            if (! $this->writeFile($file, $stubContent)) {
+                $wroteAll = false;
+
+                continue;
             }
+
+            $this->info("Routes created: $file");
         }
+
+        return $wroteAll;
     }
 }

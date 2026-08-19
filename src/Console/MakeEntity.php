@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\File;
 
 class MakeEntity extends BaseGenerator
 {
-    protected $signature = 'clean:entity {context} {name} {--force}';
+    protected $signature = 'clean:entity {context} {name} {--force : Overwrite existing files}';
     protected $description = 'Create a domain entity';
 
     public function handle(): int
@@ -30,9 +30,11 @@ class MakeEntity extends BaseGenerator
 
         $file = "$path/$name.php";
 
-        if ($this->writeFile($file, $content)) {
-            $this->info("Entity created: $file");
+        if (! $this->writeFile($file, $content)) {
+            return self::FAILURE;
         }
+
+        $this->info("Entity created: $file");
 
         return self::SUCCESS;
     }

@@ -6,8 +6,8 @@ use Illuminate\Support\Facades\File;
 
 class MakeQuery extends BaseGenerator
 {
-    protected $signature = 'clean:query {context} {name} {--entity= : Entity name to inject ReadRepository} {--collection : Generate a list/collection query} {--force}';
-    protected $description = 'Create a CQRS query with handler and read model';
+    protected $signature = 'clean:query {context} {name} {--entity= : Entity name to inject ReadRepository} {--collection : Generate a list/collection query} {--force : Overwrite existing files}';
+    protected $description = 'Create a CQRS query with handler';
 
     public function handle(): int
     {
@@ -65,19 +65,14 @@ class MakeQuery extends BaseGenerator
             $handlerStub
         );
 
-        $created = false;
+        $wroteQuery = $this->writeFile("$base/{$name}Query.php", $queryContent);
+        $wroteHandler = $this->writeFile("$base/{$name}Handler.php", $handlerContent);
 
-        if ($this->writeFile("$base/{$name}Query.php", $queryContent)) {
-            $created = true;
+        if (! $wroteQuery && ! $wroteHandler) {
+            return self::FAILURE;
         }
 
-        if ($this->writeFile("$base/{$name}Handler.php", $handlerContent)) {
-            $created = true;
-        }
-
-        if ($created) {
-            $this->info("Query created: $base");
-        }
+        $this->info("Query created: $base");
 
         return self::SUCCESS;
     }

@@ -10,6 +10,12 @@
     }
   ],
   "keywords": ["laravel", "ddd", "clean-architecture", "cqrs", "bounded-context"],
+  "homepage": "https://github.com/ElberCanoles/laravel-clean-architecture",
+  "support": {
+    "issues": "https://github.com/ElberCanoles/laravel-clean-architecture/issues",
+    "source": "https://github.com/ElberCanoles/laravel-clean-architecture",
+    "security": "https://github.com/ElberCanoles/laravel-clean-architecture/security/advisories"
+  },
   "autoload": {
     "psr-4": {
       "CleanArchitecture\\": "src/"
@@ -29,7 +35,8 @@
   },
   "require": {
     "php": "^8.2",
-    "illuminate/support": "^11.0|^12.0|^13.0"
+    "illuminate/console": "^11.17|^12.0|^13.0",
+    "illuminate/support": "^11.17|^12.0|^13.0"
   },
   "require-dev": {
     "orchestra/testbench": "^9.0|^10.0|^11.0",

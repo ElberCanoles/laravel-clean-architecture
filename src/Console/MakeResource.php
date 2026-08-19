@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\File;
 
 class MakeResource extends BaseGenerator
 {
-    protected $signature = 'clean:resource {context} {name} {--force}';
+    protected $signature = 'clean:resource {context} {name} {--force : Overwrite existing files}';
     protected $description = 'Create an API resource in the Presentation layer';
 
     public function handle(): int
@@ -30,9 +30,11 @@ class MakeResource extends BaseGenerator
 
         $file = "$path/{$name}Resource.php";
 
-        if ($this->writeFile($file, $content)) {
-            $this->info("Resource created: $file");
+        if (! $this->writeFile($file, $content)) {
+            return self::FAILURE;
         }
+
+        $this->info("Resource created: $file");
 
         return self::SUCCESS;
     }

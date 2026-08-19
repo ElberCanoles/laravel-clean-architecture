@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\File;
 
 class MakeRepository extends BaseGenerator
 {
-    protected $signature = 'clean:repository {context} {name} {--force}';
+    protected $signature = 'clean:repository {context} {name} {--force : Overwrite existing files}';
     protected $description = 'Create CQRS repository interfaces and Eloquent implementations with mapper';
 
     public function handle(): int
@@ -19,16 +19,18 @@ class MakeRepository extends BaseGenerator
 
         $namespace = $this->buildNamespace($context);
 
-        $this->createWriteInterface($context, $name, $namespace);
-        $this->createReadInterface($context, $name, $namespace);
-        $this->createWriteEloquentImplementation($context, $name, $namespace);
-        $this->createReadEloquentImplementation($context, $name, $namespace);
-        $this->createMapper($context, $name, $namespace);
+        $results = [
+            $this->createWriteInterface($context, $name, $namespace),
+            $this->createReadInterface($context, $name, $namespace),
+            $this->createWriteEloquentImplementation($context, $name, $namespace),
+            $this->createReadEloquentImplementation($context, $name, $namespace),
+            $this->createMapper($context, $name, $namespace),
+        ];
 
-        return self::SUCCESS;
+        return in_array(false, $results, true) ? self::FAILURE : self::SUCCESS;
     }
 
-    protected function createWriteInterface(string $context, string $name, string $namespace): void
+    protected function createWriteInterface(string $context, string $name, string $namespace): bool
     {
         $path = base_path(config('clean-architecture.contexts_path') . "/$context/Domain/Repositories");
         File::makeDirectory($path, 0755, true, true);
@@ -41,12 +43,16 @@ class MakeRepository extends BaseGenerator
 
         $file = "$path/{$name}WriteRepository.php";
 
-        if ($this->writeFile($file, $content)) {
-            $this->info("Write repository interface created: $file");
+        if (! $this->writeFile($file, $content)) {
+            return false;
         }
+
+        $this->info("Write repository interface created: $file");
+
+        return true;
     }
 
-    protected function createReadInterface(string $context, string $name, string $namespace): void
+    protected function createReadInterface(string $context, string $name, string $namespace): bool
     {
         $path = base_path(config('clean-architecture.contexts_path') . "/$context/Application/Contracts");
         File::makeDirectory($path, 0755, true, true);
@@ -59,12 +65,16 @@ class MakeRepository extends BaseGenerator
 
         $file = "$path/{$name}ReadRepository.php";
 
-        if ($this->writeFile($file, $content)) {
-            $this->info("Read repository interface created: $file");
+        if (! $this->writeFile($file, $content)) {
+            return false;
         }
+
+        $this->info("Read repository interface created: $file");
+
+        return true;
     }
 
-    protected function createWriteEloquentImplementation(string $context, string $name, string $namespace): void
+    protected function createWriteEloquentImplementation(string $context, string $name, string $namespace): bool
     {
         $path = base_path(config('clean-architecture.contexts_path') . "/$context/Infrastructure");
         File::makeDirectory($path, 0755, true, true);
@@ -77,12 +87,16 @@ class MakeRepository extends BaseGenerator
 
         $file = "$path/{$name}WriteEloquentRepository.php";
 
-        if ($this->writeFile($file, $content)) {
-            $this->info("Write Eloquent repository created: $file");
+        if (! $this->writeFile($file, $content)) {
+            return false;
         }
+
+        $this->info("Write Eloquent repository created: $file");
+
+        return true;
     }
 
-    protected function createReadEloquentImplementation(string $context, string $name, string $namespace): void
+    protected function createReadEloquentImplementation(string $context, string $name, string $namespace): bool
     {
         $path = base_path(config('clean-architecture.contexts_path') . "/$context/Infrastructure");
         File::makeDirectory($path, 0755, true, true);
@@ -95,12 +109,16 @@ class MakeRepository extends BaseGenerator
 
         $file = "$path/{$name}ReadEloquentRepository.php";
 
-        if ($this->writeFile($file, $content)) {
-            $this->info("Read Eloquent repository created: $file");
+        if (! $this->writeFile($file, $content)) {
+            return false;
         }
+
+        $this->info("Read Eloquent repository created: $file");
+
+        return true;
     }
 
-    protected function createMapper(string $context, string $name, string $namespace): void
+    protected function createMapper(string $context, string $name, string $namespace): bool
     {
         $path = base_path(config('clean-architecture.contexts_path') . "/$context/Infrastructure");
         File::makeDirectory($path, 0755, true, true);
@@ -113,8 +131,12 @@ class MakeRepository extends BaseGenerator
 
         $file = "$path/{$name}Mapper.php";
 
-        if ($this->writeFile($file, $content)) {
-            $this->info("Mapper created: $file");
+        if (! $this->writeFile($file, $content)) {
+            return false;
         }
+
+        $this->info("Mapper created: $file");
+
+        return true;
     }
 }

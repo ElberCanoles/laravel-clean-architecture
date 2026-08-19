@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\File;
 
 class MakeSanitizer extends BaseGenerator
 {
-    protected $signature = 'clean:sanitizer {context} {name} {--force}';
+    protected $signature = 'clean:sanitizer {context} {name} {--force : Overwrite existing files}';
     protected $description = 'Create a sanitizer in the Application layer';
 
     public function handle(): int
@@ -30,9 +30,11 @@ class MakeSanitizer extends BaseGenerator
 
         $file = "$path/{$name}Sanitizer.php";
 
-        if ($this->writeFile($file, $content)) {
-            $this->info("Sanitizer created: $file");
+        if (! $this->writeFile($file, $content)) {
+            return self::FAILURE;
         }
+
+        $this->info("Sanitizer created: $file");
 
         return self::SUCCESS;
     }

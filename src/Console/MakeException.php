@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\File;
 
 class MakeException extends BaseGenerator
 {
-    protected $signature = 'clean:exception {context} {name} {--force}';
+    protected $signature = 'clean:exception {context} {name} {--force : Overwrite existing files}';
     protected $description = 'Create a domain exception';
 
     public function handle(): int
@@ -30,9 +30,11 @@ class MakeException extends BaseGenerator
 
         $file = "$path/{$name}Exception.php";
 
-        if ($this->writeFile($file, $content)) {
-            $this->info("Domain exception created: $file");
+        if (! $this->writeFile($file, $content)) {
+            return self::FAILURE;
         }
+
+        $this->info("Domain exception created: $file");
 
         return self::SUCCESS;
     }

@@ -5,11 +5,51 @@ namespace CleanArchitecture\Console;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
 
 abstract class BaseGenerator extends Command
 {
     /** Identifier strategies supported by the generators. */
     protected const ID_TYPES = ['uuid', 'ulid'];
+
+    /**
+     * PHP keywords and reserved type names that cannot be used as class names.
+     */
+    protected const RESERVED_NAMES = [
+        'abstract', 'and', 'array', 'as', 'break', 'callable', 'case', 'catch',
+        'class', 'clone', 'const', 'continue', 'declare', 'default', 'do',
+        'echo', 'else', 'elseif', 'empty', 'enddeclare', 'endfor', 'endforeach',
+        'endif', 'endswitch', 'endwhile', 'enum', 'exit', 'extends', 'final',
+        'finally', 'fn', 'for', 'foreach', 'function', 'global', 'goto', 'if',
+        'implements', 'include', 'instanceof', 'insteadof', 'interface',
+        'isset', 'list', 'match', 'namespace', 'new', 'or', 'print', 'private',
+        'protected', 'public', 'readonly', 'require', 'return', 'static',
+        'switch', 'throw', 'trait', 'try', 'unset', 'use', 'var', 'while',
+        'xor', 'yield',
+        // Reserved type names
+        'bool', 'false', 'float', 'int', 'iterable', 'mixed', 'never', 'null',
+        'object', 'parent', 'self', 'string', 'true', 'void',
+    ];
+
+    /**
+     * Translate generator exceptions into clean console errors and exit codes
+     * instead of uncaught stack traces.
+     */
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        try {
+            return parent::execute($input, $output);
+        } catch (\InvalidArgumentException $e) {
+            $this->components->error($e->getMessage());
+
+            return self::INVALID;
+        } catch (\RuntimeException $e) {
+            $this->components->error($e->getMessage());
+
+            return self::FAILURE;
+        }
+    }
 
     protected function getStub(string $name): string
     {
@@ -51,6 +91,12 @@ abstract class BaseGenerator extends Command
         if (! preg_match('/^[A-Z][a-zA-Z0-9]*$/', $value)) {
             throw new \InvalidArgumentException(
                 "Invalid $label: '$value'. Must start with an uppercase letter and contain only alphanumeric characters (e.g. 'Billing', 'Invoice')."
+            );
+        }
+
+        if (in_array(strtolower($value), self::RESERVED_NAMES, true)) {
+            throw new \InvalidArgumentException(
+                "Invalid $label: '$value' is a PHP reserved word and cannot be used as a class name."
             );
         }
     }
@@ -132,7 +178,11 @@ abstract class BaseGenerator extends Command
             return false;
         }
 
-        File::put($filePath, $content);
+        if (File::put($filePath, $content) === false) {
+            $this->components->error("Could not write file: $filePath");
+
+            return false;
+        }
 
         return true;
     }

@@ -7,7 +7,7 @@ use Illuminate\Support\Str;
 
 class MakeModel extends BaseGenerator
 {
-    protected $signature = 'clean:model {context} {name} {--id-type= : Primary key type (uuid, ulid)} {--force}';
+    protected $signature = 'clean:model {context} {name} {--id-type= : Primary key type (uuid, ulid)} {--force : Overwrite existing files}';
     protected $description = 'Create an Eloquent model in the Infrastructure layer';
 
     public function handle(): int
@@ -36,9 +36,11 @@ class MakeModel extends BaseGenerator
 
         $file = "$path/{$name}Model.php";
 
-        if ($this->writeFile($file, $content)) {
-            $this->info("Model created: $file");
+        if (! $this->writeFile($file, $content)) {
+            return self::FAILURE;
         }
+
+        $this->info("Model created: $file");
 
         return self::SUCCESS;
     }

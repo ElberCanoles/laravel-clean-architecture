@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\File;
 
 class MakeValueObject extends BaseGenerator
 {
-    protected $signature = 'clean:value-object {context} {name} {--force}';
+    protected $signature = 'clean:value-object {context} {name} {--force : Overwrite existing files}';
     protected $description = 'Create a domain value object';
 
     public function handle(): int
@@ -30,9 +30,11 @@ class MakeValueObject extends BaseGenerator
 
         $file = "$path/$name.php";
 
-        if ($this->writeFile($file, $content)) {
-            $this->info("Value object created: $file");
+        if (! $this->writeFile($file, $content)) {
+            return self::FAILURE;
         }
+
+        $this->info("Value object created: $file");
 
         return self::SUCCESS;
     }

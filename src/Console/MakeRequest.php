@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\File;
 
 class MakeRequest extends BaseGenerator
 {
-    protected $signature = 'clean:request {context} {name} {--force}';
+    protected $signature = 'clean:request {context} {name} {--force : Overwrite existing files}';
     protected $description = 'Create a form request in the Presentation layer';
 
     public function handle(): int
@@ -30,9 +30,11 @@ class MakeRequest extends BaseGenerator
 
         $file = "$path/{$name}Request.php";
 
-        if ($this->writeFile($file, $content)) {
-            $this->info("Request created: $file");
+        if (! $this->writeFile($file, $content)) {
+            return self::FAILURE;
         }
+
+        $this->info("Request created: $file");
 
         return self::SUCCESS;
     }

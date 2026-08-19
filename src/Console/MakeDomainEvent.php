@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\File;
 
 class MakeDomainEvent extends BaseGenerator
 {
-    protected $signature = 'clean:domain-event {context} {name} {--force}';
+    protected $signature = 'clean:domain-event {context} {name} {--force : Overwrite existing files}';
     protected $description = 'Create a domain event';
 
     public function handle(): int
@@ -30,9 +30,11 @@ class MakeDomainEvent extends BaseGenerator
 
         $file = "$path/{$name}Event.php";
 
-        if ($this->writeFile($file, $content)) {
-            $this->info("Domain event created: $file");
+        if (! $this->writeFile($file, $content)) {
+            return self::FAILURE;
         }
+
+        $this->info("Domain event created: $file");
 
         return self::SUCCESS;
     }

@@ -57,8 +57,10 @@ test('rejects invalid entity name', function () {
         'context' => 'Billing',
         'name' => 'ListInvoices',
         '--entity' => 'bad entity',
-    ]);
-})->throws(\InvalidArgumentException::class);
+    ])
+        ->expectsOutputToContain("Invalid entity")
+        ->assertExitCode(2);
+});
 
 test('creates collection query with --collection flag', function () {
     $this->artisan('clean:query', ['context' => 'Billing', 'name' => 'ListInvoices', '--collection' => true])

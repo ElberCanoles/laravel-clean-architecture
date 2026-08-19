@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\File;
 
 class MakeMapper extends BaseGenerator
 {
-    protected $signature = 'clean:mapper {context} {name} {--force}';
+    protected $signature = 'clean:mapper {context} {name} {--force : Overwrite existing files}';
     protected $description = 'Create an entity-model mapper in the Infrastructure layer';
 
     public function handle(): int
@@ -30,9 +30,11 @@ class MakeMapper extends BaseGenerator
 
         $file = "$path/{$name}Mapper.php";
 
-        if ($this->writeFile($file, $content)) {
-            $this->info("Mapper created: $file");
+        if (! $this->writeFile($file, $content)) {
+            return self::FAILURE;
         }
+
+        $this->info("Mapper created: $file");
 
         return self::SUCCESS;
     }

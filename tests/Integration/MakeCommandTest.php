@@ -159,29 +159,37 @@ test('rejects invalid --id-type value on command', function () {
         '--entity' => 'Invoice',
         '--crud' => 'create',
         '--id-type' => 'snowflake',
-    ]);
-})->throws(\InvalidArgumentException::class);
+    ])
+        ->expectsOutputToContain("Invalid id type: 'snowflake'")
+        ->assertExitCode(2);
+});
 
 test('rejects invalid --id-type even when no entity is injected', function () {
     $this->artisan('clean:command', [
         'context' => 'Billing',
         'name' => 'PayInvoice',
         '--id-type' => 'snowflake',
-    ]);
-})->throws(\InvalidArgumentException::class);
+    ])
+        ->expectsOutputToContain("Invalid id type: 'snowflake'")
+        ->assertExitCode(2);
+});
 
 test('rejects invalid --crud value', function () {
     $this->artisan('clean:command', [
         'context' => 'Billing',
         'name' => 'PayInvoice',
         '--crud' => 'invalid',
-    ]);
-})->throws(\InvalidArgumentException::class);
+    ])
+        ->expectsOutputToContain("Invalid --crud value")
+        ->assertExitCode(2);
+});
 
 test('rejects invalid entity name', function () {
     $this->artisan('clean:command', [
         'context' => 'Billing',
         'name' => 'PayInvoice',
         '--entity' => 'invalid-entity',
-    ]);
-})->throws(\InvalidArgumentException::class);
+    ])
+        ->expectsOutputToContain("Invalid entity")
+        ->assertExitCode(2);
+});

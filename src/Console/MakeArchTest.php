@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\File;
 
 class MakeArchTest extends BaseGenerator
 {
-    protected $signature = 'clean:arch-test {context} {--force}';
+    protected $signature = 'clean:arch-test {context} {--force : Overwrite existing files}';
     protected $description = 'Create architecture tests for a bounded context';
 
     public function handle(): int
@@ -28,9 +28,11 @@ class MakeArchTest extends BaseGenerator
 
         $file = "$path/{$context}ArchTest.php";
 
-        if ($this->writeFile($file, $content)) {
-            $this->info("Architecture test created: $file");
+        if (! $this->writeFile($file, $content)) {
+            return self::FAILURE;
         }
+
+        $this->info("Architecture test created: $file");
 
         return self::SUCCESS;
     }

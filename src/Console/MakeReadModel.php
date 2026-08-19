@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\File;
 
 class MakeReadModel extends BaseGenerator
 {
-    protected $signature = 'clean:read-model {context} {name} {--force}';
+    protected $signature = 'clean:read-model {context} {name} {--force : Overwrite existing files}';
     protected $description = 'Create an application read model';
 
     public function handle(): int
@@ -30,9 +30,11 @@ class MakeReadModel extends BaseGenerator
 
         $file = "$path/{$name}ReadModel.php";
 
-        if ($this->writeFile($file, $content)) {
-            $this->info("Read model created: $file");
+        if (! $this->writeFile($file, $content)) {
+            return self::FAILURE;
         }
+
+        $this->info("Read model created: $file");
 
         return self::SUCCESS;
     }

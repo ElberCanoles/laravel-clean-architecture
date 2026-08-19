@@ -995,7 +995,9 @@ tests/Unit/Domain/Billing/
 
 ## Commands Reference
 
-All commands support the `--force` flag to overwrite existing files.
+All commands support the `--force` flag to overwrite existing files (for the scaffold-generated migration, `--force` overwrites the existing migration file in place). Without `--force`, a command that finds an existing file warns and exits with code 1; invalid input (bad names, PHP reserved words, unknown option values) prints an error and exits with code 2.
+
+Names must be PascalCase (`Billing`, `Invoice`) and must not be PHP reserved words.
 
 | Command | Description | Output |
 |---------|-------------|--------|
@@ -1232,7 +1234,9 @@ Available stubs:
 ## Requirements
 
 - PHP 8.2+
-- Laravel 11.0+, 12.0+, or 13.0+
+- Laravel 11.17+, 12.0+, or 13.0+
+
+> **Laravel 11 support is deprecated** and will be removed in v2.0 — Laravel 11 reached end of life in March 2026. Laravel 12 or 13 is recommended. The 11.17 floor exists because generated create handlers use `Str::uuid7()`, introduced in that release.
 
 ### Dev dependencies (for architecture tests)
 

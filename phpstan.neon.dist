@@ -7,3 +7,10 @@ parameters:
     level: 6
     ignoreErrors:
         - identifier: trait.unused
+        # BaseGenerator::execute() reaches handle() through Container::call(), a dynamic
+        # boundary PHPStan cannot trace, so it wrongly reports the validation catches as
+        # dead. The catch paths are exercised by the exit-code tests in tests/Integration.
+        -
+            identifier: catch.neverThrown
+            path: src/Console/BaseGenerator.php
+            count: 2

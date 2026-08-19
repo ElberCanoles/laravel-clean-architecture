@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\File;
 
 class MakeTest extends BaseGenerator
 {
-    protected $signature = 'clean:test {context} {name} {--force}';
+    protected $signature = 'clean:test {context} {name} {--force : Overwrite existing files}';
     protected $description = 'Create a Pest unit test for a domain object';
 
     public function handle(): int
@@ -30,9 +30,11 @@ class MakeTest extends BaseGenerator
 
         $file = "$path/{$name}Test.php";
 
-        if ($this->writeFile($file, $content)) {
-            $this->info("Unit test created: $file");
+        if (! $this->writeFile($file, $content)) {
+            return self::FAILURE;
         }
+
+        $this->info("Unit test created: $file");
 
         return self::SUCCESS;
     }

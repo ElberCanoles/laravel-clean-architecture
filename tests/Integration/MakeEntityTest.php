@@ -34,17 +34,56 @@ test('overwrites entity file with --force', function () {
 });
 
 test('rejects lowercase context name', function () {
-    $this->artisan('clean:entity', ['context' => 'billing', 'name' => 'Invoice']);
-})->throws(\InvalidArgumentException::class);
+    $this->artisan('clean:entity', ['context' => 'billing', 'name' => 'Invoice'])
+        ->expectsOutputToContain("Invalid context")
+        ->assertExitCode(2);
+});
 
 test('rejects context name with special characters', function () {
-    $this->artisan('clean:entity', ['context' => 'My-Context', 'name' => 'Invoice']);
-})->throws(\InvalidArgumentException::class);
+    $this->artisan('clean:entity', ['context' => 'My-Context', 'name' => 'Invoice'])
+        ->expectsOutputToContain("Invalid context")
+        ->assertExitCode(2);
+});
 
 test('rejects name starting with number', function () {
-    $this->artisan('clean:entity', ['context' => 'Billing', 'name' => '123Entity']);
-})->throws(\InvalidArgumentException::class);
+    $this->artisan('clean:entity', ['context' => 'Billing', 'name' => '123Entity'])
+        ->expectsOutputToContain("Invalid name")
+        ->assertExitCode(2);
+});
 
 test('rejects name with spaces', function () {
-    $this->artisan('clean:entity', ['context' => 'Billing', 'name' => 'My Entity']);
-})->throws(\InvalidArgumentException::class);
+    $this->artisan('clean:entity', ['context' => 'Billing', 'name' => 'My Entity'])
+        ->expectsOutputToContain("Invalid name")
+        ->assertExitCode(2);
+});
+
+test('rejects PHP reserved words as names', function () {
+    $this->artisan('clean:entity', ['context' => 'Billing', 'name' => 'List'])
+        ->expectsOutputToContain('is a PHP reserved word')
+        ->assertExitCode(2);
+
+    expect(file_exists($this->tempDir . '/Billing/Domain/Entities/List.php'))->toBeFalse();
+});
+
+test('returns failure exit code when file exists without --force', function () {
+    $this->artisan('clean:entity', ['context' => 'Billing', 'name' => 'Invoice'])
+        ->assertSuccessful();
+
+    $this->artisan('clean:entity', ['context' => 'Billing', 'name' => 'Invoice'])
+        ->expectsOutputToContain('File already exists')
+        ->assertExitCode(1);
+});
+
+test('overwriting with --force actually changes file content', function () {
+    $file = $this->tempDir . '/Billing/Domain/Entities/Invoice.php';
+
+    $this->artisan('clean:entity', ['context' => 'Billing', 'name' => 'Invoice'])->assertSuccessful();
+    file_put_contents($file, '<?php // stale content');
+
+    $this->artisan('clean:entity', ['context' => 'Billing', 'name' => 'Invoice', '--force' => true])
+        ->assertSuccessful();
+
+    expect(file_get_contents($file))
+        ->not->toContain('stale content')
+        ->toContain('final class Invoice');
+});

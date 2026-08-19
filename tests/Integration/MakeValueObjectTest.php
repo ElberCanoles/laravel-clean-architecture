@@ -31,9 +31,13 @@ test('overwrites value object with --force', function () {
 });
 
 test('rejects invalid context name', function () {
-    $this->artisan('clean:value-object', ['context' => 'invalid-context', 'name' => 'Money']);
-})->throws(\InvalidArgumentException::class);
+    $this->artisan('clean:value-object', ['context' => 'invalid-context', 'name' => 'Money'])
+        ->expectsOutputToContain("Invalid context")
+        ->assertExitCode(2);
+});
 
 test('rejects invalid name', function () {
-    $this->artisan('clean:value-object', ['context' => 'Billing', 'name' => '123Money']);
-})->throws(\InvalidArgumentException::class);
+    $this->artisan('clean:value-object', ['context' => 'Billing', 'name' => '123Money'])
+        ->expectsOutputToContain("Invalid name")
+        ->assertExitCode(2);
+});

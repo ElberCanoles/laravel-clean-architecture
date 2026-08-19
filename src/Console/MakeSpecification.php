@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\File;
 
 class MakeSpecification extends BaseGenerator
 {
-    protected $signature = 'clean:specification {context} {name} {--force}';
+    protected $signature = 'clean:specification {context} {name} {--force : Overwrite existing files}';
     protected $description = 'Create a domain specification';
 
     public function handle(): int
@@ -30,9 +30,11 @@ class MakeSpecification extends BaseGenerator
 
         $file = "$path/{$name}Specification.php";
 
-        if ($this->writeFile($file, $content)) {
-            $this->info("Specification created: $file");
+        if (! $this->writeFile($file, $content)) {
+            return self::FAILURE;
         }
+
+        $this->info("Specification created: $file");
 
         return self::SUCCESS;
     }

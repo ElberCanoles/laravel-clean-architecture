@@ -80,8 +80,8 @@ test('controller with --entity wires all CQRS handlers', function () {
         ->toContain('private readonly ListInvoicesHandler $listHandler,')
         // index — paginated with request parameters
         ->toContain('$this->listHandler->handle(new ListInvoicesQuery(')
-        ->toContain("page: (int) \$request->query('page', 1)")
-        ->toContain("perPage: (int) \$request->query('per_page', 15)")
+        ->toContain("page: max((int) \$request->query('page', 1), 1)")
+        ->toContain("perPage: min(max((int) \$request->query('per_page', 15), 1), 100)")
         ->toContain('InvoiceResource::collection($result->items)')
         ->toContain("->additional(['meta' => \$result->meta()])")
         // show

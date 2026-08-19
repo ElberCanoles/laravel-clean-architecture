@@ -7,7 +7,7 @@ use Illuminate\Support\Str;
 
 class MakeScaffold extends BaseGenerator
 {
-    protected $signature = 'clean:scaffold {context} {name} {--id-type= : Primary key type (uuid, ulid)} {--force}';
+    protected $signature = 'clean:scaffold {context} {name} {--id-type= : Primary key type (uuid, ulid)} {--force : Overwrite existing files}';
     protected $description = 'Scaffold a full entity with repository, read model, CQRS, controller, request, resource, and sanitizer';
 
     public function handle(): int
@@ -104,28 +104,38 @@ class MakeScaffold extends BaseGenerator
             ]],
         ];
 
+        $failed = false;
+
         foreach ($commands as [$command, $arguments]) {
-            $this->call($command, $arguments);
+            if ($this->call($command, $arguments) !== self::SUCCESS) {
+                $failed = true;
+            }
         }
 
         $namespace = $this->buildNamespace($context);
-        $this->wireServiceProviderBindings($context, $name, $namespace);
-        $this->wireRoutes($context, $name, $namespace);
-        $this->generateMigration($name, $idType);
+        $wiredBindings = $this->wireServiceProviderBindings($context, $name, $namespace);
+        $wiredRoutes = $this->wireRoutes($context, $name, $namespace);
+        $migrated = $this->generateMigration($name, $idType);
+
+        if ($failed || ! $wiredBindings || ! $wiredRoutes || ! $migrated) {
+            $this->warn("Scaffold for [$name] in [$context] completed with warnings — review the output above.");
+
+            return self::FAILURE;
+        }
 
         $this->info("Scaffold for [$name] in [$context] created successfully.");
 
         return self::SUCCESS;
     }
 
-    protected function wireServiceProviderBindings(string $context, string $name, string $namespace): void
+    protected function wireServiceProviderBindings(string $context, string $name, string $namespace): bool
     {
         $spPath = base_path(config('clean-architecture.contexts_path') . "/$context/Infrastructure/{$context}ServiceProvider.php");
 
         if (! File::exists($spPath)) {
             $this->warn("ServiceProvider not found — skipping binding wiring.");
 
-            return;
+            return true;
         }
 
         $content = File::get($spPath);
@@ -133,12 +143,14 @@ class MakeScaffold extends BaseGenerator
         if (! str_contains($content, '// {bindings}')) {
             $this->warn("No binding markers found in ServiceProvider — skipping wiring.");
 
-            return;
+            return true;
         }
 
-        // Skip if already wired for this entity
-        if (str_contains($content, "{$name}WriteRepository::class")) {
-            return;
+        // Skip if already wired for this entity. The leading backslash anchors the
+        // match so an entity whose name is a suffix of another (User vs SuperUser)
+        // is not mistaken for an existing binding.
+        if (str_contains($content, "\\{$name}WriteRepository::class")) {
+            return true;
         }
 
         $binding = "\$this->app->bind(\n"
@@ -150,9 +162,9 @@ class MakeScaffold extends BaseGenerator
             . "            \\{$namespace}\\Infrastructure\\{$name}ReadEloquentRepository::class,\n"
             . "        );";
 
-        $content = preg_replace_callback(
+        $updated = preg_replace_callback(
             '/([ \t]*\/\/ \{bindings\}\n)(.*?)([ \t]*\/\/ \{\/bindings\})/s',
-            function ($matches) use ($binding) {
+            function (array $matches) use ($binding): string {
                 // Keep only real code lines (remove TODO comments and blank lines)
                 $lines = explode("\n", $matches[2]);
                 $kept = [];
@@ -181,20 +193,37 @@ class MakeScaffold extends BaseGenerator
             $content
         );
 
-        File::put($spPath, $content);
+        // A PCRE failure (e.g. backtrack limit) returns null; writing it would
+        // truncate the user's ServiceProvider to an empty file.
+        if ($updated === null) {
+            $this->components->error(
+                'Could not wire bindings in ServiceProvider (' . preg_last_error_msg() . ') — file left untouched.'
+            );
+
+            return false;
+        }
+
+        if (File::put($spPath, $updated) === false) {
+            $this->components->error("Could not write file: $spPath");
+
+            return false;
+        }
+
+        return true;
     }
 
-    protected function wireRoutes(string $context, string $name, string $namespace): void
+    protected function wireRoutes(string $context, string $name, string $namespace): bool
     {
         $routesDir = base_path(config('clean-architecture.contexts_path') . "/$context/Presentation/Routes");
 
-        if (! File::exists($routesDir)) {
-            return;
+        if (! File::isDirectory($routesDir)) {
+            return true;
         }
 
         $plural = $this->toKebabPlural($name);
         $controllerClass = "{$name}Controller";
         $controllerFqn = "{$namespace}\\Presentation\\Controllers\\{$controllerClass}";
+        $wired = true;
 
         foreach (['api.php', 'web.php'] as $routeFile) {
             $routePath = "$routesDir/$routeFile";
@@ -217,23 +246,33 @@ class MakeScaffold extends BaseGenerator
             }
 
             $routeMethod = $routeFile === 'api.php' ? 'apiResource' : 'resource';
-            $route = "    Route::{$routeMethod}('$plural', {$controllerClass}::class);";
 
-            // Add controller import if not present
+            // Add the controller import; fall back to the FQCN in the route line
+            // so the file never references a class it does not import.
+            $controllerRef = $controllerClass;
             $import = "use $controllerFqn;";
 
             if (! str_contains($content, $import)) {
-                $content = str_replace(
-                    'use Illuminate\Support\Facades\Route;',
-                    "use Illuminate\\Support\\Facades\\Route;\n$import",
-                    $content
-                );
+                $anchor = 'use Illuminate\Support\Facades\Route;';
+
+                if (str_contains($content, $anchor)) {
+                    $content = str_replace($anchor, "$anchor\n$import", $content);
+                } elseif (preg_match_all('/^[ \t]*use\s+[^;]+;/m', $content, $useMatches, PREG_OFFSET_CAPTURE) > 0) {
+                    [$lastUse, $offset] = end($useMatches[0]);
+                    $position = $offset + strlen($lastUse);
+                    $content = substr($content, 0, $position) . "\n$import" . substr($content, $position);
+                } else {
+                    $this->warn("Could not add the controller import to $routeFile — using the fully qualified class name.");
+                    $controllerRef = "\\$controllerFqn";
+                }
             }
 
+            $route = "    Route::{$routeMethod}('$plural', {$controllerRef}::class);";
+
             // Insert route between markers
-            $content = preg_replace_callback(
+            $updated = preg_replace_callback(
                 '/([ \t]*\/\/ \{routes\}\n)(.*?)([ \t]*\/\/ \{\/routes\})/s',
-                function ($matches) use ($route) {
+                function (array $matches) use ($route): string {
                     $lines = explode("\n", $matches[2]);
                     $kept = [];
 
@@ -261,27 +300,48 @@ class MakeScaffold extends BaseGenerator
                 $content
             );
 
-            File::put($routePath, $content);
+            // A PCRE failure returns null; writing it would truncate the routes file.
+            if ($updated === null) {
+                $this->components->error(
+                    "Could not wire routes in $routeFile (" . preg_last_error_msg() . ') — file left untouched.'
+                );
+                $wired = false;
+
+                continue;
+            }
+
+            if (File::put($routePath, $updated) === false) {
+                $this->components->error("Could not write file: $routePath");
+                $wired = false;
+            }
         }
+
+        return $wired;
     }
 
-    protected function generateMigration(string $name, string $idType): void
+    protected function generateMigration(string $name, string $idType): bool
     {
         $table = Str::snake(Str::pluralStudly($name));
         $migrationPath = database_path('migrations');
 
         File::makeDirectory($migrationPath, 0755, true, true);
 
-        // Skip if a migration for this table already exists
         $existing = File::glob("$migrationPath/*_create_{$table}_table.php");
 
-        if (! empty($existing) && ! $this->option('force')) {
-            $this->warn("Migration already exists for table '$table'.");
+        if (! empty($existing)) {
+            if (! $this->option('force')) {
+                $this->warn("Migration already exists for table '$table' (use --force to overwrite).");
 
-            return;
+                return false;
+            }
+
+            // Overwrite in place — a fresh timestamp would stack a second
+            // migration for the same table and break `php artisan migrate`.
+            $file = $existing[0];
+        } else {
+            $file = "$migrationPath/" . date('Y_m_d_His') . "_create_{$table}_table.php";
         }
 
-        $timestamp = date('Y_m_d_His');
         $stub = $this->getStub('migration');
         $this->warnIfStubIgnoresIdType($stub, 'migration', '{{idType}}');
 
@@ -290,9 +350,15 @@ class MakeScaffold extends BaseGenerator
             [$table, $idType],
             $stub
         );
-        $file = "$migrationPath/{$timestamp}_create_{$table}_table.php";
 
-        File::put($file, $content);
+        if (File::put($file, $content) === false) {
+            $this->components->error("Could not write file: $file");
+
+            return false;
+        }
+
         $this->info("Migration created: $file");
+
+        return true;
     }
 }

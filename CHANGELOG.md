@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com), and this project adheres to [Semantic Versioning](https://semver.org).
 
+## [Unreleased]
+
+### Added
+
+- **`SECURITY.md`** — vulnerabilities can now be reported privately through GitHub Security Advisories
+- **Reserved-word validation** — PHP keywords and reserved type names (`List`, `Class`, `Enum`, `String`, …) are rejected as context/entity names instead of generating uncompilable PHP
+- **`--force` description** — the flag is now documented in every command signature (`artisan help clean:*`)
+
+### Changed
+
+- **Commands return real exit codes** — validation errors print a clean console error and exit with code 2 (`INVALID`) instead of an uncaught stack trace; a skipped write (file exists without `--force`) or a failed write exits with code 1 (`FAILURE`); `clean:scaffold` propagates sub-command failures and reports "completed with warnings" instead of claiming success
+- **`clean:scaffold --force` overwrites the existing migration in place** — previously it stacked a second `create_*_table` migration with a fresh timestamp, breaking `php artisan migrate` with a duplicate table error
+- **Generated list endpoints are deterministic and bounded** — the read Eloquent repository stub adds `->orderBy('id')` (pagination without ORDER BY yields undefined row order), and generated controllers clamp `per_page` to 1–100 and `page` to ≥ 1
+- **Minimum supported Laravel raised to 11.17** — `Str::uuid7()`, emitted by generated create handlers, was introduced in Laravel 11.17; earlier 11.x versions fail at runtime
+- **`illuminate/console` is now an explicit dependency** — the generators extend `Illuminate\Console\Command`, previously an undeclared transitive dependency
+- **`clean:query` description corrected** — it no longer claims a read model is generated (use `clean:read-model`)
+- **`composer.json` declares `homepage` and `support` links** — issues, source, and security advisory URLs now render on Packagist
+
+### Deprecated
+
+- **Laravel 11 support** — Laravel 11 reached end of life in March 2026 and carries unpatched security advisories; support will be removed in v2.0. Use Laravel 12 or 13.
+
+### Fixed
+
+- **Sanitizer stub taught a self-defeating pattern** — the `...$data` spread now comes first, so uncommented normalization keys override the raw input instead of being silently overridden by it
+- **Wiring could truncate user files** — a PCRE failure (`preg_replace_callback` returning `null`) during binding or route wiring now aborts with an error and leaves the file untouched, instead of writing an empty ServiceProvider or routes file
+- **Suffix collision silently skipped bindings** — scaffolding `User` after `SuperUser` now wires the `User` bindings; the idempotency check is anchored to the namespace separator
+- **Routes could reference an unimported controller** — when the `use Illuminate\Support\Facades\Route;` anchor is missing, the import is inserted after the last `use` statement, or the route falls back to the fully qualified class name (with a warning), so generated routes never reference a class they do not import
+- **Write failures reported as success** — a failed `File::put()` (read-only directory, full disk) is now reported as an error instead of "created"
+
 ## [1.4.0] - 2026-08-05
 
 ### Added
@@ -70,6 +100,8 @@ Defaults are unchanged: without `id_type` or `--id-type`, generators keep emitti
 ### Changed
 
 - **Default namespace prefix** — changed from `App` to `Src` in configuration, aligning the default with the `contexts_path` convention (`src/`)
+
+> **Upgrade note (added retroactively):** this change was breaking for projects that had not published the config file — generated code moved from the `App\` namespace to `Src\`. If you upgrade from ≤ 1.2.0 and relied on the old default, publish the config (`php artisan vendor:publish --tag=clean-architecture-config`) and set `namespace_prefix` back to `App`.
 
 ## [1.2.0] - 2026-03-16
 
@@ -178,3 +210,12 @@ Defaults are unchanged: without `id_type` or `--id-type`, generators keep emitti
 | `auto_load` | `true` | Auto-register PSR-4 autoloading |
 | `arch_tests_path` | `tests/Feature/Architecture` | Where architecture tests are generated |
 | `unit_tests_path` | `tests/Unit/Domain` | Where domain unit tests are generated |
+
+[Unreleased]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v1.3.0...v1.4.0
+[1.3.0]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v1.2.2...v1.3.0
+[1.2.2]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v1.2.1...v1.2.2
+[1.2.1]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v1.2.0...v1.2.1
+[1.2.0]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/ElberCanoles/laravel-clean-architecture/releases/tag/v1.0.0

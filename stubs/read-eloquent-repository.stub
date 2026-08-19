@@ -22,6 +22,7 @@ class {{Class}}ReadEloquentRepository implements {{Class}}ReadRepository
         $total = {{Class}}Model::query()->count();
 
         $items = {{Class}}Model::query()
+            ->orderBy('id')
             ->forPage($page, $perPage)
             ->get()
             ->map(fn ({{Class}}Model $model) => new {{Class}}ReadModel($model->id))

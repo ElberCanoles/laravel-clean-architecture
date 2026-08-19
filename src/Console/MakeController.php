@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\File;
 
 class MakeController extends BaseGenerator
 {
-    protected $signature = 'clean:controller {context} {name} {--entity= : Entity name to wire CQRS handlers} {--force}';
+    protected $signature = 'clean:controller {context} {name} {--entity= : Entity name to wire CQRS handlers} {--force : Overwrite existing files}';
     protected $description = 'Create a controller in the Presentation layer';
 
     public function handle(): int
@@ -49,8 +49,8 @@ class MakeController extends BaseGenerator
                 . "        private readonly List{$plural}Handler \$listHandler,";
 
             $indexBody = "\$result = \$this->listHandler->handle(new List{$plural}Query(\n"
-                . "            page: (int) \$request->query('page', 1),\n"
-                . "            perPage: (int) \$request->query('per_page', 15),\n"
+                . "            page: max((int) \$request->query('page', 1), 1),\n"
+                . "            perPage: min(max((int) \$request->query('per_page', 15), 1), 100),\n"
                 . "        ));\n\n"
                 . "        return {$entity}Resource::collection(\$result->items)\n"
                 . "            ->additional(['meta' => \$result->meta()])\n"
@@ -77,9 +77,11 @@ class MakeController extends BaseGenerator
 
         $file = "$path/{$name}Controller.php";
 
-        if ($this->writeFile($file, $content)) {
-            $this->info("Controller created: $file");
+        if (! $this->writeFile($file, $content)) {
+            return self::FAILURE;
         }
+
+        $this->info("Controller created: $file");
 
         return self::SUCCESS;
     }
