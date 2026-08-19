@@ -18,7 +18,9 @@ final class MarkerBlockWriter
      */
     public static function insert(string $content, string $marker, string $insertion): ?string
     {
-        $pattern = '/([ \t]*\/\/ \{' . preg_quote($marker, '/') . '\}\n)(.*?)([ \t]*\/\/ \{\/' . preg_quote($marker, '/') . '\})/s';
+        // \r?\n: files edited on Windows arrive with CRLF endings — the
+        // markers must still match or wiring silently becomes a no-op.
+        $pattern = '/([ \t]*\/\/ \{' . preg_quote($marker, '/') . '\}\r?\n)(.*?)([ \t]*\/\/ \{\/' . preg_quote($marker, '/') . '\})/s';
 
         return preg_replace_callback(
             $pattern,

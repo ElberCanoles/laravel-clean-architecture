@@ -1,3 +1,7 @@
+# Normalize line endings so stubs and sources are LF on every platform —
+# the code generators and marker rewriters depend on it.
+*                   text=auto eol=lf
+
 /.github            export-ignore
 /tests              export-ignore
 /.gitattributes     export-ignore

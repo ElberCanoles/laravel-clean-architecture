@@ -447,3 +447,23 @@ test('the scaffolded entity and NotFound exception are executable', function () 
         ->and($exception->httpStatus())->toBe(404)
         ->and($exception->getMessage())->toBe('Gadget with id [gadget-1] was not found.');
 });
+
+test('scaffold wires files that use Windows line endings', function () {
+    $this->artisan('clean:context', ['name' => 'Billing']);
+
+    // Simulate a provider and routes file edited on Windows (CRLF).
+    foreach ([
+        $this->tempDir . '/Billing/Infrastructure/BillingServiceProvider.php',
+        $this->tempDir . '/Billing/Presentation/Routes/api.php',
+    ] as $file) {
+        file_put_contents($file, str_replace("\n", "\r\n", (string) file_get_contents($file)));
+    }
+
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice', '--force' => true])
+        ->assertSuccessful();
+
+    expect(file_get_contents($this->tempDir . '/Billing/Infrastructure/BillingServiceProvider.php'))
+        ->toContain('InvoiceWriteRepository::class');
+    expect(file_get_contents($this->tempDir . '/Billing/Presentation/Routes/api.php'))
+        ->toContain("Route::apiResource('invoices', InvoiceController::class)");
+});
