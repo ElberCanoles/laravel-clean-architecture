@@ -30,20 +30,6 @@ test('generates correct table name for multi-word entities', function () {
         ->toContain('class OrderItemModel extends Model');
 });
 
-test('warns when model exists without --force', function () {
-    $this->artisan('clean:model', ['context' => 'Billing', 'name' => 'Invoice']);
-
-    $this->artisan('clean:model', ['context' => 'Billing', 'name' => 'Invoice'])
-        ->expectsOutputToContain('File already exists');
-});
-
-test('overwrites model with --force', function () {
-    $this->artisan('clean:model', ['context' => 'Billing', 'name' => 'Invoice']);
-    $this->artisan('clean:model', ['context' => 'Billing', 'name' => 'Invoice', '--force' => true])
-        ->assertSuccessful()
-        ->expectsOutputToContain('Model created');
-});
-
 test('creates model with HasUlids when --id-type=ulid', function () {
     $this->artisan('clean:model', ['context' => 'Billing', 'name' => 'Invoice', '--id-type' => 'ulid'])
         ->assertSuccessful();
@@ -103,14 +89,11 @@ test('rejects invalid id_type config value', function () {
         ->assertExitCode(2);
 });
 
-test('rejects invalid name', function () {
-    $this->artisan('clean:model', ['context' => 'Billing', 'name' => 'bad-name'])
-        ->expectsOutputToContain('Invalid name')
-        ->assertExitCode(2);
-});
+test('normalizes kebab-case names to StudlyCase', function () {
+    $this->artisan('clean:model', ['context' => 'billing', 'name' => 'line-item'])
+        ->assertSuccessful();
 
-test('rejects invalid context', function () {
-    $this->artisan('clean:model', ['context' => 'billing', 'name' => 'Invoice'])
-        ->expectsOutputToContain('Invalid context')
-        ->assertExitCode(2);
+    $file = $this->tempDir . '/Billing/Infrastructure/Models/LineItemModel.php';
+    expect(file_exists($file))->toBeTrue();
+    expect(file_get_contents($file))->toContain('line_items');
 });

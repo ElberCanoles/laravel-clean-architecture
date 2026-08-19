@@ -4,41 +4,29 @@ declare(strict_types=1);
 
 namespace CleanArchitecture\Console;
 
-use Illuminate\Support\Facades\File;
-
-class MakeMapper extends BaseGenerator
+class MakeMapper extends SingleFileGenerator
 {
     protected $signature = 'clean:mapper {context} {name} {--force : Overwrite existing files}';
 
     protected $description = 'Create an entity-model mapper in the Infrastructure layer';
 
-    public function handle(): int
+    protected function subPath(): string
     {
-        $context = $this->argument('context');
-        $name = $this->argument('name');
+        return 'Infrastructure';
+    }
 
-        $this->validateName($context, 'context');
-        $this->validateName($name, 'name');
+    protected function stubName(): string
+    {
+        return 'mapper';
+    }
 
-        $namespace = $this->buildNamespace($context);
+    protected function suffix(): string
+    {
+        return 'Mapper';
+    }
 
-        $path = base_path(config('clean-architecture.contexts_path') . "/$context/Infrastructure");
-        File::makeDirectory($path, 0755, true, true);
-
-        $content = str_replace(
-            ['{{Namespace}}', '{{Class}}'],
-            [$namespace, $name],
-            $this->getStub('mapper')
-        );
-
-        $file = "$path/{$name}Mapper.php";
-
-        if (! $this->writeFile($file, $content)) {
-            return self::FAILURE;
-        }
-
-        $this->info("Mapper created: $file");
-
-        return self::SUCCESS;
+    protected function label(): string
+    {
+        return 'Mapper';
     }
 }

@@ -10,13 +10,6 @@ afterEach(function () {
     File::deleteDirectory(base_path('stubs/clean-architecture'));
 });
 
-function publishStub(string $name, string $contents): void
-{
-    $dir = base_path('stubs/clean-architecture');
-    File::makeDirectory($dir, 0755, true, true);
-    File::put("$dir/$name.stub", $contents);
-}
-
 test('warns when a custom model stub has no IdTrait placeholder', function () {
     publishStub('model', <<<'STUB'
         <?php

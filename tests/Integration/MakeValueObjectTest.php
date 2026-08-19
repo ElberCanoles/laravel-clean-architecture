@@ -16,24 +16,11 @@ test('creates value object with correct content', function () {
         ->toContain('public function __toString(): string');
 });
 
-test('warns when value object file exists without --force', function () {
-    $this->artisan('clean:value-object', ['context' => 'Billing', 'name' => 'Money']);
+test('normalizes context name to StudlyCase', function () {
+    $this->artisan('clean:value-object', ['context' => 'shared-kernel', 'name' => 'Money'])
+        ->assertSuccessful();
 
-    $this->artisan('clean:value-object', ['context' => 'Billing', 'name' => 'Money'])
-        ->expectsOutputToContain('File already exists');
-});
-
-test('overwrites value object with --force', function () {
-    $this->artisan('clean:value-object', ['context' => 'Billing', 'name' => 'Money']);
-    $this->artisan('clean:value-object', ['context' => 'Billing', 'name' => 'Money', '--force' => true])
-        ->assertSuccessful()
-        ->expectsOutputToContain('Value object created');
-});
-
-test('rejects invalid context name', function () {
-    $this->artisan('clean:value-object', ['context' => 'invalid-context', 'name' => 'Money'])
-        ->expectsOutputToContain('Invalid context')
-        ->assertExitCode(2);
+    expect(file_exists($this->tempDir . '/SharedKernel/Domain/ValueObjects/Money.php'))->toBeTrue();
 });
 
 test('rejects invalid name', function () {

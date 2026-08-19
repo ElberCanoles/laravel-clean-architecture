@@ -93,10 +93,11 @@ test('overwrites files with --force', function () {
         ->expectsOutputToContain('ServiceProvider created');
 });
 
-test('rejects invalid context name', function () {
+test('normalizes context name to StudlyCase', function () {
     $this->artisan('clean:context', ['name' => 'my-context'])
-        ->expectsOutputToContain('Invalid context')
-        ->assertExitCode(2);
+        ->assertSuccessful();
+
+    expect(is_dir($this->tempDir . '/MyContext/Domain/Entities'))->toBeTrue();
 });
 
 test('generates web routes with --routes=web', function () {

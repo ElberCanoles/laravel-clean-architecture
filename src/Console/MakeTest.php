@@ -14,11 +14,8 @@ class MakeTest extends BaseGenerator
 
     public function handle(): int
     {
-        $context = $this->argument('context');
-        $name = $this->argument('name');
-
-        $this->validateName($context, 'context');
-        $this->validateName($name, 'name');
+        $context = $this->cleanName($this->stringArgument('context'), 'context');
+        $name = $this->cleanName($this->stringArgument('name'), 'name');
 
         $namespace = $this->buildNamespace($context);
 

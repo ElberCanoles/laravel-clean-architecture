@@ -52,14 +52,15 @@ test('warns when query files exist without --force', function () {
         ->expectsOutputToContain('File already exists');
 });
 
-test('rejects invalid entity name', function () {
+test('normalizes the entity option to StudlyCase', function () {
     $this->artisan('clean:query', [
         'context' => 'Billing',
-        'name' => 'ListInvoices',
-        '--entity' => 'bad entity',
-    ])
-        ->expectsOutputToContain('Invalid entity')
-        ->assertExitCode(2);
+        'name' => 'GetGiftCard',
+        '--entity' => 'gift card',
+    ])->assertSuccessful();
+
+    $handlerContent = file_get_contents($this->tempDir . '/Billing/Application/Queries/GetGiftCard/GetGiftCardHandler.php');
+    expect($handlerContent)->toContain('GiftCardReadRepository');
 });
 
 test('creates collection query with --collection flag', function () {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CleanArchitecture\Console;
 
+use CleanArchitecture\Kernel\MarkerBlockWriter;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
@@ -15,11 +16,8 @@ class MakeScaffold extends BaseGenerator
 
     public function handle(): int
     {
-        $context = $this->argument('context');
-        $name = $this->argument('name');
-
-        $this->validateName($context, 'context');
-        $this->validateName($name, 'name');
+        $context = $this->cleanName($this->stringArgument('context'), 'context');
+        $name = $this->cleanName($this->stringArgument('name'), 'name');
 
         $force = $this->option('force');
         $plural = $this->toPluralStudly($name);
@@ -134,7 +132,7 @@ class MakeScaffold extends BaseGenerator
 
     protected function wireServiceProviderBindings(string $context, string $name, string $namespace): bool
     {
-        $spPath = base_path(config('clean-architecture.contexts_path') . "/$context/Infrastructure/{$context}ServiceProvider.php");
+        $spPath = $this->contextPath($context, "Infrastructure/{$context}ServiceProvider.php");
 
         if (! File::exists($spPath)) {
             $this->warn('ServiceProvider not found — skipping binding wiring.');
@@ -166,36 +164,7 @@ class MakeScaffold extends BaseGenerator
             . "            \\{$namespace}\\Infrastructure\\{$name}ReadEloquentRepository::class,\n"
             . '        );';
 
-        $updated = preg_replace_callback(
-            '/([ \t]*\/\/ \{bindings\}\n)(.*?)([ \t]*\/\/ \{\/bindings\})/s',
-            function (array $matches) use ($binding): string {
-                // Keep only real code lines (remove TODO comments and blank lines)
-                $lines = explode("\n", $matches[2]);
-                $kept = [];
-
-                foreach ($lines as $line) {
-                    $trimmed = trim($line);
-
-                    if ($trimmed === '' || str_starts_with($trimmed, '//')) {
-                        continue;
-                    }
-
-                    $kept[] = $line;
-                }
-
-                $existing = implode("\n", $kept);
-                $result = $matches[1];
-
-                if ($existing !== '') {
-                    $result .= $existing . "\n";
-                }
-
-                $result .= "        $binding\n" . $matches[3];
-
-                return $result;
-            },
-            $content
-        );
+        $updated = MarkerBlockWriter::insert($content, 'bindings', "        $binding");
 
         // A PCRE failure (e.g. backtrack limit) returns null; writing it would
         // truncate the user's ServiceProvider to an empty file.
@@ -218,7 +187,7 @@ class MakeScaffold extends BaseGenerator
 
     protected function wireRoutes(string $context, string $name, string $namespace): bool
     {
-        $routesDir = base_path(config('clean-architecture.contexts_path') . "/$context/Presentation/Routes");
+        $routesDir = $this->contextPath($context, 'Presentation/Routes');
 
         if (! File::isDirectory($routesDir)) {
             return true;
@@ -261,9 +230,9 @@ class MakeScaffold extends BaseGenerator
 
                 if (str_contains($content, $anchor)) {
                     $content = str_replace($anchor, "$anchor\n$import", $content);
-                } elseif (preg_match_all('/^[ \t]*use\s+[^;]+;/m', $content, $useMatches, PREG_OFFSET_CAPTURE) > 0) {
-                    [$lastUse, $offset] = end($useMatches[0]);
-                    $position = $offset + strlen($lastUse);
+                } elseif (preg_match_all('/^[ \t]*use\s+[^;]+;/m', $content, $useMatches, PREG_OFFSET_CAPTURE) > 0 && $useMatches[0] !== []) {
+                    $lastUse = $useMatches[0][array_key_last($useMatches[0])];
+                    $position = (int) $lastUse[1] + strlen($lastUse[0]);
                     $content = substr($content, 0, $position) . "\n$import" . substr($content, $position);
                 } else {
                     $this->warn("Could not add the controller import to $routeFile — using the fully qualified class name.");
@@ -273,36 +242,7 @@ class MakeScaffold extends BaseGenerator
 
             $route = "    Route::{$routeMethod}('$plural', {$controllerRef}::class);";
 
-            // Insert route between markers
-            $updated = preg_replace_callback(
-                '/([ \t]*\/\/ \{routes\}\n)(.*?)([ \t]*\/\/ \{\/routes\})/s',
-                function (array $matches) use ($route): string {
-                    $lines = explode("\n", $matches[2]);
-                    $kept = [];
-
-                    foreach ($lines as $line) {
-                        $trimmed = trim($line);
-
-                        if ($trimmed === '' || str_starts_with($trimmed, '//')) {
-                            continue;
-                        }
-
-                        $kept[] = $line;
-                    }
-
-                    $existing = implode("\n", $kept);
-                    $result = $matches[1];
-
-                    if ($existing !== '') {
-                        $result .= $existing . "\n";
-                    }
-
-                    $result .= $route . "\n" . $matches[3];
-
-                    return $result;
-                },
-                $content
-            );
+            $updated = MarkerBlockWriter::insert($content, 'routes', $route);
 
             // A PCRE failure returns null; writing it would truncate the routes file.
             if ($updated === null) {

@@ -4,41 +4,29 @@ declare(strict_types=1);
 
 namespace CleanArchitecture\Console;
 
-use Illuminate\Support\Facades\File;
-
-class MakeResource extends BaseGenerator
+class MakeResource extends SingleFileGenerator
 {
     protected $signature = 'clean:resource {context} {name} {--force : Overwrite existing files}';
 
     protected $description = 'Create an API resource in the Presentation layer';
 
-    public function handle(): int
+    protected function subPath(): string
     {
-        $context = $this->argument('context');
-        $name = $this->argument('name');
+        return 'Presentation/Resources';
+    }
 
-        $this->validateName($context, 'context');
-        $this->validateName($name, 'name');
+    protected function stubName(): string
+    {
+        return 'resource';
+    }
 
-        $namespace = $this->buildNamespace($context);
+    protected function suffix(): string
+    {
+        return 'Resource';
+    }
 
-        $path = base_path(config('clean-architecture.contexts_path') . "/$context/Presentation/Resources");
-        File::makeDirectory($path, 0755, true, true);
-
-        $content = str_replace(
-            ['{{Namespace}}', '{{Class}}'],
-            [$namespace, $name],
-            $this->getStub('resource')
-        );
-
-        $file = "$path/{$name}Resource.php";
-
-        if (! $this->writeFile($file, $content)) {
-            return self::FAILURE;
-        }
-
-        $this->info("Resource created: $file");
-
-        return self::SUCCESS;
+    protected function label(): string
+    {
+        return 'Resource';
     }
 }

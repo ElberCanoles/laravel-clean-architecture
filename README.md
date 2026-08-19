@@ -1,6 +1,8 @@
 # Laravel Clean Architecture
 
-[![CI](https://github.com/ElberCanoles/laravel-clean-architecture/actions/workflows/ci.yml/badge.svg)](https://github.com/ElberCanoles/laravel-clean-architecture/actions)
+[![CI](https://github.com/ElberCanoles/laravel-clean-architecture/actions/workflows/ci.yml/badge.svg)](https://github.com/ElberCanoles/laravel-clean-architecture/actions/workflows/ci.yml)
+[![Latest Version](https://img.shields.io/packagist/v/elber/laravel-clean-architecture.svg)](https://packagist.org/packages/elber/laravel-clean-architecture)
+[![Total Downloads](https://img.shields.io/packagist/dt/elber/laravel-clean-architecture.svg)](https://packagist.org/packages/elber/laravel-clean-architecture)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![PHP 8.2+](https://img.shields.io/badge/PHP-8.2%2B-8892BF.svg)](https://php.net)
 [![Laravel 11–13](https://img.shields.io/badge/Laravel-11--13-FF2D20.svg)](https://laravel.com)
@@ -11,868 +13,58 @@ A Laravel package that provides scaffolding for **Domain-Driven Design (DDD)**, 
 
 ## Table of Contents
 
+- [Why this package](#why-this-package)
 - [Architecture Overview](#architecture-overview)
-  - [System Context](#system-context)
-  - [Bounded Contexts](#bounded-contexts)
-  - [Layers Within a Context](#layers-within-a-context)
-- [Architecture Layers](#architecture-layers)
-  - [Domain Layer](#domain-layer)
-  - [Application Layer](#application-layer)
-  - [Infrastructure Layer](#infrastructure-layer)
-  - [Presentation Layer](#presentation-layer)
-- [The Dependency Rule](#the-dependency-rule)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Commands Reference](#commands-reference)
+  - [The `--entity` flag](#the---entity-flag)
+  - [The `--crud` flag](#the---crud-flag)
+  - [The `--collection` flag](#the---collection-flag)
+  - [The `--id-type` flag](#the---id-type-flag)
+  - [The `--routes` flag](#the---routes-flag)
 - [Configuration](#configuration)
 - [Auto-discovery and Autoloading](#auto-discovery-and-autoloading)
 - [Architecture Tests](#architecture-tests)
 - [Customizing Stubs](#customizing-stubs)
 - [Requirements](#requirements)
+- [Upgrading](#upgrading)
+- [Security](#security)
 - [License](#license)
+
+---
+
+## Why this package
+
+Module packages give you boundaries; this one also gives you **an opinion about what goes inside them** — and tests that enforce it.
+
+| | [nwidart/laravel-modules](https://github.com/nWidart/laravel-modules) · [internachi/modular](https://github.com/InterNACHI/modular) | **laravel-clean-architecture** |
+|---|---|---|
+| Module boundaries | ✅ | ✅ Bounded contexts with auto-discovery |
+| Internal structure | Unopinionated (MVC by default) | **DDD layers + CQRS**, generated wired end to end |
+| Dependency rules | — | **9 generated Pest architecture tests** per context, incl. "Application never imports `Illuminate\*`" |
+| Read/write split | — | Write repositories (Domain) + read repositories with `PaginatedResult` (Application) |
+| Domain events | — | Recorded in entities, dispatched on persist |
+| composer.json edits | Required or plugin-based autoloading | **None** — PSR-4 registered automatically (cacheable via `clean:cache`) |
+
+If you want generic modules with full freedom inside, those packages are excellent. If you want each module to *be* a clean architecture, this is the one.
 
 ---
 
 ## Architecture Overview
 
-This package implements a layered architecture based on the principles of **Clean Architecture** (Robert C. Martin) and **Domain-Driven Design** (Eric Evans). The following diagrams illustrate how the pieces fit together.
+Each bounded context is divided into four layers with strict dependency rules — the inner layers know nothing about the outer ones:
 
-### System Context
+| Layer | Contains | May depend on |
+|-------|----------|---------------|
+| **Domain** | Entities, value objects, write-repository interfaces, specifications, events, exceptions | Nothing (pure PHP) |
+| **Application** | Commands, queries, handlers, read models, read-repository contracts, sanitizers | Domain |
+| **Infrastructure** | Eloquent models, repository implementations, mappers, the context ServiceProvider | Domain + Application |
+| **Presentation** | Controllers, form requests, API resources, routes | Application |
 
-How the package fits into the Laravel ecosystem:
+The generated architecture tests enforce these rules on every CI run — including that the Application layer never imports `Illuminate\*`.
 
-```mermaid
-flowchart TD
-    Dev["👤 Developer"]
-    Pkg["Laravel Clean Architecture\nGenerators, auto-discovery,\nautoloading, arch tests"]
-    Laravel["Laravel Framework\nHTTP, routing, container, Eloquent"]
-    Pest["Pest + Arch Plugin\nArchitecture test runner"]
-    Packagist["Packagist\nPackage distribution"]
-
-    Dev -- "Runs artisan commands" --> Pkg
-    Pkg -- "Integrates via ServiceProvider" --> Laravel
-    Pkg -- "Generates arch tests for" --> Pest
-    Packagist -- "Distributes" --> Pkg
-```
-
-### Bounded Contexts
-
-How multiple bounded contexts coexist inside a Laravel application:
-
-```mermaid
-flowchart TD
-    Dev["👤 Developer"]
-    DB[("Database\nMySQL / PostgreSQL")]
-
-    subgraph App ["Laravel Application"]
-        Kernel["Laravel Kernel\nHTTP, routing, middleware"]
-        Loader["ModuleLoader\nAuto-discovers providers\nand registers PSR-4"]
-
-        subgraph Contexts ["Bounded Contexts"]
-            Billing["Billing Context\nInvoices, payments"]
-            Inventory["Inventory Context\nProducts, stock"]
-            Shipping["Shipping Context\nOrders, tracking"]
-        end
-    end
-
-    Dev -- "HTTP requests" --> Kernel
-    Kernel --> Billing
-    Kernel --> Inventory
-    Kernel --> Shipping
-    Loader -. "Registers" .-> Billing
-    Loader -. "Registers" .-> Inventory
-    Loader -. "Registers" .-> Shipping
-    Billing --> DB
-    Inventory --> DB
-```
-
-### Layers Within a Context
-
-The internal structure of a single bounded context and how layers communicate:
-
-```mermaid
-flowchart TD
-    subgraph Context ["Billing Context"]
-
-        subgraph Presentation ["Presentation Layer"]
-            Controllers["Controllers\nRequests, Resources, Routes"]
-        end
-
-        subgraph Application ["Application Layer"]
-            Commands["Commands + Handlers\nWrite operations"]
-            Queries["Queries + Handlers\nRead operations"]
-            Contracts["Contracts\nReadRepository interfaces"]
-            ReadModels["Read Models\nReadonly DTOs"]
-            Sanitizers["Sanitizers\nInput normalization"]
-        end
-
-        subgraph Domain ["Domain Layer"]
-            Entities["Entities\nwith factory methods + events"]
-            ValueObjects["Value Objects\nwith self-validation"]
-            WriteRepoInterfaces["WriteRepository Interfaces"]
-            Specifications["Specifications\nwith and()/or()/not()"]
-            Events["Domain Events"]
-            Exceptions["Domain Exceptions"]
-        end
-
-        subgraph Infrastructure ["Infrastructure Layer"]
-            Models["Eloquent Models\nHasUuids/HasUlids, fillable, casts"]
-            WriteEloquent["WriteEloquent Repositories\nwith DispatchesDomainEvents"]
-            ReadEloquent["ReadEloquent Repositories"]
-            Mappers["Mappers\nEntity ↔ Model"]
-            Provider["ServiceProvider"]
-        end
-    end
-
-    Controllers -- "Dispatches" --> Commands
-    Controllers -- "Dispatches" --> Queries
-    Controllers --> Sanitizers
-    Commands -- "Depends on" --> WriteRepoInterfaces
-    Commands --> Entities
-    Queries -- "Depends on" --> Contracts
-    Queries --> ReadModels
-    Entities --> Events
-    Specifications --> Entities
-    WriteEloquent -. "Implements" .-> WriteRepoInterfaces
-    ReadEloquent -. "Implements" .-> Contracts
-    WriteEloquent --> Mappers
-    WriteEloquent --> Models
-    ReadEloquent --> Models
-    WriteEloquent --> Events
-    Provider -. "Binds" .-> WriteEloquent
-    Provider -. "Binds" .-> ReadEloquent
-```
-
----
-
-## Architecture Layers
-
-Each bounded context is divided into four layers with strict dependency rules. The inner layers know nothing about the outer layers.
-
-### Domain Layer
-
-The **heart of the system**. Contains pure business logic with zero dependencies on frameworks, databases, or external services.
-
-```
-src/{Context}/Domain/
-├── Entities/
-├── ValueObjects/
-├── Repositories/       # WriteRepository interfaces only
-├── Specifications/
-├── Events/
-└── Exceptions/
-```
-
-#### Entities
-
-Core business objects with a **unique identity** that persists over time. Two entities are equal if they share the same id, regardless of their attributes.
-
-```php
-namespace Src\Billing\Domain\Entities;
-
-use CleanArchitecture\Support\HasDomainEvents;
-
-final class Invoice implements HasDomainEvents
-{
-    private array $domainEvents = [];
-
-    private function __construct(
-        private readonly string $id,
-    ) {
-    }
-
-    public static function create(string $id): self
-    {
-        return new self($id);
-    }
-
-    /** @internal Used only for persistence reconstitution */
-    public static function fromPersistence(string $id): self
-    {
-        return new self($id);
-    }
-
-    public function id(): string
-    {
-        return $this->id;
-    }
-
-    private function recordEvent(object $event): void
-    {
-        $this->domainEvents[] = $event;
-    }
-
-    public function releaseEvents(): array
-    {
-        $events = $this->domainEvents;
-        $this->domainEvents = [];
-        return $events;
-    }
-}
-```
-
-| Characteristic | Rule |
-|---------------|------|
-| Identity | Every entity has a unique `id` |
-| Constructor | `private` — forces creation through factory methods |
-| Factory methods | `create()` for new entities, `fromPersistence()` for reconstitution from DB |
-| Events | Implements `HasDomainEvents` — `recordEvent()` / `releaseEvents()` for domain event dispatch |
-| Keyword | `final class` — prevents inheritance to protect invariants |
-| Dependencies | Only `CleanArchitecture\Support` (allowed by architecture tests) |
-
-#### Value Objects
-
-**Immutable** objects defined by their attributes, not by an identity. Two value objects are equal if all their properties match.
-
-```php
-namespace Src\Billing\Domain\ValueObjects;
-
-readonly class Money
-{
-    public function __construct(
-        public string $value,
-    ) {
-        if (trim($value) === '') {
-            throw new \InvalidArgumentException('Money cannot be empty.');
-        }
-    }
-
-    public function equals(self $other): bool
-    {
-        return $this->value === $other->value;
-    }
-
-    public function __toString(): string
-    {
-        return $this->value;
-    }
-}
-```
-
-| Characteristic | Rule |
-|---------------|------|
-| Immutability | `readonly class` — cannot be modified after creation |
-| Self-validation | Constructor rejects invalid state immediately |
-| Equality | Compared by value via `equals()`, not by reference |
-| Dependencies | None outside Domain layer |
-
-#### Repository Interfaces (CQRS Split)
-
-Repositories follow the **CQRS pattern**: write operations are separated from read operations. The **WriteRepository** lives in Domain, the **ReadRepository** lives in Application/Contracts.
-
-```php
-// Domain/Repositories — write operations only
-namespace Src\Billing\Domain\Repositories;
-
-use Src\Billing\Domain\Entities\Invoice;
-
-interface InvoiceWriteRepository
-{
-    public function ofId(string $id): ?Invoice;
-    public function save(Invoice $entity): void;
-    public function delete(string $id): void;
-}
-```
-
-```php
-// Application/Contracts — read operations, returns ReadModels
-namespace Src\Billing\Application\Contracts;
-
-use CleanArchitecture\Support\PaginatedResult;
-use Src\Billing\Application\ReadModels\InvoiceReadModel;
-
-interface InvoiceReadRepository
-{
-    public function findById(string $id): ?InvoiceReadModel;
-
-    /** @return PaginatedResult<InvoiceReadModel> */
-    public function findAll(int $page = 1, int $perPage = 15): PaginatedResult;
-}
-```
-
-| Characteristic | Rule |
-|---------------|------|
-| Type | `interface` — never a concrete class in Domain |
-| Write | `save`, `delete` — works with entities |
-| Read | `findById` returns nullable ReadModel, `findAll` returns `PaginatedResult` with items + metadata |
-| Purpose | Decouples domain from persistence + enforces CQRS |
-| Implementation | Lives in Infrastructure layer (Eloquent, API, etc.) |
-
-#### Specifications
-
-**Business rules as reusable, composable objects**. Each specification answers a single yes/no question about a domain object.
-
-```php
-namespace Src\Billing\Domain\Specifications;
-
-use CleanArchitecture\Support\CompositeSpecification;
-
-class InvoiceOverdueSpecification extends CompositeSpecification
-{
-    public function isSatisfiedBy(mixed $candidate): bool
-    {
-        // Business rule: is this invoice past its due date?
-    }
-}
-
-// and()/or()/not() come from CompositeSpecification and return real
-// composite objects, so specifications of different classes compose freely:
-// $overdue->and($highValue)->or($flagged->not())
-```
-
-| Characteristic | Rule |
-|---------------|------|
-| Single rule | One specification = one business predicate |
-| Composable | Specifications can be combined (and, or, not) |
-| Reusable | Used by entities, handlers, or query filters |
-| Dependencies | May depend on other Domain objects only |
-
----
-
-### Application Layer
-
-**Orchestrates use cases** by coordinating domain objects. Contains no business logic itself — it delegates to the Domain layer.
-
-```
-src/{Context}/Application/
-├── Commands/
-│   └── {Name}/
-│       ├── {Name}Command.php
-│       └── {Name}Handler.php
-├── Queries/
-│   └── {Name}/
-│       ├── {Name}Query.php
-│       └── {Name}Handler.php
-├── Contracts/          # ReadRepository interfaces
-├── ReadModels/         # Read models (readonly DTOs)
-└── Sanitizers/         # Input sanitization
-```
-
-#### Commands (Write Operations)
-
-A **Command** represents an intention to change state. It is a simple DTO (Data Transfer Object) carrying the data needed for the operation. The **Handler** executes the use case. The `--crud` flag generates CRUD-specific constructors and handler bodies.
-
-```php
-// Create command — receives sanitized data array
-readonly class CreateInvoiceCommand
-{
-    public function __construct(
-        public string $id,
-        public array $data,
-    ) {
-    }
-}
-
-// Create handler — creates entity via factory method, saves via repository.
-// The id is generated at the presentation edge and travels in the command,
-// so the Application layer never imports the framework.
-class CreateInvoiceHandler
-{
-    public function __construct(
-        private readonly InvoiceWriteRepository $repository,
-    ) {
-    }
-
-    public function handle(CreateInvoiceCommand $command): void
-    {
-        $entity = Invoice::create($command->id);
-
-        // TODO: Apply $command->data to the entity before saving
-        $this->repository->save($entity);
-    }
-}
-```
-
-> The generated controller produces the id with `Str::uuid7()` (or `Str::ulid()` with `--id-type=ulid`) and returns it in the `201` response with a `Location` header. See [Identifier Strategy](#the---id-type-flag).
-
-```php
-// Delete command — receives entity id
-readonly class DeleteInvoiceCommand
-{
-    public function __construct(
-        public string $id,
-    ) {
-    }
-}
-
-// Delete handler — delegates to repository
-class DeleteInvoiceHandler
-{
-    public function __construct(
-        private readonly InvoiceWriteRepository $repository,
-    ) {
-    }
-
-    public function handle(DeleteInvoiceCommand $command): void
-    {
-        $this->repository->delete($command->id);
-    }
-}
-```
-
-| Component | Responsibility |
-|-----------|---------------|
-| `Command` | Immutable DTO with input data (what to do) |
-| `Handler` | Executes the use case (how to do it) |
-| Return | `void` — commands don't return data |
-| `--crud` | Generates CRUD-specific constructor + handler body |
-
-#### Queries (Read Operations)
-
-A **Query** represents a request for data. The **Handler** fetches and returns a **ReadModel** — a flat, optimized representation of the data.
-
-```php
-// Query — immutable DTO with query parameters
-namespace Src\Billing\Application\Queries\GetInvoice;
-
-readonly class GetInvoiceQuery
-{
-    public function __construct(
-        public string $id,
-    ) {
-    }
-}
-
-// Handler — fetches data via ReadRepository, injected via --entity flag
-namespace Src\Billing\Application\Queries\GetInvoice;
-
-use Src\Billing\Application\Contracts\InvoiceReadRepository;
-use Src\Billing\Application\ReadModels\InvoiceReadModel;
-
-class GetInvoiceHandler
-{
-    public function __construct(
-        private readonly InvoiceReadRepository $repository,
-    ) {
-    }
-
-    public function handle(GetInvoiceQuery $query): ?InvoiceReadModel
-    {
-        return $this->repository->findById($query->id);
-    }
-}
-```
-
-| Component | Responsibility |
-|-----------|---------------|
-| `Query` | DTO with query parameters (filters, pagination) |
-| `Handler` | Fetches data, builds and returns a ReadModel from `Application/ReadModels/` |
-| `ReadModel` | Readonly DTO optimized for the consumer (one per entity) |
-
-For collection/list queries, the `--collection` flag generates a paginated variant:
-
-```php
-// List query — pagination instead of $id
-namespace Src\Billing\Application\Queries\ListInvoices;
-
-readonly class ListInvoicesQuery
-{
-    public function __construct(
-        public int $page = 1,
-        public int $perPage = 15,
-    ) {
-    }
-}
-
-// Handler — returns paginated result via repository
-class ListInvoicesHandler
-{
-    public function __construct(
-        private readonly InvoiceReadRepository $repository,
-    ) {
-    }
-
-    public function handle(ListInvoicesQuery $query): PaginatedResult
-    {
-        return $this->repository->findAll($query->page, $query->perPage);
-    }
-}
-```
-
-#### Read Models
-
-Read models in `Application/ReadModels/` are **reusable projections** shared across queries.
-
-```php
-namespace Src\Billing\Application\ReadModels;
-
-readonly class InvoiceSummaryReadModel
-{
-    public function __construct(
-        public string $id,
-    ) {
-    }
-}
-```
-
----
-
-### Infrastructure Layer
-
-**Implements interfaces** defined in the Domain layer. This is where frameworks, databases, APIs, and other external concerns live.
-
-```
-src/{Context}/Infrastructure/
-├── {Context}ServiceProvider.php
-├── Models/
-│   └── {Name}Model.php
-├── {Name}WriteEloquentRepository.php
-├── {Name}ReadEloquentRepository.php
-└── {Name}Mapper.php
-```
-
-#### Eloquent Repositories (CQRS)
-
-Separate implementations for write and read operations:
-
-```php
-// Write — works with entities, dispatches domain events after persistence
-namespace Src\Billing\Infrastructure;
-
-use CleanArchitecture\Support\DispatchesDomainEvents;
-use Src\Billing\Domain\Entities\Invoice;
-use Src\Billing\Domain\Repositories\InvoiceWriteRepository;
-use Src\Billing\Infrastructure\Models\InvoiceModel;
-
-class InvoiceWriteEloquentRepository implements InvoiceWriteRepository
-{
-    use DispatchesDomainEvents;
-
-    public function ofId(string $id): ?Invoice
-    {
-        $model = InvoiceModel::query()->find($id);
-
-        return $model ? InvoiceMapper::toEntity($model) : null;
-    }
-
-    public function save(Invoice $entity): void
-    {
-        $data = InvoiceMapper::toArray($entity);
-        InvoiceModel::query()->updateOrCreate(['id' => $entity->id()], $data);
-        $this->dispatchDomainEvents($entity);
-    }
-
-    public function delete(string $id): void
-    {
-        InvoiceModel::destroy($id);
-    }
-}
-```
-
-```php
-// Read — returns read models with pagination metadata
-namespace Src\Billing\Infrastructure;
-
-use CleanArchitecture\Support\PaginatedResult;
-use Src\Billing\Application\Contracts\InvoiceReadRepository;
-use Src\Billing\Application\ReadModels\InvoiceReadModel;
-use Src\Billing\Infrastructure\Models\InvoiceModel;
-
-class InvoiceReadEloquentRepository implements InvoiceReadRepository
-{
-    public function findById(string $id): ?InvoiceReadModel
-    {
-        $model = InvoiceModel::query()->find($id);
-
-        return $model ? new InvoiceReadModel($model->id) : null;
-    }
-
-    /** @return PaginatedResult<InvoiceReadModel> */
-    public function findAll(int $page = 1, int $perPage = 15): PaginatedResult
-    {
-        $total = InvoiceModel::query()->count();
-
-        $items = InvoiceModel::query()
-            ->forPage($page, $perPage)
-            ->get()
-            ->map(fn (InvoiceModel $model) => new InvoiceReadModel($model->id))
-            ->all();
-
-        return new PaginatedResult(items: $items, total: $total, page: $page, perPage: $perPage);
-    }
-}
-```
-
-#### Eloquent Model
-
-Each scaffolded entity gets a dedicated Eloquent model with UUID (default) or ULID keys — see [Identifier Strategy](#the---id-type-flag). Table names are auto-computed from the entity name (`OrderItem` → `order_items`).
-
-```php
-namespace Src\Billing\Infrastructure\Models;
-
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use Illuminate\Database\Eloquent\Model;
-
-class InvoiceModel extends Model
-{
-    use HasUuids;
-
-    protected $table = 'invoices';
-
-    protected $fillable = [
-        'id',
-        // TODO: Add fillable columns
-    ];
-}
-```
-
-With `--id-type=ulid`, the same model is generated with `HasUlids` and the migration uses `$table->ulid('id')->primary()`.
-
-#### Mapper
-
-Bridges the gap between entities and Eloquent models:
-
-```php
-namespace Src\Billing\Infrastructure;
-
-use Src\Billing\Infrastructure\Models\InvoiceModel;
-
-final class InvoiceMapper
-{
-    public static function toArray(Invoice $entity): array
-    {
-        return ['id' => $entity->id(), /* ... */];
-    }
-
-    public static function toEntity(InvoiceModel $model): Invoice
-    {
-        return Invoice::fromPersistence(id: $model->id, /* ... */);
-    }
-}
-```
-
-#### Context ServiceProvider
-
-Each bounded context has its own ServiceProvider where you **bind repository interfaces to implementations**. Routes are **automatically loaded** from `Presentation/Routes/` — both `api.php` and `web.php` are loaded if they exist. When you run `clean:scaffold`, bindings are **wired automatically** between the `// {bindings}` markers.
-
-```php
-namespace Src\Billing\Infrastructure;
-
-class BillingServiceProvider extends ServiceProvider
-{
-    public function register(): void
-    {
-        // This provider is auto-discovered by the CleanArchitecture package.
-        // No manual registration in bootstrap/providers.php is needed.
-
-        // {bindings}
-        $this->app->bind(InvoiceWriteRepository::class, InvoiceWriteEloquentRepository::class);
-        $this->app->bind(InvoiceReadRepository::class, InvoiceReadEloquentRepository::class);
-        // {/bindings}
-    }
-
-    public function boot(): void
-    {
-        $this->loadRoutes();  // loads api.php + web.php if they exist
-    }
-}
-```
-
-#### Domain Event Dispatching
-
-Write repositories include the `DispatchesDomainEvents` trait, which dispatches domain events via Laravel's `event()` helper after entity persistence. Events recorded via `$entity->recordEvent()` are released and dispatched automatically when `save()` is called. The `releaseEvents()` method clears the entity's event list, preventing double dispatch.
-
-```php
-// In your entity (implements HasDomainEvents):
-$invoice->recordEvent(new InvoicePaidEvent($invoice->id()));
-
-// In your write repository (generated automatically):
-$this->dispatchDomainEvents($entity); // called after save
-
-// Listen with standard Laravel listeners:
-Event::listen(InvoicePaidEvent::class, SendInvoiceReceipt::class);
-```
-
-The trait checks for the `HasDomainEvents` interface, so it works safely with any entity — those that don't implement the interface are silently skipped.
-
----
-
-### Presentation Layer
-
-**Entry point for external input**. Contains controllers, form requests, API resources, and route definitions. Delegates all logic to the Application layer.
-
-```
-src/{Context}/Presentation/
-├── Controllers/
-├── Requests/
-├── Resources/
-└── Routes/
-    ├── api.php          # generated by default
-    └── web.php          # generated with --routes=web or --routes=both
-```
-
-#### Controllers
-
-Handle HTTP requests and delegate to Application layer commands/queries. When generated via `clean:scaffold` or `clean:controller --entity`, the controller comes **pre-wired** with all 5 CQRS handlers and working implementations for every RESTful method:
-
-```php
-namespace Src\Billing\Presentation\Controllers;
-
-use Src\Billing\Application\Commands\CreateInvoice\{CreateInvoiceCommand, CreateInvoiceHandler};
-use Src\Billing\Application\Commands\UpdateInvoice\{UpdateInvoiceCommand, UpdateInvoiceHandler};
-use Src\Billing\Application\Commands\DeleteInvoice\{DeleteInvoiceCommand, DeleteInvoiceHandler};
-use Src\Billing\Application\Queries\GetInvoice\{GetInvoiceHandler, GetInvoiceQuery};
-use Src\Billing\Application\Queries\ListInvoices\{ListInvoicesHandler, ListInvoicesQuery};
-use Src\Billing\Application\Sanitizers\InvoiceSanitizer;
-
-class InvoiceController extends Controller
-{
-    public function __construct(
-        private readonly CreateInvoiceHandler $createHandler,
-        private readonly UpdateInvoiceHandler $updateHandler,
-        private readonly DeleteInvoiceHandler $deleteHandler,
-        private readonly GetInvoiceHandler $getHandler,
-        private readonly ListInvoicesHandler $listHandler,
-    ) {
-    }
-
-    public function index(Request $request): JsonResponse
-    {
-        $result = $this->listHandler->handle(new ListInvoicesQuery(
-            page: (int) $request->query('page', 1),
-            perPage: (int) $request->query('per_page', 15),
-        ));
-
-        return InvoiceResource::collection($result->items)
-            ->additional(['meta' => $result->meta()])
-            ->response();
-    }
-
-    public function show(string $id): JsonResponse
-    {
-        $readModel = $this->getHandler->handle(new GetInvoiceQuery($id));
-        abort_if(! $readModel, 404);
-
-        return (new InvoiceResource($readModel))->response();
-    }
-
-    public function store(InvoiceRequest $request): JsonResponse
-    {
-        $id = (string) Str::uuid7();
-        $sanitized = InvoiceSanitizer::sanitize($request->validated());
-        $this->createHandler->handle(new CreateInvoiceCommand($id, $sanitized));
-
-        return response()->json(['id' => $id], 201)
-            ->header('Location', $request->url() . '/' . $id);
-    }
-
-    public function update(InvoiceRequest $request, string $id): Response
-    {
-        $sanitized = InvoiceSanitizer::sanitize($request->validated());
-        $this->updateHandler->handle(new UpdateInvoiceCommand($id, $sanitized));
-
-        return response()->noContent();
-    }
-
-    public function destroy(string $id): Response
-    {
-        $this->deleteHandler->handle(new DeleteInvoiceCommand($id));
-
-        return response()->noContent();
-    }
-}
-```
-
-Without `--entity`, the controller generates with TODO placeholders for all methods.
-
-#### Form Requests
-
-Validate incoming HTTP data before it reaches the Application layer.
-
-```php
-namespace Src\Billing\Presentation\Requests;
-
-use Illuminate\Foundation\Http\FormRequest;
-
-class InvoiceRequest extends FormRequest
-{
-    public function authorize(): bool
-    {
-        // TODO: Implement authorization
-        return true;
-    }
-
-    public function rules(): array
-    {
-        return [
-            // 'name' => ['required', 'string', 'max:255'],
-        ];
-    }
-}
-```
-
-#### API Resources
-
-Transform read models into JSON responses:
-
-```php
-namespace Src\Billing\Presentation\Resources;
-
-use Illuminate\Http\Resources\Json\JsonResource;
-
-class InvoiceResource extends JsonResource
-{
-    public function toArray($request): array
-    {
-        return [
-            'id' => $this->id,
-            // 'name' => $this->name,
-            // 'created_at' => $this->created_at?->toISOString(),
-        ];
-    }
-}
-```
-
-#### Routes
-
-Each context has its own route files at `Presentation/Routes/`, automatically loaded by the context's ServiceProvider. Both `api.php` (with `api` middleware) and `web.php` (with `web` middleware) are loaded if they exist. The route prefix is derived from the context name in kebab-case.
-
-When you run `clean:scaffold`, a resource route is **wired automatically** between the `// {routes}` markers — `Route::apiResource()` for `api.php` and `Route::resource()` for `web.php`:
-
-```php
-// src/Billing/Presentation/Routes/api.php
-use Illuminate\Support\Facades\Route;
-use Src\Billing\Presentation\Controllers\InvoiceController;
-
-Route::prefix('billing')->group(function () {
-    // {routes}
-    Route::apiResource('invoices', InvoiceController::class);
-    // {/routes}
-});
-```
-
-For a multi-word context like `OrderManagement`, the prefix becomes `order-management`. Use `--routes=web` or `--routes=both` with `clean:context` to generate web route files.
-
----
-
-## The Dependency Rule
-
-The most important rule in Clean Architecture: **dependencies only point inward**.
-
-```mermaid
-graph LR
-    A["Presentation"] --> B["Application"]
-    B --> C["Domain"]
-    D["Infrastructure"] --> C
-
-    style C fill:#2d6a4f,stroke:#1b4332,color:#fff
-    style B fill:#40916c,stroke:#2d6a4f,color:#fff
-    style A fill:#74c69d,stroke:#40916c,color:#000
-    style D fill:#74c69d,stroke:#40916c,color:#000
-```
-
-| Rule | Enforced by |
-|------|-------------|
-| Domain does not depend on Application | Architecture test |
-| Domain does not depend on Infrastructure | Architecture test |
-| Application does not depend on Presentation | Architecture test |
-| Application does not depend on Infrastructure | Architecture test |
-| Entities are `final` | Architecture test |
-| Repository interfaces are `interface` | Architecture test |
-| Value Objects are `readonly` | Architecture test |
-| Infrastructure implements Domain interfaces | Convention (stubs) |
-
-The generated architecture tests **automatically enforce these rules** in your CI pipeline.
+**→ Read the full [Architecture Guide](docs/architecture.md)** for the C4 diagrams, layer-by-layer code walkthroughs, and the Dependency Rule in depth.
 
 ---
 
@@ -884,128 +76,106 @@ composer require elber/laravel-clean-architecture
 
 The ServiceProvider is auto-discovered by Laravel. No manual registration needed.
 
-### Publish config (optional)
+The generated architecture tests run on [Pest](https://pestphp.com), so your application needs it as a dev dependency:
 
 ```bash
-php artisan vendor:publish --tag=clean-architecture-config
+composer require --dev pestphp/pest pestphp/pest-plugin-arch
 ```
 
-### Publish stubs for customization (optional)
+Optional publishing:
 
 ```bash
-php artisan vendor:publish --tag=clean-architecture-stubs
+php artisan vendor:publish --tag=clean-architecture-config   # config file
+php artisan vendor:publish --tag=clean-architecture-stubs    # customizable stubs
 ```
 
 ---
 
 ## Quick Start
 
-### Option A: Scaffold everything at once
+### 1. Scaffold a context and an entity
 
 ```bash
-# 1. Create the Billing context (folders + ServiceProvider + routes + arch tests)
 php artisan clean:context Billing
-
-# 2. Scaffold a full entity with all layers in one command
-#    (add --id-type=ulid for ULID primary keys instead of UUIDs)
-php artisan clean:scaffold Billing Invoice
+php artisan clean:scaffold Billing Invoice   # add --id-type=ulid for ULID keys
 ```
 
-This generates **24 fully wired files**: entity (with `HasDomainEvents` interface, private constructor, `create()` and `fromPersistence()` factory methods), Eloquent model (`HasUuids`, or `HasUlids` with `--id-type=ulid`), CQRS repositories (write with `ofId()` + read with real Eloquent code and `PaginatedResult`), mapper (uses `fromPersistence()` for reconstitution), read model, a `{Entity}NotFound` domain exception (renders as HTTP 404), commands (`CreateInvoice` with `string $id` + `array $data`, `UpdateInvoice` with a real load-guard-save flow, `DeleteInvoice` guarding against missing aggregates) with CRUD-specific handlers, queries (`GetInvoice` with nullable return, `ListInvoices` returning `PaginatedResult`) with handlers wired to `InvoiceReadRepository`, controller with all 5 handlers injected and working `index()` (with request-driven pagination + metadata)/`show()`/`store()`/`update()`/`destroy()` methods, request, resource, sanitizer (with `...$data` pass-through), and a database migration. Write repositories dispatch domain events automatically via the `HasDomainEvents` interface. If a bounded context exists, the scaffold also **wires the ServiceProvider bindings** and **registers a resource route** automatically (`apiResource` for API, `resource` for web).
-
-### Option B: Generate piece by piece
-
-```bash
-# 1. Create the Billing context
-php artisan clean:context Billing
-
-# 2. Generate domain objects
-php artisan clean:entity Billing Invoice
-php artisan clean:value-object Billing Money
-php artisan clean:repository Billing Invoice      # generates Write + Read repos, Eloquent impls, and mapper
-php artisan clean:read-model Billing Invoice       # standalone read model
-php artisan clean:specification Billing InvoiceOverdue
-php artisan clean:domain-event Billing InvoicePaid
-php artisan clean:exception Billing InvoiceNotFound
-
-# 3. Generate CQRS use cases (--entity wires repository injection, --crud wires handler body)
-php artisan clean:command Billing CreateInvoice --entity=Invoice --crud=create
-php artisan clean:command Billing PayInvoice --entity=Invoice
-php artisan clean:query Billing GetInvoice --entity=Invoice
-
-# 4. Generate presentation layer (--entity wires CQRS handlers in controller)
-php artisan clean:controller Billing Invoice --entity=Invoice
-php artisan clean:request Billing Invoice
-php artisan clean:resource Billing Invoice
-php artisan clean:sanitizer Billing Invoice
-
-# 5. Generate a unit test
-php artisan clean:test Billing Invoice
-```
-
-Result:
+`clean:scaffold` generates **24 fully wired files** across all four layers, plus the migration, and wires the ServiceProvider bindings and the resource route automatically:
 
 ```
 src/Billing/
 ├── Domain/
-│   ├── Entities/
-│   │   └── Invoice.php                        # with factory method + domain events
-│   ├── ValueObjects/
-│   │   └── Money.php                          # with self-validation
-│   ├── Repositories/
-│   │   └── InvoiceWriteRepository.php         # interface (write only)
-│   ├── Specifications/
-│   │   └── InvoiceOverdueSpecification.php    # with and()/or()/not()
-│   ├── Events/
-│   │   └── InvoicePaidEvent.php               # readonly with timestamp
-│   └── Exceptions/
-│       └── InvoiceNotFoundException.php
+│   ├── Entities/Invoice.php                     # factory methods + domain events
+│   ├── Exceptions/InvoiceNotFound.php           # renders as HTTP 404
+│   └── Repositories/InvoiceWriteRepository.php  # ofId() / save() / delete()
 ├── Application/
 │   ├── Commands/
-│   │   ├── CreateInvoice/
-│   │   │   ├── CreateInvoiceCommand.php       # readonly DTO
-│   │   │   └── CreateInvoiceHandler.php       # injects WriteRepository
-│   │   ├── UpdateInvoice/
-│   │   │   ├── UpdateInvoiceCommand.php
-│   │   │   └── UpdateInvoiceHandler.php
-│   │   └── DeleteInvoice/
-│   │       ├── DeleteInvoiceCommand.php
-│   │       └── DeleteInvoiceHandler.php
+│   │   ├── CreateInvoice/  (Command + Handler)  # id travels in the command
+│   │   ├── UpdateInvoice/  (Command + Handler)  # load → guard → save
+│   │   └── DeleteInvoice/  (Command + Handler)  # guards missing aggregates
 │   ├── Queries/
-│   │   ├── GetInvoice/
-│   │   │   ├── GetInvoiceQuery.php            # readonly DTO with $id
-│   │   │   └── GetInvoiceHandler.php          # returns ReadModel
-│   │   └── ListInvoices/
-│   │       ├── ListInvoicesQuery.php          # with $page, $perPage
-│   │       └── ListInvoicesHandler.php        # returns PaginatedResult
-│   ├── Contracts/
-│   │   └── InvoiceReadRepository.php          # interface (read only)
-│   ├── ReadModels/
-│   │   └── InvoiceReadModel.php               # shared across queries
-│   └── Sanitizers/
-│       └── InvoiceSanitizer.php
+│   │   ├── GetInvoice/     (Query + Handler)    # nullable read model
+│   │   └── ListInvoices/   (Query + Handler)    # PaginatedResult
+│   ├── Contracts/InvoiceReadRepository.php
+│   ├── ReadModels/InvoiceReadModel.php
+│   └── Sanitizers/InvoiceSanitizer.php
 ├── Infrastructure/
-│   ├── BillingServiceProvider.php             # with auto-wired bindings
-│   ├── Models/
-│   │   └── InvoiceModel.php                   # HasUuids/HasUlids Eloquent model
-│   ├── InvoiceWriteEloquentRepository.php     # dispatches domain events
-│   ├── InvoiceReadEloquentRepository.php
-│   └── InvoiceMapper.php                      # Entity ↔ Model bridge
+│   ├── BillingServiceProvider.php               # bindings auto-wired
+│   ├── Models/InvoiceModel.php                  # HasUuids / HasUlids
+│   ├── InvoiceWriteEloquentRepository.php       # dispatches domain events
+│   ├── InvoiceReadEloquentRepository.php        # deterministic pagination
+│   └── InvoiceMapper.php                        # Entity ↔ Model bridge
 └── Presentation/
-    ├── Controllers/
-    │   └── InvoiceController.php              # all 5 CQRS handlers wired
-    ├── Requests/
-    │   └── InvoiceRequest.php
-    ├── Resources/
-    │   └── InvoiceResource.php                # with field mapping
-    └── Routes/
-        └── api.php
+    ├── Controllers/InvoiceController.php        # all 5 CQRS handlers wired
+    ├── Requests/InvoiceRequest.php
+    ├── Resources/InvoiceResource.php
+    └── Routes/api.php                           # apiResource auto-wired
 
-tests/Feature/Architecture/
-└── BillingArchTest.php                        # 7 dependency rules
+database/migrations/2026_..._create_invoices_table.php
+tests/Feature/Architecture/BillingArchTest.php   # 9 dependency rules (from clean:context)
+```
 
-tests/Unit/Domain/Billing/
-└── InvoiceTest.php                            # entity unit test
+Prefer composing piece by piece? Every artifact has its own command (`clean:entity`, `clean:repository`, `clean:command --crud=…`, `clean:controller --entity=…`, …) — see the [Commands Reference](#commands-reference). Names are normalized for you: `clean:entity billing invoice` and `clean:entity Billing Invoice` are equivalent.
+
+### 2. Fill in what the generator cannot know
+
+The scaffold is wired end to end, but your domain fields are yours. Until you complete these five TODOs, `POST` persists only the generated id:
+
+| File | What to complete |
+|------|------------------|
+| `Presentation/Requests/InvoiceRequest.php` | Validation `rules()` — `validated()` returns `[]` while empty |
+| `Infrastructure/Models/InvoiceModel.php` | `$fillable` and casts for your columns |
+| `Infrastructure/InvoiceMapper.php` | `toArray()` / `toEntity()` field mapping |
+| `Domain/Entities/Invoice.php` | Your entity's properties and behavior |
+| `Application/Commands/*/…Handler.php` | Apply `$command->data` where the `TODO` marks it |
+
+The generated migration also starts with just `id` + `timestamps` — add your columns.
+
+### 3. Serve it
+
+```bash
+php artisan migrate
+php artisan route:list --path=billing
+```
+
+```bash
+curl -X POST http://localhost/api/billing/invoices \
+     -H "Content-Type: application/json" -H "Accept: application/json" -d '{}'
+# → 201 {"id":"0198c5f2-…"}  + Location: /api/billing/invoices/0198c5f2-…
+
+curl http://localhost/api/billing/invoices -H "Accept: application/json"
+# → 200 {"data":[{"id":"0198c5f2-…"}],"meta":{"total":1,"page":1,"per_page":15}}
+
+curl -X DELETE http://localhost/api/billing/invoices/does-not-exist -H "Accept: application/json"
+# → 404 {"message":"Invoice with id [does-not-exist] was not found."}
+```
+
+> Route prefixes come from your app's routing setup: context routes register under the kebab-case context prefix (`/billing/...`), inside whatever prefix your `bootstrap/app.php` gives the `api` middleware group.
+
+Then run the generated architecture tests — they now guard your dependency rules on every CI run:
+
+```bash
+vendor/bin/pest tests/Feature/Architecture/
 ```
 
 ---
@@ -1267,6 +437,18 @@ Available stubs:
 
 - [Pest](https://pestphp.com/) ^3.0
 - [Pest Architecture Plugin](https://pestphp.com/docs/arch-testing) ^3.0
+
+---
+
+## Upgrading
+
+Breaking changes between versions are documented in [UPGRADING.md](UPGRADING.md). The full history lives in the [CHANGELOG](CHANGELOG.md).
+
+---
+
+## Security
+
+Please report vulnerabilities privately via [GitHub Security Advisories](https://github.com/ElberCanoles/laravel-clean-architecture/security/advisories/new) — see [SECURITY.md](SECURITY.md). Do not open public issues for security problems.
 
 ---
 

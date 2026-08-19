@@ -15,17 +15,14 @@ class MakeModel extends BaseGenerator
 
     public function handle(): int
     {
-        $context = $this->argument('context');
-        $name = $this->argument('name');
-
-        $this->validateName($context, 'context');
-        $this->validateName($name, 'name');
+        $context = $this->cleanName($this->stringArgument('context'), 'context');
+        $name = $this->cleanName($this->stringArgument('name'), 'name');
 
         $namespace = $this->buildNamespace($context);
         $table = Str::snake(Str::pluralStudly($name));
         $idTrait = $this->idTrait($this->resolveIdType());
 
-        $path = base_path(config('clean-architecture.contexts_path') . "/$context/Infrastructure/Models");
+        $path = $this->contextPath($context, 'Infrastructure/Models');
         File::makeDirectory($path, 0755, true, true);
 
         $stub = $this->getStub('model');

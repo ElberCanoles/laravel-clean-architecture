@@ -14,9 +14,7 @@ class MakeArchTest extends BaseGenerator
 
     public function handle(): int
     {
-        $context = $this->argument('context');
-
-        $this->validateName($context, 'context');
+        $context = $this->cleanName($this->stringArgument('context'), 'context');
 
         $namespace = $this->buildNamespace($context);
 

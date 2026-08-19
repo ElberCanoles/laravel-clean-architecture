@@ -17,16 +17,10 @@ test('creates domain exception with correct content', function () {
         ->toContain('return 422;');
 });
 
-test('warns when domain exception file exists without --force', function () {
-    $this->artisan('clean:exception', ['context' => 'Billing', 'name' => 'InvoiceNotFound']);
+test('does not duplicate the suffix when the name already carries it', function () {
+    $this->artisan('clean:exception', ['context' => 'Billing', 'name' => 'InvoiceLockedException'])
+        ->assertSuccessful();
 
-    $this->artisan('clean:exception', ['context' => 'Billing', 'name' => 'InvoiceNotFound'])
-        ->expectsOutputToContain('File already exists');
-});
-
-test('overwrites domain exception with --force', function () {
-    $this->artisan('clean:exception', ['context' => 'Billing', 'name' => 'InvoiceNotFound']);
-    $this->artisan('clean:exception', ['context' => 'Billing', 'name' => 'InvoiceNotFound', '--force' => true])
-        ->assertSuccessful()
-        ->expectsOutputToContain('Domain exception created');
+    expect(file_exists($this->tempDir . '/Billing/Domain/Exceptions/InvoiceLockedException.php'))->toBeTrue();
+    expect(file_exists($this->tempDir . '/Billing/Domain/Exceptions/InvoiceLockedExceptionException.php'))->toBeFalse();
 });

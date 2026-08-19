@@ -14,20 +14,17 @@ class MakeQuery extends BaseGenerator
 
     public function handle(): int
     {
-        $context = $this->argument('context');
-        $name = $this->argument('name');
-        $entity = $this->option('entity');
-
-        $this->validateName($context, 'context');
-        $this->validateName($name, 'name');
+        $context = $this->cleanName($this->stringArgument('context'), 'context');
+        $name = $this->cleanName($this->stringArgument('name'), 'name');
+        $entity = $this->stringOption('entity');
 
         if ($entity) {
-            $this->validateName($entity, 'entity');
+            $entity = $this->cleanName($entity, 'entity');
         }
 
         $namespace = $this->buildNamespace($context);
 
-        $base = base_path(config('clean-architecture.contexts_path') . "/$context/Application/Queries/$name");
+        $base = $this->contextPath($context, "Application/Queries/$name");
         File::makeDirectory($base, 0755, true, true);
 
         $isCollection = $this->option('collection');

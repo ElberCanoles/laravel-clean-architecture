@@ -14,16 +14,13 @@ class MakeCommand extends BaseGenerator
 
     public function handle(): int
     {
-        $context = $this->argument('context');
-        $name = $this->argument('name');
-        $entity = $this->option('entity');
-        $crud = $this->option('crud');
-
-        $this->validateName($context, 'context');
-        $this->validateName($name, 'name');
+        $context = $this->cleanName($this->stringArgument('context'), 'context');
+        $name = $this->cleanName($this->stringArgument('name'), 'name');
+        $entity = $this->stringOption('entity');
+        $crud = $this->stringOption('crud');
 
         if ($entity) {
-            $this->validateName($entity, 'entity');
+            $entity = $this->cleanName($entity, 'entity');
         }
 
         if ($crud && ! in_array($crud, ['create', 'update', 'delete'])) {
@@ -38,7 +35,7 @@ class MakeCommand extends BaseGenerator
 
         $namespace = $this->buildNamespace($context);
 
-        $base = base_path(config('clean-architecture.contexts_path') . "/$context/Application/Commands/$name");
+        $base = $this->contextPath($context, "Application/Commands/$name");
         File::makeDirectory($base, 0755, true, true);
 
         $commandConstructor = $this->buildCommandConstructor($crud);
@@ -130,7 +127,7 @@ class MakeCommand extends BaseGenerator
      */
     protected function ensureNotFoundException(string $context, string $namespace, string $entity): void
     {
-        $path = base_path(config('clean-architecture.contexts_path') . "/$context/Domain/Exceptions");
+        $path = $this->contextPath($context, 'Domain/Exceptions');
         $file = "$path/{$entity}NotFound.php";
 
         if (File::exists($file)) {

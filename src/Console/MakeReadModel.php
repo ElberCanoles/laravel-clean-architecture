@@ -4,41 +4,29 @@ declare(strict_types=1);
 
 namespace CleanArchitecture\Console;
 
-use Illuminate\Support\Facades\File;
-
-class MakeReadModel extends BaseGenerator
+class MakeReadModel extends SingleFileGenerator
 {
     protected $signature = 'clean:read-model {context} {name} {--force : Overwrite existing files}';
 
     protected $description = 'Create an application read model';
 
-    public function handle(): int
+    protected function subPath(): string
     {
-        $context = $this->argument('context');
-        $name = $this->argument('name');
+        return 'Application/ReadModels';
+    }
 
-        $this->validateName($context, 'context');
-        $this->validateName($name, 'name');
+    protected function stubName(): string
+    {
+        return 'read-model';
+    }
 
-        $namespace = $this->buildNamespace($context);
+    protected function suffix(): string
+    {
+        return 'ReadModel';
+    }
 
-        $path = base_path(config('clean-architecture.contexts_path') . "/$context/Application/ReadModels");
-        File::makeDirectory($path, 0755, true, true);
-
-        $content = str_replace(
-            ['{{Namespace}}', '{{Class}}'],
-            [$namespace, $name],
-            $this->getStub('read-model')
-        );
-
-        $file = "$path/{$name}ReadModel.php";
-
-        if (! $this->writeFile($file, $content)) {
-            return self::FAILURE;
-        }
-
-        $this->info("Read model created: $file");
-
-        return self::SUCCESS;
+    protected function label(): string
+    {
+        return 'Read model';
     }
 }

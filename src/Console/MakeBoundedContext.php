@@ -14,11 +14,9 @@ class MakeBoundedContext extends BaseGenerator
 
     public function handle(): int
     {
-        $name = $this->argument('name');
+        $name = $this->cleanName($this->stringArgument('name'), 'context');
 
-        $this->validateName($name, 'context');
-
-        $routes = $this->option('routes');
+        $routes = $this->stringOption('routes') ?? 'api';
 
         if (! in_array($routes, ['api', 'web', 'both'])) {
             throw new \InvalidArgumentException(
@@ -26,7 +24,7 @@ class MakeBoundedContext extends BaseGenerator
             );
         }
 
-        $base = base_path(config('clean-architecture.contexts_path') . "/$name");
+        $base = $this->contextPath($name);
         $namespace = $this->buildNamespace($name);
 
         $folders = [

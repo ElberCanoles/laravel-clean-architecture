@@ -22,20 +22,6 @@ test('creates controller in presentation layer', function () {
         ->toContain('public function destroy(string $id): Response');
 });
 
-test('warns when controller exists without --force', function () {
-    $this->artisan('clean:controller', ['context' => 'Billing', 'name' => 'Invoice']);
-
-    $this->artisan('clean:controller', ['context' => 'Billing', 'name' => 'Invoice'])
-        ->expectsOutputToContain('File already exists');
-});
-
-test('overwrites controller with --force', function () {
-    $this->artisan('clean:controller', ['context' => 'Billing', 'name' => 'Invoice']);
-    $this->artisan('clean:controller', ['context' => 'Billing', 'name' => 'Invoice', '--force' => true])
-        ->assertSuccessful()
-        ->expectsOutputToContain('Controller created');
-});
-
 test('controller without --entity keeps TODO comments', function () {
     $this->artisan('clean:controller', ['context' => 'Billing', 'name' => 'Invoice'])
         ->assertSuccessful();

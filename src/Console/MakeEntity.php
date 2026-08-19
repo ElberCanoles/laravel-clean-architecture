@@ -4,41 +4,24 @@ declare(strict_types=1);
 
 namespace CleanArchitecture\Console;
 
-use Illuminate\Support\Facades\File;
-
-class MakeEntity extends BaseGenerator
+class MakeEntity extends SingleFileGenerator
 {
     protected $signature = 'clean:entity {context} {name} {--force : Overwrite existing files}';
 
     protected $description = 'Create a domain entity';
 
-    public function handle(): int
+    protected function subPath(): string
     {
-        $context = $this->argument('context');
-        $name = $this->argument('name');
+        return 'Domain/Entities';
+    }
 
-        $this->validateName($context, 'context');
-        $this->validateName($name, 'name');
+    protected function stubName(): string
+    {
+        return 'entity';
+    }
 
-        $namespace = $this->buildNamespace($context);
-
-        $path = base_path(config('clean-architecture.contexts_path') . "/$context/Domain/Entities");
-        File::makeDirectory($path, 0755, true, true);
-
-        $content = str_replace(
-            ['{{Namespace}}', '{{Class}}'],
-            [$namespace, $name],
-            $this->getStub('entity')
-        );
-
-        $file = "$path/$name.php";
-
-        if (! $this->writeFile($file, $content)) {
-            return self::FAILURE;
-        }
-
-        $this->info("Entity created: $file");
-
-        return self::SUCCESS;
+    protected function label(): string
+    {
+        return 'Entity';
     }
 }

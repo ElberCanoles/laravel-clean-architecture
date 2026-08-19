@@ -14,20 +14,17 @@ class MakeController extends BaseGenerator
 
     public function handle(): int
     {
-        $context = $this->argument('context');
-        $name = $this->argument('name');
-        $entity = $this->option('entity');
-
-        $this->validateName($context, 'context');
-        $this->validateName($name, 'name');
+        $context = $this->cleanName($this->stringArgument('context'), 'context');
+        $name = $this->cleanName($this->stringArgument('name'), 'name');
+        $entity = $this->stringOption('entity');
 
         if ($entity) {
-            $this->validateName($entity, 'entity');
+            $entity = $this->cleanName($entity, 'entity');
         }
 
         $namespace = $this->buildNamespace($context);
 
-        $path = base_path(config('clean-architecture.contexts_path') . "/$context/Presentation/Controllers");
+        $path = $this->contextPath($context, 'Presentation/Controllers');
         File::makeDirectory($path, 0755, true, true);
 
         if ($entity) {

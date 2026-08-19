@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use CleanArchitecture\Tests\TestCase;
+use Illuminate\Support\Facades\File;
 use PHPUnit\Framework\Assert;
 
 uses(TestCase::class)->in('Integration');
@@ -30,3 +31,16 @@ expect()->extend('toBeValidPhp', function () {
 
     return $this;
 });
+
+/*
+|--------------------------------------------------------------------------
+| Shared Helpers
+|--------------------------------------------------------------------------
+*/
+
+function publishStub(string $name, string $contents): void
+{
+    $dir = base_path('stubs/clean-architecture');
+    File::makeDirectory($dir, 0755, true, true);
+    File::put("$dir/$name.stub", $contents);
+}

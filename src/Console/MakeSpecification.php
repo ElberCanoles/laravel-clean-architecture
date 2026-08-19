@@ -4,41 +4,29 @@ declare(strict_types=1);
 
 namespace CleanArchitecture\Console;
 
-use Illuminate\Support\Facades\File;
-
-class MakeSpecification extends BaseGenerator
+class MakeSpecification extends SingleFileGenerator
 {
     protected $signature = 'clean:specification {context} {name} {--force : Overwrite existing files}';
 
     protected $description = 'Create a domain specification';
 
-    public function handle(): int
+    protected function subPath(): string
     {
-        $context = $this->argument('context');
-        $name = $this->argument('name');
+        return 'Domain/Specifications';
+    }
 
-        $this->validateName($context, 'context');
-        $this->validateName($name, 'name');
+    protected function stubName(): string
+    {
+        return 'specification';
+    }
 
-        $namespace = $this->buildNamespace($context);
+    protected function suffix(): string
+    {
+        return 'Specification';
+    }
 
-        $path = base_path(config('clean-architecture.contexts_path') . "/$context/Domain/Specifications");
-        File::makeDirectory($path, 0755, true, true);
-
-        $content = str_replace(
-            ['{{Namespace}}', '{{Class}}'],
-            [$namespace, $name],
-            $this->getStub('specification')
-        );
-
-        $file = "$path/{$name}Specification.php";
-
-        if (! $this->writeFile($file, $content)) {
-            return self::FAILURE;
-        }
-
-        $this->info("Specification created: $file");
-
-        return self::SUCCESS;
+    protected function label(): string
+    {
+        return 'Specification';
     }
 }

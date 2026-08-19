@@ -3,6 +3,7 @@
 namespace CleanArchitecture\Tests;
 
 use CleanArchitecture\CleanArchitectureServiceProvider;
+use CleanArchitecture\Kernel\ModuleLoader;
 use Illuminate\Support\Facades\File;
 use Orchestra\Testbench\TestCase as BaseTestCase;
 
@@ -18,6 +19,9 @@ abstract class TestCase extends BaseTestCase
 
         parent::setUp();
 
+        // The scan is memoized per process and the temp dir changes per test.
+        ModuleLoader::flush();
+
         $this->tempDir = base_path($this->relativeTempDir);
         mkdir($this->tempDir, 0755, true);
     }
@@ -25,6 +29,8 @@ abstract class TestCase extends BaseTestCase
     protected function tearDown(): void
     {
         File::deleteDirectory($this->tempDir);
+        File::delete(ModuleLoader::manifestPath());
+        ModuleLoader::flush();
 
         // Clean up any generated migration files
         $migrations = File::glob(database_path('migrations') . '/*.php');

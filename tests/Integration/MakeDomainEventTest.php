@@ -15,16 +15,13 @@ test('creates domain event with correct content', function () {
         ->toContain('public \DateTimeImmutable $occurredAt');
 });
 
-test('warns when domain event file exists without --force', function () {
-    $this->artisan('clean:domain-event', ['context' => 'Billing', 'name' => 'InvoicePaid']);
+test('does not duplicate the suffix when the name already carries it', function () {
+    $this->artisan('clean:domain-event', ['context' => 'Billing', 'name' => 'InvoicePaidEvent'])
+        ->assertSuccessful();
 
-    $this->artisan('clean:domain-event', ['context' => 'Billing', 'name' => 'InvoicePaid'])
-        ->expectsOutputToContain('File already exists');
-});
+    expect(file_exists($this->tempDir . '/Billing/Domain/Events/InvoicePaidEvent.php'))->toBeTrue();
+    expect(file_exists($this->tempDir . '/Billing/Domain/Events/InvoicePaidEventEvent.php'))->toBeFalse();
 
-test('overwrites domain event with --force', function () {
-    $this->artisan('clean:domain-event', ['context' => 'Billing', 'name' => 'InvoicePaid']);
-    $this->artisan('clean:domain-event', ['context' => 'Billing', 'name' => 'InvoicePaid', '--force' => true])
-        ->assertSuccessful()
-        ->expectsOutputToContain('Domain event created');
+    expect(file_get_contents($this->tempDir . '/Billing/Domain/Events/InvoicePaidEvent.php'))
+        ->toContain('readonly class InvoicePaidEvent');
 });

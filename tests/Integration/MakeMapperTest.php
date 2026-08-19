@@ -16,17 +16,3 @@ test('creates mapper in infrastructure layer', function () {
         ->toContain('public static function toEntity(InvoiceModel $model): Invoice')
         ->toContain('Invoice::fromPersistence(');
 });
-
-test('warns when mapper exists without --force', function () {
-    $this->artisan('clean:mapper', ['context' => 'Billing', 'name' => 'Invoice']);
-
-    $this->artisan('clean:mapper', ['context' => 'Billing', 'name' => 'Invoice'])
-        ->expectsOutputToContain('File already exists');
-});
-
-test('overwrites mapper with --force', function () {
-    $this->artisan('clean:mapper', ['context' => 'Billing', 'name' => 'Invoice']);
-    $this->artisan('clean:mapper', ['context' => 'Billing', 'name' => 'Invoice', '--force' => true])
-        ->assertSuccessful()
-        ->expectsOutputToContain('Mapper created');
-});

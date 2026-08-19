@@ -203,12 +203,13 @@ test('rejects invalid --crud value', function () {
         ->assertExitCode(2);
 });
 
-test('rejects invalid entity name', function () {
+test('normalizes the entity option to StudlyCase', function () {
     $this->artisan('clean:command', [
         'context' => 'Billing',
         'name' => 'PayInvoice',
-        '--entity' => 'invalid-entity',
-    ])
-        ->expectsOutputToContain('Invalid entity')
-        ->assertExitCode(2);
+        '--entity' => 'gift-card',
+    ])->assertSuccessful();
+
+    $handlerContent = file_get_contents($this->tempDir . '/Billing/Application/Commands/PayInvoice/PayInvoiceHandler.php');
+    expect($handlerContent)->toContain('GiftCardWriteRepository');
 });

@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com), and this 
 
 ### Added
 
+- **`clean:cache` / `clean:clear`** — cache discovered contexts, providers, and PSR-4 mappings into `bootstrap/cache/clean-architecture.php`, skipping all filesystem scans on cached production boots
+- **`php artisan about` integration** — shows discovered contexts, provider count, id type, and cache state
+- **Name normalization** — inputs are normalized to StudlyCase like Laravel's own generators (`clean:entity billing invoice` ⇒ `Billing\…\Invoice`), and suffixes are deduplicated (`clean:domain-event Billing InvoicePaidEvent` no longer produces `InvoicePaidEventEvent`)
+- **`UPGRADING.md`** and a **`docs/architecture.md`** guide (the conceptual half of the old README), leaving a task-focused README with a quickstart that ends in working `curl` calls and a "what you still have to fill in" checklist
+- **Generator contract test** — a single dataset-driven test asserts create/exists/`--force` semantics, that `--force` actually changes content, and PHP validity for all 13 single-file generators (replacing 28 near-identical tests)
+- **Stub integrity test** — orphan stubs or generators referencing missing stubs now fail the suite
+- **`composer test:mutate`** script (Pest mutation testing; requires a coverage driver)
+
 - **`ofId()` on write repositories** — generated `WriteRepository` interfaces and Eloquent implementations can now load an aggregate for a state-changing operation; `Mapper::toEntity()` and `Entity::fromPersistence()` are finally reachable
 - **Working update and delete flows** — `--crud=update` generates a real load-guard-save handler (previously a silent no-op that returned HTTP 200 without changing anything) and `--crud=delete` guards against missing aggregates; both throw a generated `{Entity}NotFound` domain exception (new `not-found-exception.stub`, auto-created when missing)
 - **Create responses return the new id** — generated `store()` produces the id at the presentation edge, passes it through the command, and responds `201` with `{"id": …}` plus a `Location` header
@@ -25,6 +33,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com), and this 
 
 ### Changed
 
+- **The generator internals were restructured** — the 11 copy-pasted generator classes collapsed into a declarative `SingleFileGenerator` base; the scaffold's duplicated marker-rewriting logic lives in one `MarkerBlockWriter`; every context path flows through a single `contextPath()` helper (with the previously missing config fallback)
+- **`ModuleLoader` no longer re-requires `vendor/autoload.php`** — it asks Composer for its registered class loader (fixing fatals in monorepos and custom vendor dirs), memoizes its directory scan per request, and honours the `clean:cache` manifest
+- **PHPStan level raised from 6 to 8** — arguments and options flow through typed accessors; an empty `--entity=`/`--crud=` is now explicitly treated as absent
 - **Create commands now carry `public string $id`** — the id is generated in the controller (`Str::uuid7()`/`Str::ulid()`) instead of inside the Application handler, removing the `Illuminate\Support\Str` dependency from the Application layer entirely
 - **Generated `update()`/`destroy()` respond `204 No Content`** — via `response()->noContent()` with `Response` return types, instead of empty JSON bodies
 - **Specification stub no longer emits anonymous-class composition** — the old `and(self $other): static` implementation could not compose different specification classes and crashed with a `TypeError` on three-term chains

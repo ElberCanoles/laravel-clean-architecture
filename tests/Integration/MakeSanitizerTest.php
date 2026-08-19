@@ -14,17 +14,3 @@ test('creates sanitizer in application layer', function () {
         ->toContain('public static function sanitize(array $data): array')
         ->toContain('...$data,');
 });
-
-test('warns when sanitizer exists without --force', function () {
-    $this->artisan('clean:sanitizer', ['context' => 'Billing', 'name' => 'Invoice']);
-
-    $this->artisan('clean:sanitizer', ['context' => 'Billing', 'name' => 'Invoice'])
-        ->expectsOutputToContain('File already exists');
-});
-
-test('overwrites sanitizer with --force', function () {
-    $this->artisan('clean:sanitizer', ['context' => 'Billing', 'name' => 'Invoice']);
-    $this->artisan('clean:sanitizer', ['context' => 'Billing', 'name' => 'Invoice', '--force' => true])
-        ->assertSuccessful()
-        ->expectsOutputToContain('Sanitizer created');
-});

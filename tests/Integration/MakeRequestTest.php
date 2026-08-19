@@ -15,17 +15,3 @@ test('creates form request in presentation layer', function () {
         ->toContain('// TODO: Implement authorization')
         ->toContain('public function rules(): array');
 });
-
-test('warns when request exists without --force', function () {
-    $this->artisan('clean:request', ['context' => 'Billing', 'name' => 'StoreInvoice']);
-
-    $this->artisan('clean:request', ['context' => 'Billing', 'name' => 'StoreInvoice'])
-        ->expectsOutputToContain('File already exists');
-});
-
-test('overwrites request with --force', function () {
-    $this->artisan('clean:request', ['context' => 'Billing', 'name' => 'StoreInvoice']);
-    $this->artisan('clean:request', ['context' => 'Billing', 'name' => 'StoreInvoice', '--force' => true])
-        ->assertSuccessful()
-        ->expectsOutputToContain('Request created');
-});

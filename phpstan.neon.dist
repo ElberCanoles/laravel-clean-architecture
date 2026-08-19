@@ -4,7 +4,7 @@ includes:
 parameters:
     paths:
         - src/
-    level: 6
+    level: 8
     ignoreErrors:
         - identifier: trait.unused
         # BaseGenerator::execute() reaches handle() through Container::call(), a dynamic

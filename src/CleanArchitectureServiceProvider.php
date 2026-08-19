@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace CleanArchitecture;
 
+use CleanArchitecture\Console\CacheContexts;
+use CleanArchitecture\Console\ClearContexts;
 use CleanArchitecture\Console\MakeArchTest;
 use CleanArchitecture\Console\MakeBoundedContext;
 use CleanArchitecture\Console\MakeCommand;
@@ -26,6 +28,7 @@ use CleanArchitecture\Console\MakeValueObject;
 use CleanArchitecture\Kernel\ModuleLoader;
 use CleanArchitecture\Support\ProvidesHttpStatus;
 use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Foundation\Console\AboutCommand;
 use Illuminate\Http\Request;
 use Illuminate\Support\ServiceProvider;
 
@@ -49,7 +52,11 @@ class CleanArchitectureServiceProvider extends ServiceProvider
         $this->registerDomainExceptionRenderer();
 
         if ($this->app->runningInConsole()) {
+            $this->registerAboutCommand();
+
             $this->commands([
+                CacheContexts::class,
+                ClearContexts::class,
                 MakeBoundedContext::class,
                 MakeCommand::class,
                 MakeQuery::class,
@@ -79,6 +86,24 @@ class CleanArchitectureServiceProvider extends ServiceProvider
                 __DIR__ . '/../stubs' => base_path('stubs/clean-architecture'),
             ], 'clean-architecture-stubs');
         }
+    }
+
+    /**
+     * Surface discovery state in `php artisan about` — the cheapest diagnostic
+     * for "which contexts did the package actually find?".
+     */
+    protected function registerAboutCommand(): void
+    {
+        if (! class_exists(AboutCommand::class)) {
+            return;
+        }
+
+        AboutCommand::add('Clean Architecture', fn (): array => [
+            'Contexts' => implode(', ', ModuleLoader::contextNames()) ?: 'none discovered',
+            'Providers Discovered' => (string) count(ModuleLoader::load()),
+            'Id Type' => (string) config('clean-architecture.id_type', 'uuid'),
+            'Contexts Cached' => is_file(ModuleLoader::manifestPath()) ? 'yes' : 'no',
+        ]);
     }
 
     /**

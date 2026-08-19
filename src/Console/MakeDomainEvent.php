@@ -4,41 +4,29 @@ declare(strict_types=1);
 
 namespace CleanArchitecture\Console;
 
-use Illuminate\Support\Facades\File;
-
-class MakeDomainEvent extends BaseGenerator
+class MakeDomainEvent extends SingleFileGenerator
 {
     protected $signature = 'clean:domain-event {context} {name} {--force : Overwrite existing files}';
 
     protected $description = 'Create a domain event';
 
-    public function handle(): int
+    protected function subPath(): string
     {
-        $context = $this->argument('context');
-        $name = $this->argument('name');
+        return 'Domain/Events';
+    }
 
-        $this->validateName($context, 'context');
-        $this->validateName($name, 'name');
+    protected function stubName(): string
+    {
+        return 'domain-event';
+    }
 
-        $namespace = $this->buildNamespace($context);
+    protected function suffix(): string
+    {
+        return 'Event';
+    }
 
-        $path = base_path(config('clean-architecture.contexts_path') . "/$context/Domain/Events");
-        File::makeDirectory($path, 0755, true, true);
-
-        $content = str_replace(
-            ['{{Namespace}}', '{{Class}}'],
-            [$namespace, $name],
-            $this->getStub('domain-event')
-        );
-
-        $file = "$path/{$name}Event.php";
-
-        if (! $this->writeFile($file, $content)) {
-            return self::FAILURE;
-        }
-
-        $this->info("Domain event created: $file");
-
-        return self::SUCCESS;
+    protected function label(): string
+    {
+        return 'Domain event';
     }
 }

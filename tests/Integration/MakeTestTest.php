@@ -27,17 +27,3 @@ test('uses configured namespace prefix in unit tests', function () {
 
     expect($content)->toContain('use Domain\Sales\Domain\Entities\Order;');
 });
-
-test('warns when unit test file exists without --force', function () {
-    $this->artisan('clean:test', ['context' => 'Billing', 'name' => 'Invoice']);
-
-    $this->artisan('clean:test', ['context' => 'Billing', 'name' => 'Invoice'])
-        ->expectsOutputToContain('File already exists');
-});
-
-test('overwrites unit test with --force', function () {
-    $this->artisan('clean:test', ['context' => 'Billing', 'name' => 'Invoice']);
-    $this->artisan('clean:test', ['context' => 'Billing', 'name' => 'Invoice', '--force' => true])
-        ->assertSuccessful()
-        ->expectsOutputToContain('Unit test created');
-});

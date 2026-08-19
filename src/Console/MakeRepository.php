@@ -14,11 +14,8 @@ class MakeRepository extends BaseGenerator
 
     public function handle(): int
     {
-        $context = $this->argument('context');
-        $name = $this->argument('name');
-
-        $this->validateName($context, 'context');
-        $this->validateName($name, 'name');
+        $context = $this->cleanName($this->stringArgument('context'), 'context');
+        $name = $this->cleanName($this->stringArgument('name'), 'name');
 
         $namespace = $this->buildNamespace($context);
 
@@ -35,7 +32,7 @@ class MakeRepository extends BaseGenerator
 
     protected function createWriteInterface(string $context, string $name, string $namespace): bool
     {
-        $path = base_path(config('clean-architecture.contexts_path') . "/$context/Domain/Repositories");
+        $path = $this->contextPath($context, 'Domain/Repositories');
         File::makeDirectory($path, 0755, true, true);
 
         $content = str_replace(
@@ -57,7 +54,7 @@ class MakeRepository extends BaseGenerator
 
     protected function createReadInterface(string $context, string $name, string $namespace): bool
     {
-        $path = base_path(config('clean-architecture.contexts_path') . "/$context/Application/Contracts");
+        $path = $this->contextPath($context, 'Application/Contracts');
         File::makeDirectory($path, 0755, true, true);
 
         $content = str_replace(
@@ -79,7 +76,7 @@ class MakeRepository extends BaseGenerator
 
     protected function createWriteEloquentImplementation(string $context, string $name, string $namespace): bool
     {
-        $path = base_path(config('clean-architecture.contexts_path') . "/$context/Infrastructure");
+        $path = $this->contextPath($context, 'Infrastructure');
         File::makeDirectory($path, 0755, true, true);
 
         $content = str_replace(
@@ -101,7 +98,7 @@ class MakeRepository extends BaseGenerator
 
     protected function createReadEloquentImplementation(string $context, string $name, string $namespace): bool
     {
-        $path = base_path(config('clean-architecture.contexts_path') . "/$context/Infrastructure");
+        $path = $this->contextPath($context, 'Infrastructure');
         File::makeDirectory($path, 0755, true, true);
 
         $content = str_replace(
@@ -123,7 +120,7 @@ class MakeRepository extends BaseGenerator
 
     protected function createMapper(string $context, string $name, string $namespace): bool
     {
-        $path = base_path(config('clean-architecture.contexts_path') . "/$context/Infrastructure");
+        $path = $this->contextPath($context, 'Infrastructure');
         File::makeDirectory($path, 0755, true, true);
 
         $content = str_replace(

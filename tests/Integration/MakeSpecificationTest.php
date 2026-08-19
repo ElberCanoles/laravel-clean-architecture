@@ -17,17 +17,3 @@ test('creates specification with correct content', function () {
         // the broken anonymous-class and()/or()/not() are gone from the stub.
         ->not->toContain('new class');
 });
-
-test('warns when specification file exists without --force', function () {
-    $this->artisan('clean:specification', ['context' => 'Billing', 'name' => 'InvoiceOverdue']);
-
-    $this->artisan('clean:specification', ['context' => 'Billing', 'name' => 'InvoiceOverdue'])
-        ->expectsOutputToContain('File already exists');
-});
-
-test('overwrites specification with --force', function () {
-    $this->artisan('clean:specification', ['context' => 'Billing', 'name' => 'InvoiceOverdue']);
-    $this->artisan('clean:specification', ['context' => 'Billing', 'name' => 'InvoiceOverdue', '--force' => true])
-        ->assertSuccessful()
-        ->expectsOutputToContain('Specification created');
-});

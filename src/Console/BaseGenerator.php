@@ -86,6 +86,49 @@ abstract class BaseGenerator extends Command
     }
 
     /**
+     * A required string argument, narrowed from Symfony's mixed return.
+     */
+    protected function stringArgument(string $key): string
+    {
+        $value = $this->argument($key);
+
+        return is_string($value) ? $value : '';
+    }
+
+    /**
+     * A string option — null when absent or passed empty (`--entity=`).
+     */
+    protected function stringOption(string $key): ?string
+    {
+        $value = $this->option($key);
+
+        return is_string($value) && $value !== '' ? $value : null;
+    }
+
+    /**
+     * Normalize user input to StudlyCase (like Laravel's own generators) and
+     * validate the result: `clean:entity billing invoice` just works.
+     */
+    protected function cleanName(string $value, string $label): string
+    {
+        $value = Str::studly($value);
+
+        $this->validateName($value, $label);
+
+        return $value;
+    }
+
+    /**
+     * Absolute path to a bounded context (optionally a directory inside it).
+     */
+    protected function contextPath(string $context, string $subPath = ''): string
+    {
+        $base = base_path(config('clean-architecture.contexts_path', 'src') . "/$context");
+
+        return $subPath === '' ? $base : "$base/$subPath";
+    }
+
+    /**
      * Validate that a context or class name is a valid PHP identifier (PascalCase).
      */
     protected function validateName(string $value, string $label): void
@@ -108,8 +151,8 @@ abstract class BaseGenerator extends Command
      */
     protected function resolveIdType(): string
     {
-        $idType = ($this->hasOption('id-type') ? $this->option('id-type') : null)
-            ?: config('clean-architecture.id_type', 'uuid');
+        $idType = ($this->hasOption('id-type') ? $this->stringOption('id-type') : null)
+            ?? (string) config('clean-architecture.id_type', 'uuid');
 
         if (! in_array($idType, self::ID_TYPES, true)) {
             throw new \InvalidArgumentException(
@@ -164,7 +207,9 @@ abstract class BaseGenerator extends Command
 
     protected function toKebab(string $name): string
     {
-        return strtolower(preg_replace('/([a-z])([A-Z])/', '$1-$2', $name));
+        $kebab = preg_replace('/([a-z])([A-Z])/', '$1-$2', $name);
+
+        return strtolower($kebab ?? $name);
     }
 
     protected function toKebabPlural(string $name): string
