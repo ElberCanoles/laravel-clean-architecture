@@ -62,7 +62,7 @@ test('stubs and generators reference each other with no orphans', function () {
 
             return array_merge($direct[1], $conventional[1]);
         })
-        ->merge(['query', 'list-query', 'query-handler', 'list-query-handler'])
+        ->merge(['query', 'list-query', 'query-handler'])
         ->unique()
         ->sort()
         ->values();

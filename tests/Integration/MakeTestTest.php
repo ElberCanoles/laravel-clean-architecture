@@ -10,10 +10,13 @@ test('creates unit test file with correct content', function () {
     $content = file_get_contents($file);
     expect($content)
         ->toContain('use Src\Billing\Domain\Entities\Invoice;')
+        ->toContain('use Src\Billing\Domain\Events\InvoiceCreatedEvent;')
         ->toContain('it can create a Invoice')
         ->toContain('Invoice::create(')
-        ->toContain('it can record and release domain events')
-        ->toContain('releaseEvents()');
+        ->toContain('creating a Invoice records a creation event')
+        ->toContain('toBeInstanceOf(InvoiceCreatedEvent::class)')
+        ->toContain('releasing events clears them')
+        ->toContain('entities with the same id are equal');
 });
 
 test('uses configured namespace prefix in unit tests', function () {

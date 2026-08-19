@@ -7,6 +7,7 @@ namespace {{Namespace}}\Presentation\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/** @mixin \{{Namespace}}\Application\ReadModels\{{Class}}ReadModel */
 class {{Class}}Resource extends JsonResource
 {
     /** @return array<string, mixed> */
@@ -14,9 +15,8 @@ class {{Class}}Resource extends JsonResource
     {
         return [
             'id' => $this->id,
-            // TODO: Map your read model fields
+            // TODO: Map your read model fields, e.g.:
             // 'name' => $this->name,
-            // 'created_at' => $this->created_at?->toISOString(),
         ];
     }
 }

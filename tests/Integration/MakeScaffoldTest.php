@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use Src\Runtime\Domain\Entities\Gadget;
+use Src\Runtime\Domain\Events\GadgetCreatedEvent;
 use Src\Runtime\Domain\Exceptions\GadgetNotFound;
 
 test('scaffolds all files for an entity', function () {
@@ -435,12 +436,21 @@ test('the scaffolded entity and NotFound exception are executable', function () 
     $this->artisan('clean:scaffold', ['context' => 'Runtime', 'name' => 'Gadget'])
         ->assertSuccessful();
 
+    require_once $this->tempDir . '/Runtime/Domain/Events/GadgetCreatedEvent.php';
     require_once $this->tempDir . '/Runtime/Domain/Entities/Gadget.php';
     require_once $this->tempDir . '/Runtime/Domain/Exceptions/GadgetNotFound.php';
 
     $entity = Gadget::create('gadget-1');
     expect($entity->id())->toBe('gadget-1');
+
+    $events = $entity->releaseEvents();
+    expect($events)->toHaveCount(1)
+        ->and($events[0])->toBeInstanceOf(GadgetCreatedEvent::class)
+        ->and($events[0]->id)->toBe('gadget-1');
     expect($entity->releaseEvents())->toBe([]);
+
+    expect($entity->equals(Gadget::create('gadget-1')))->toBeTrue();
+    expect($entity->equals(Gadget::create('other')))->toBeFalse();
 
     $exception = GadgetNotFound::withId('gadget-1');
     expect($exception)->toBeInstanceOf(DomainException::class)

@@ -14,7 +14,7 @@
             <directory>tests/Integration</directory>
         </testsuite>
         <testsuite name="Architecture">
-            <file>tests/ArchitectureTest.php</file>
+            <directory>tests/Architecture</directory>
         </testsuite>
     </testsuites>
     <source>

@@ -101,12 +101,13 @@ php artisan clean:context Billing
 php artisan clean:scaffold Billing Invoice   # add --id-type=ulid for ULID keys
 ```
 
-`clean:scaffold` generates **24 fully wired files** across all four layers, plus the migration, and wires the ServiceProvider bindings and the resource route automatically:
+`clean:scaffold` generates **25 fully wired files** across all four layers, plus the migration, and wires the ServiceProvider bindings and the resource route automatically:
 
 ```
 src/Billing/
 ├── Domain/
 │   ├── Entities/Invoice.php                     # factory methods + domain events
+│   ├── Events/InvoiceCreatedEvent.php           # recorded by create(), dispatched after commit
 │   ├── Exceptions/InvoiceNotFound.php           # renders as HTTP 404
 │   └── Repositories/InvoiceWriteRepository.php  # ofId() / save() / delete()
 ├── Application/
@@ -190,7 +191,7 @@ Names must be PascalCase (`Billing`, `Invoice`) and must not be PHP reserved wor
 | Command | Description | Output |
 |---------|-------------|--------|
 | `clean:context {name} [--routes=]` | Create bounded context with folders, ServiceProvider, routes, arch tests | Full folder structure |
-| `clean:scaffold {context} {name} [--id-type=]` | Scaffold full CRUD entity across all layers (wires controller, SP bindings, routes) | 24 files |
+| `clean:scaffold {context} {name} [--id-type=]` | Scaffold full CRUD entity across all layers (wires controller, SP bindings, routes) | 25 files |
 | `clean:entity {context} {name}` | Domain entity with factory method and event recording | `Domain/Entities/{Name}.php` |
 | `clean:model {context} {name} [--id-type=]` | Eloquent model with `HasUuids`/`HasUlids` and auto-computed table name | `Infrastructure/Models/{Name}Model.php` |
 | `clean:repository {context} {name}` | CQRS repositories (Write + Read interfaces, Eloquent impls, mapper) | 5 files |

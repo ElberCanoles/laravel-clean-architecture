@@ -35,6 +35,10 @@ class {{Context}}ServiceProvider extends ServiceProvider
 
     protected function loadRoutes(): void
     {
+        if ($this->app->routesAreCached()) {
+            return;
+        }
+
         $routesPath = __DIR__ . '/../Presentation/Routes';
 
         foreach (['api', 'web'] as $type) {

@@ -14,9 +14,27 @@ test('creates entity file with correct content', function () {
         ->toContain('final class Invoice implements HasDomainEvents')
         ->toContain('private function __construct(')
         ->toContain('public static function create(string $id): self')
+        ->toContain('use Src\Billing\Domain\Events\InvoiceCreatedEvent;')
+        ->toContain('$entity->recordEvent(new InvoiceCreatedEvent($id));')
         ->toContain('public static function fromPersistence(string $id): self')
+        ->toContain('public function equals(self $other): bool')
         ->toContain('private function recordEvent(object $event): void')
         ->toContain('public function releaseEvents(): array');
+
+    // The referenced creation event is generated alongside the entity.
+    expect(file_exists($this->tempDir . '/Billing/Domain/Events/InvoiceCreatedEvent.php'))->toBeTrue();
+});
+
+test('does not overwrite an existing creation event', function () {
+    $eventFile = $this->tempDir . '/Billing/Domain/Events/InvoiceCreatedEvent.php';
+
+    $this->artisan('clean:entity', ['context' => 'Billing', 'name' => 'Invoice'])->assertSuccessful();
+    file_put_contents($eventFile, '<?php // customized by the user');
+
+    $this->artisan('clean:entity', ['context' => 'Billing', 'name' => 'Invoice', '--force' => true])
+        ->assertSuccessful();
+
+    expect(file_get_contents($eventFile))->toBe('<?php // customized by the user');
 });
 
 test('normalizes lowercase context to StudlyCase', function () {

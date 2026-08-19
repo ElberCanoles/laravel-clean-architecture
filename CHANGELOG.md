@@ -8,8 +8,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com), and this 
 
 ### Added
 
+- **Domain events dispatch after the transaction commits** — `DispatchesDomainEvents` now uses `DB::afterCommit()`: immediate outside a transaction, deferred until the outermost commit inside one, and discarded on rollback, so listeners never react to writes that never happened
+- **Entities record a creation event** — `create()` records a generated `{Entity}CreatedEvent` (`clean:entity` generates the event class when missing, and never overwrites a customized one), `recordEvent()` is finally exercised, and entities gained identity-based `equals()`
+- **Generated unit tests assert real behavior** — the creation event, that releasing clears events, and identity equality (replacing a test that could never fail)
+- **`route:cache` support** — the generated context ServiceProvider skips runtime route registration when routes are cached, and route files register a per-context name prefix (`billing.invoices.show`) so `route()` names never collide across contexts
+- **`PaginatedResult` grew `lastPage()` and `hasMorePages()`**, validates its arguments, and `meta()` now includes `last_page`
+
 - **Community infrastructure** — `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1), issue form templates (bug report / feature request, with security and Discussions contact links), a pull request template, and weekly Dependabot updates for Composer and GitHub Actions
 - **Automated releases** — pushing a `v*` tag now publishes the GitHub release with the matching `CHANGELOG.md` section as notes
+
+### Changed
+
+- **`query-handler.stub` and `list-query-handler.stub` merged** — they were byte-identical; both query flavors now render from `query-handler.stub` (if you had published and customized the removed one, move your changes into `query-handler.stub`)
+- **`resource.stub` is honest with static analysis** — `@mixin` docblock pointing at the backing read model, and the misleading `created_at` example (read models carry no timestamps) is gone
 
 ## [1.5.0] - 2026-08-19
 

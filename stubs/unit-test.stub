@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use {{Namespace}}\Domain\Entities\{{Class}};
+use {{Namespace}}\Domain\Events\{{Class}}CreatedEvent;
 
 test('it can create a {{Class}}', function () {
     $entity = {{Class}}::create('test-id');
@@ -11,10 +12,24 @@ test('it can create a {{Class}}', function () {
         ->and($entity->id())->toBe('test-id');
 });
 
-test('it can record and release domain events', function () {
+test('creating a {{Class}} records a creation event', function () {
     $entity = {{Class}}::create('test-id');
 
     $events = $entity->releaseEvents();
 
-    expect($events)->toBeArray();
+    expect($events)->toHaveCount(1)
+        ->and($events[0])->toBeInstanceOf({{Class}}CreatedEvent::class)
+        ->and($events[0]->id)->toBe('test-id');
+});
+
+test('releasing events clears them', function () {
+    $entity = {{Class}}::create('test-id');
+    $entity->releaseEvents();
+
+    expect($entity->releaseEvents())->toBe([]);
+});
+
+test('entities with the same id are equal', function () {
+    expect({{Class}}::create('a')->equals({{Class}}::create('a')))->toBeTrue()
+        ->and({{Class}}::create('a')->equals({{Class}}::create('b')))->toBeFalse();
 });

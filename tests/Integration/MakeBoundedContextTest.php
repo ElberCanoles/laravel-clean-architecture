@@ -42,6 +42,7 @@ test('generates service provider for context with route loading', function () {
         ->toContain('YourReadRepository::class')
         ->toContain('public function boot(): void')
         ->toContain('$this->loadRoutes()')
+        ->toContain('if ($this->app->routesAreCached())')
         ->toContain("foreach (['api', 'web'] as \$type)")
         ->toContain('// {bindings}')
         ->toContain('// {/bindings}');
@@ -57,6 +58,7 @@ test('generates routes file for context', function () {
     $content = file_get_contents($file);
     expect($content)
         ->toContain("Route::prefix('billing')")
+        ->toContain("->name('billing.')")
         ->toContain('->group(');
 });
 

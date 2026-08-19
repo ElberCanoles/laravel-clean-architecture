@@ -35,7 +35,7 @@ class MakeQuery extends BaseGenerator
             $this->getStub($isCollection ? 'list-query' : 'query')
         );
 
-        $handlerStub = $this->getStub($isCollection ? 'list-query-handler' : 'query-handler');
+        $handlerStub = $this->getStub('query-handler');
 
         if ($entity) {
             $entityConstructor = "private readonly {$entity}ReadRepository \$repository,";
