@@ -6,7 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com), and this 
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-08-19
+
 ### Added
+
+- **In-memory repositories** — `clean:repository` (and the scaffold) now generate `InMemory{Entity}WriteRepository` and `InMemory{Entity}ReadRepository` test doubles implementing both ports, so command and query handlers are unit-testable without a database: the write side exposes `all()` for assertions and skips event dispatching so tests can inspect `releaseEvents()`, and the read side seeds through the constructor or `add()` with real pagination semantics. The suite proves it by executing every scaffolded handler against them
 
 - **Domain events dispatch after the transaction commits** — `DispatchesDomainEvents` now uses `DB::afterCommit()`: immediate outside a transaction, deferred until the outermost commit inside one, and discarded on rollback, so listeners never react to writes that never happened
 - **Entities record a creation event** — `create()` records a generated `{Entity}CreatedEvent` (`clean:entity` generates the event class when missing, and never overwrites a customized one), `recordEvent()` is finally exercised, and entities gained identity-based `equals()`
@@ -256,7 +260,8 @@ Defaults are unchanged: without `id_type` or `--id-type`, generators keep emitti
 | `arch_tests_path` | `tests/Feature/Architecture` | Where architecture tests are generated |
 | `unit_tests_path` | `tests/Unit/Domain` | Where domain unit tests are generated |
 
-[Unreleased]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v1.2.2...v1.3.0

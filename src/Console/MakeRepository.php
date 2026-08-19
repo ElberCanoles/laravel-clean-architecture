@@ -25,6 +25,8 @@ class MakeRepository extends BaseGenerator
             $this->createWriteEloquentImplementation($context, $name, $namespace),
             $this->createReadEloquentImplementation($context, $name, $namespace),
             $this->createMapper($context, $name, $namespace),
+            $this->createInMemoryWrite($context, $name, $namespace),
+            $this->createInMemoryRead($context, $name, $namespace),
         ];
 
         return in_array(false, $results, true) ? self::FAILURE : self::SUCCESS;
@@ -136,6 +138,50 @@ class MakeRepository extends BaseGenerator
         }
 
         $this->info("Mapper created: $file");
+
+        return true;
+    }
+
+    protected function createInMemoryWrite(string $context, string $name, string $namespace): bool
+    {
+        $path = $this->contextPath($context, 'Infrastructure');
+        File::makeDirectory($path, 0755, true, true);
+
+        $content = str_replace(
+            ['{{Namespace}}', '{{Class}}'],
+            [$namespace, $name],
+            $this->getStub('in-memory-write-repository')
+        );
+
+        $file = "$path/InMemory{$name}WriteRepository.php";
+
+        if (! $this->writeFile($file, $content)) {
+            return false;
+        }
+
+        $this->info("In-memory write repository created: $file");
+
+        return true;
+    }
+
+    protected function createInMemoryRead(string $context, string $name, string $namespace): bool
+    {
+        $path = $this->contextPath($context, 'Infrastructure');
+        File::makeDirectory($path, 0755, true, true);
+
+        $content = str_replace(
+            ['{{Namespace}}', '{{Class}}'],
+            [$namespace, $name],
+            $this->getStub('in-memory-read-repository')
+        );
+
+        $file = "$path/InMemory{$name}ReadRepository.php";
+
+        if (! $this->writeFile($file, $content)) {
+            return false;
+        }
+
+        $this->info("In-memory read repository created: $file");
 
         return true;
     }

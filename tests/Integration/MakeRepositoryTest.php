@@ -9,12 +9,31 @@ test('creates CQRS repository interfaces, eloquent implementations and mapper', 
     $writeEloquent = $this->tempDir . '/Billing/Infrastructure/InvoiceWriteEloquentRepository.php';
     $readEloquent = $this->tempDir . '/Billing/Infrastructure/InvoiceReadEloquentRepository.php';
     $mapper = $this->tempDir . '/Billing/Infrastructure/InvoiceMapper.php';
+    $inMemoryWrite = $this->tempDir . '/Billing/Infrastructure/InMemoryInvoiceWriteRepository.php';
+    $inMemoryRead = $this->tempDir . '/Billing/Infrastructure/InMemoryInvoiceReadRepository.php';
 
     expect(file_exists($writeInterface))->toBeTrue();
     expect(file_exists($readInterface))->toBeTrue();
     expect(file_exists($writeEloquent))->toBeTrue();
     expect(file_exists($readEloquent))->toBeTrue();
     expect(file_exists($mapper))->toBeTrue();
+    expect(file_exists($inMemoryWrite))->toBeTrue();
+    expect(file_exists($inMemoryRead))->toBeTrue();
+
+    $inMemoryWriteContent = file_get_contents($inMemoryWrite);
+    expect($inMemoryWriteContent)
+        ->toContain('class InMemoryInvoiceWriteRepository implements InvoiceWriteRepository')
+        ->toContain('public function ofId(string $id): ?Invoice')
+        ->toContain('public function save(Invoice $entity): void')
+        ->toContain('public function delete(string $id): void')
+        ->toContain('public function all(): array');
+
+    $inMemoryReadContent = file_get_contents($inMemoryRead);
+    expect($inMemoryReadContent)
+        ->toContain('class InMemoryInvoiceReadRepository implements InvoiceReadRepository')
+        ->toContain('public function add(InvoiceReadModel $readModel): void')
+        ->toContain('public function findById(string $id): ?InvoiceReadModel')
+        ->toContain('public function findAll(int $page = 1, int $perPage = 15): PaginatedResult');
 
     $writeInterfaceContent = file_get_contents($writeInterface);
     expect($writeInterfaceContent)

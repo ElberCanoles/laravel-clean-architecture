@@ -1,0 +1,40 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{Namespace}}\Infrastructure;
+
+use {{Namespace}}\Domain\Entities\{{Class}};
+use {{Namespace}}\Domain\Repositories\{{Class}}WriteRepository;
+
+/**
+ * In-memory test double for {{Class}}WriteRepository — unit test your command
+ * handlers without a database. Unlike the Eloquent implementation it does not
+ * dispatch domain events, so tests can assert them via releaseEvents().
+ */
+class InMemory{{Class}}WriteRepository implements {{Class}}WriteRepository
+{
+    /** @var array<string, {{Class}}> */
+    private array $entities = [];
+
+    public function ofId(string $id): ?{{Class}}
+    {
+        return $this->entities[$id] ?? null;
+    }
+
+    public function save({{Class}} $entity): void
+    {
+        $this->entities[$entity->id()] = $entity;
+    }
+
+    public function delete(string $id): void
+    {
+        unset($this->entities[$id]);
+    }
+
+    /** @return array<string, {{Class}}> */
+    public function all(): array
+    {
+        return $this->entities;
+    }
+}

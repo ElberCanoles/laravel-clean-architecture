@@ -1,0 +1,49 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{Namespace}}\Infrastructure;
+
+use CleanArchitecture\Support\PaginatedResult;
+use {{Namespace}}\Application\Contracts\{{Class}}ReadRepository;
+use {{Namespace}}\Application\ReadModels\{{Class}}ReadModel;
+
+/**
+ * In-memory test double for {{Class}}ReadRepository — unit test your query
+ * handlers without a database. Seed it through the constructor or add().
+ */
+class InMemory{{Class}}ReadRepository implements {{Class}}ReadRepository
+{
+    /** @param list<{{Class}}ReadModel> $readModels */
+    public function __construct(
+        private array $readModels = [],
+    ) {
+    }
+
+    public function add({{Class}}ReadModel $readModel): void
+    {
+        $this->readModels[] = $readModel;
+    }
+
+    public function findById(string $id): ?{{Class}}ReadModel
+    {
+        foreach ($this->readModels as $readModel) {
+            if ($readModel->id === $id) {
+                return $readModel;
+            }
+        }
+
+        return null;
+    }
+
+    /** @return PaginatedResult<{{Class}}ReadModel> */
+    public function findAll(int $page = 1, int $perPage = 15): PaginatedResult
+    {
+        return new PaginatedResult(
+            items: array_slice($this->readModels, ($page - 1) * $perPage, $perPage),
+            total: count($this->readModels),
+            page: $page,
+            perPage: $perPage,
+        );
+    }
+}

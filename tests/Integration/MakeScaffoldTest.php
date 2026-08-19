@@ -5,6 +5,21 @@ use Illuminate\Support\Facades\Schema;
 use Src\Runtime\Domain\Entities\Gadget;
 use Src\Runtime\Domain\Events\GadgetCreatedEvent;
 use Src\Runtime\Domain\Exceptions\GadgetNotFound;
+use Src\Sandbox\Application\Commands\CreateWidget\CreateWidgetCommand;
+use Src\Sandbox\Application\Commands\CreateWidget\CreateWidgetHandler;
+use Src\Sandbox\Application\Commands\DeleteWidget\DeleteWidgetCommand;
+use Src\Sandbox\Application\Commands\DeleteWidget\DeleteWidgetHandler;
+use Src\Sandbox\Application\Commands\UpdateWidget\UpdateWidgetCommand;
+use Src\Sandbox\Application\Commands\UpdateWidget\UpdateWidgetHandler;
+use Src\Sandbox\Application\Queries\GetWidget\GetWidgetHandler;
+use Src\Sandbox\Application\Queries\GetWidget\GetWidgetQuery;
+use Src\Sandbox\Application\Queries\ListWidgets\ListWidgetsHandler;
+use Src\Sandbox\Application\Queries\ListWidgets\ListWidgetsQuery;
+use Src\Sandbox\Application\ReadModels\WidgetReadModel;
+use Src\Sandbox\Domain\Events\WidgetCreatedEvent;
+use Src\Sandbox\Domain\Exceptions\WidgetNotFound;
+use Src\Sandbox\Infrastructure\InMemoryWidgetReadRepository;
+use Src\Sandbox\Infrastructure\InMemoryWidgetWriteRepository;
 
 test('scaffolds all files for an entity', function () {
     $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice'])
@@ -22,6 +37,8 @@ test('scaffolds all files for an entity', function () {
     expect(file_exists($this->tempDir . '/Billing/Infrastructure/InvoiceWriteEloquentRepository.php'))->toBeTrue();
     expect(file_exists($this->tempDir . '/Billing/Infrastructure/InvoiceReadEloquentRepository.php'))->toBeTrue();
     expect(file_exists($this->tempDir . '/Billing/Infrastructure/InvoiceMapper.php'))->toBeTrue();
+    expect(file_exists($this->tempDir . '/Billing/Infrastructure/InMemoryInvoiceWriteRepository.php'))->toBeTrue();
+    expect(file_exists($this->tempDir . '/Billing/Infrastructure/InMemoryInvoiceReadRepository.php'))->toBeTrue();
 
     // Read model
     expect(file_exists($this->tempDir . '/Billing/Application/ReadModels/InvoiceReadModel.php'))->toBeTrue();
@@ -413,7 +430,7 @@ test('every scaffolded file is syntactically valid PHP', function () {
         ->merge(File::glob(database_path('migrations') . '/*_create_invoices_table.php'))
         ->filter(fn (string $path) => str_ends_with($path, '.php'));
 
-    expect($generated->count())->toBeGreaterThanOrEqual(25);
+    expect($generated->count())->toBeGreaterThanOrEqual(28);
 
     foreach ($generated as $path) {
         expect($path)->toBeValidPhp();
@@ -476,4 +493,67 @@ test('scaffold wires files that use Windows line endings', function () {
         ->toContain('InvoiceWriteRepository::class');
     expect(file_get_contents($this->tempDir . '/Billing/Presentation/Routes/api.php'))
         ->toContain("Route::apiResource('invoices', InvoiceController::class)");
+});
+
+test('generated handlers are unit-testable with the in-memory repositories', function () {
+    $this->artisan('clean:scaffold', ['context' => 'Sandbox', 'name' => 'Widget'])
+        ->assertSuccessful();
+
+    foreach ([
+        'Domain/Events/WidgetCreatedEvent.php',
+        'Domain/Entities/Widget.php',
+        'Domain/Exceptions/WidgetNotFound.php',
+        'Domain/Repositories/WidgetWriteRepository.php',
+        'Application/Contracts/WidgetReadRepository.php',
+        'Application/ReadModels/WidgetReadModel.php',
+        'Infrastructure/InMemoryWidgetWriteRepository.php',
+        'Infrastructure/InMemoryWidgetReadRepository.php',
+        'Application/Commands/CreateWidget/CreateWidgetCommand.php',
+        'Application/Commands/CreateWidget/CreateWidgetHandler.php',
+        'Application/Commands/UpdateWidget/UpdateWidgetCommand.php',
+        'Application/Commands/UpdateWidget/UpdateWidgetHandler.php',
+        'Application/Commands/DeleteWidget/DeleteWidgetCommand.php',
+        'Application/Commands/DeleteWidget/DeleteWidgetHandler.php',
+        'Application/Queries/GetWidget/GetWidgetQuery.php',
+        'Application/Queries/GetWidget/GetWidgetHandler.php',
+        'Application/Queries/ListWidgets/ListWidgetsQuery.php',
+        'Application/Queries/ListWidgets/ListWidgetsHandler.php',
+    ] as $file) {
+        require_once $this->tempDir . '/Sandbox/' . $file;
+    }
+
+    // The write side, end to end and without a database.
+    $writeRepo = new InMemoryWidgetWriteRepository;
+
+    (new CreateWidgetHandler($writeRepo))->handle(new CreateWidgetCommand('w1', ['name' => 'A']));
+    $saved = $writeRepo->ofId('w1');
+    expect($saved)->not->toBeNull()
+        ->and($saved->releaseEvents()[0])->toBeInstanceOf(WidgetCreatedEvent::class);
+
+    (new UpdateWidgetHandler($writeRepo))->handle(new UpdateWidgetCommand('w1', ['name' => 'B']));
+
+    expect(fn () => (new UpdateWidgetHandler($writeRepo))->handle(new UpdateWidgetCommand('missing', [])))
+        ->toThrow(WidgetNotFound::class);
+
+    (new DeleteWidgetHandler($writeRepo))->handle(new DeleteWidgetCommand('w1'));
+    expect($writeRepo->ofId('w1'))->toBeNull();
+
+    expect(fn () => (new DeleteWidgetHandler($writeRepo))->handle(new DeleteWidgetCommand('w1')))
+        ->toThrow(WidgetNotFound::class);
+
+    // The read side, with real pagination semantics.
+    $readRepo = new InMemoryWidgetReadRepository([
+        new WidgetReadModel('r1'),
+        new WidgetReadModel('r2'),
+        new WidgetReadModel('r3'),
+    ]);
+
+    expect((new GetWidgetHandler($readRepo))->handle(new GetWidgetQuery('r2'))?->id)->toBe('r2');
+    expect((new GetWidgetHandler($readRepo))->handle(new GetWidgetQuery('nope')))->toBeNull();
+
+    $page = (new ListWidgetsHandler($readRepo))->handle(new ListWidgetsQuery(page: 2, perPage: 2));
+    expect($page->items)->toHaveCount(1)
+        ->and($page->items[0]->id)->toBe('r3')
+        ->and($page->meta()['total'])->toBe(3)
+        ->and($page->meta()['last_page'])->toBe(2);
 });

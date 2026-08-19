@@ -101,7 +101,7 @@ php artisan clean:context Billing
 php artisan clean:scaffold Billing Invoice   # add --id-type=ulid for ULID keys
 ```
 
-`clean:scaffold` generates **25 fully wired files** across all four layers, plus the migration, and wires the ServiceProvider bindings and the resource route automatically:
+`clean:scaffold` generates **27 fully wired files** across all four layers, plus the migration, and wires the ServiceProvider bindings and the resource route automatically:
 
 ```
 src/Billing/
@@ -126,6 +126,8 @@ src/Billing/
 │   ├── Models/InvoiceModel.php                  # HasUuids / HasUlids
 │   ├── InvoiceWriteEloquentRepository.php       # dispatches domain events
 │   ├── InvoiceReadEloquentRepository.php        # deterministic pagination
+│   ├── InMemoryInvoiceWriteRepository.php       # test double — no DB needed
+│   ├── InMemoryInvoiceReadRepository.php        # test double — no DB needed
 │   └── InvoiceMapper.php                        # Entity ↔ Model bridge
 └── Presentation/
     ├── Controllers/InvoiceController.php        # all 5 CQRS handlers wired
@@ -180,6 +182,26 @@ Then run the generated architecture tests — they now guard your dependency rul
 vendor/bin/pest tests/Feature/Architecture/
 ```
 
+### 4. Unit test your handlers — no database needed
+
+Every scaffold ships in-memory implementations of both repository ports, so your use cases are testable in microseconds:
+
+```php
+use Src\Billing\Application\Commands\CreateInvoice\{CreateInvoiceCommand, CreateInvoiceHandler};
+use Src\Billing\Domain\Events\InvoiceCreatedEvent;
+use Src\Billing\Infrastructure\InMemoryInvoiceWriteRepository;
+
+test('creating an invoice persists it and records the creation event', function () {
+    $repository = new InMemoryInvoiceWriteRepository;
+
+    (new CreateInvoiceHandler($repository))->handle(new CreateInvoiceCommand('inv-1', []));
+
+    $invoice = $repository->ofId('inv-1');
+    expect($invoice)->not->toBeNull()
+        ->and($invoice->releaseEvents()[0])->toBeInstanceOf(InvoiceCreatedEvent::class);
+});
+```
+
 ---
 
 ## Commands Reference
@@ -191,10 +213,10 @@ Names must be PascalCase (`Billing`, `Invoice`) and must not be PHP reserved wor
 | Command | Description | Output |
 |---------|-------------|--------|
 | `clean:context {name} [--routes=]` | Create bounded context with folders, ServiceProvider, routes, arch tests | Full folder structure |
-| `clean:scaffold {context} {name} [--id-type=]` | Scaffold full CRUD entity across all layers (wires controller, SP bindings, routes) | 25 files |
+| `clean:scaffold {context} {name} [--id-type=]` | Scaffold full CRUD entity across all layers (wires controller, SP bindings, routes) | 27 files |
 | `clean:entity {context} {name}` | Domain entity with factory method and event recording | `Domain/Entities/{Name}.php` |
 | `clean:model {context} {name} [--id-type=]` | Eloquent model with `HasUuids`/`HasUlids` and auto-computed table name | `Infrastructure/Models/{Name}Model.php` |
-| `clean:repository {context} {name}` | CQRS repositories (Write + Read interfaces, Eloquent impls, mapper) | 5 files |
+| `clean:repository {context} {name}` | CQRS repositories (Write + Read interfaces, Eloquent + in-memory impls, mapper) | 7 files |
 | `clean:read-model {context} {name}` | Standalone readonly read model | `Application/ReadModels/{Name}ReadModel.php` |
 | `clean:value-object {context} {name}` | Readonly value object with validation | `Domain/ValueObjects/{Name}.php` |
 | `clean:specification {context} {name}` | Composable specification with `and()`/`or()`/`not()` | `Domain/Specifications/{Name}Specification.php` |
@@ -403,6 +425,8 @@ Available stubs:
 | `read-repository.stub` | `clean:repository` | `{{Namespace}}`, `{{Class}}` |
 | `write-eloquent-repository.stub` | `clean:repository` | `{{Namespace}}`, `{{Class}}` |
 | `read-eloquent-repository.stub` | `clean:repository` | `{{Namespace}}`, `{{Class}}` |
+| `in-memory-write-repository.stub` | `clean:repository` | `{{Namespace}}`, `{{Class}}` |
+| `in-memory-read-repository.stub` | `clean:repository` | `{{Namespace}}`, `{{Class}}` |
 | `mapper.stub` | `clean:repository`, `clean:mapper` | `{{Namespace}}`, `{{Class}}` |
 | `value-object.stub` | `clean:value-object` | `{{Namespace}}`, `{{Class}}` |
 | `specification.stub` | `clean:specification` | `{{Namespace}}`, `{{Class}}` |

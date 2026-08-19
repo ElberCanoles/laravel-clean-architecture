@@ -1,13 +1,5 @@
 # Upgrade Guide
 
-## To Unreleased
-
-- **Domain events now dispatch after the transaction commits** (`DB::afterCommit()`): outside a transaction nothing changes; inside one, listeners run after the outermost commit and never on rollback. If a listener relied on running *before* the commit, adjust it.
-- **`PaginatedResult::meta()` now includes `last_page`** (additive), and the constructor rejects non-positive `page`/`perPage` and negative `total`.
-- **Newly generated entities record a `{Entity}CreatedEvent`** in `create()`; `clean:entity` generates the event class when missing. Entities regenerated with `--force` will reference it.
-- **Newly generated route files carry a name prefix** (`->name('billing.')`), so `route('billing.invoices.show')` works and names never collide across contexts. Existing route files are not touched.
-- **`list-query-handler.stub` was removed** (byte-identical to `query-handler.stub`). If you published and customized it, move the customization into `query-handler.stub`.
-
 This guide covers changes that may require action when upgrading. Remember that
 **stubs are templates**: changes to generated code never touch files you already
 generated — they apply when you generate new artifacts or re-run a generator
@@ -16,6 +8,15 @@ with `--force`. If you published custom stubs, re-publish after upgrading:
 ```bash
 php artisan vendor:publish --tag=clean-architecture-stubs --force
 ```
+
+## To 1.6
+
+- **Domain events now dispatch after the transaction commits** (`DB::afterCommit()`): outside a transaction nothing changes; inside one, listeners run after the outermost commit and never on rollback. If a listener relied on running *before* the commit, adjust it.
+- **`PaginatedResult::meta()` now includes `last_page`** (additive), and the constructor rejects non-positive `page`/`perPage` and negative `total`.
+- **Newly generated entities record a `{Entity}CreatedEvent`** in `create()`; `clean:entity` generates the event class when missing. Entities regenerated with `--force` will reference it.
+- **Newly generated route files carry a name prefix** (`->name('billing.')`), so `route('billing.invoices.show')` works and names never collide across contexts. Existing route files are not touched.
+- **`clean:repository` and the scaffold now also generate in-memory repositories** (additive — 2 extra files per entity).
+- **`list-query-handler.stub` was removed** (byte-identical to `query-handler.stub`). If you published and customized it, move the customization into `query-handler.stub`.
 
 ## To 1.5
 
