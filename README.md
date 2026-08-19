@@ -29,6 +29,7 @@ A Laravel package that provides scaffolding for **Domain-Driven Design (DDD)**, 
 - [Customizing Stubs](#customizing-stubs)
 - [Requirements](#requirements)
 - [Upgrading](#upgrading)
+- [Contributing](#contributing)
 - [Security](#security)
 - [License](#license)
 
@@ -443,6 +444,12 @@ Available stubs:
 ## Upgrading
 
 Breaking changes between versions are documented in [UPGRADING.md](UPGRADING.md). The full history lives in the [CHANGELOG](CHANGELOG.md).
+
+---
+
+## Contributing
+
+Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for the setup, the quality bar (`composer test` / `analyse` / `lint`), and how the stub and generator tests work. This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). Questions and ideas belong in [Discussions](https://github.com/ElberCanoles/laravel-clean-architecture/discussions).
 
 ---
 

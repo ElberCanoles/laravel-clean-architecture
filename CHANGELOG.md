@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com), and this 
 
 ## [Unreleased]
 
+### Added
+
+- **Community infrastructure** — `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1), issue form templates (bug report / feature request, with security and Discussions contact links), a pull request template, and weekly Dependabot updates for Composer and GitHub Actions
+- **Automated releases** — pushing a `v*` tag now publishes the GitHub release with the matching `CHANGELOG.md` section as notes
+
 ## [1.5.0] - 2026-08-19
 
 ### Added
