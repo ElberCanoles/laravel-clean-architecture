@@ -105,12 +105,12 @@ test('rejects invalid id_type config value', function () {
 
 test('rejects invalid name', function () {
     $this->artisan('clean:model', ['context' => 'Billing', 'name' => 'bad-name'])
-        ->expectsOutputToContain("Invalid name")
+        ->expectsOutputToContain('Invalid name')
         ->assertExitCode(2);
 });
 
 test('rejects invalid context', function () {
     $this->artisan('clean:model', ['context' => 'billing', 'name' => 'Invoice'])
-        ->expectsOutputToContain("Invalid context")
+        ->expectsOutputToContain('Invalid context')
         ->assertExitCode(2);
 });

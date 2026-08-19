@@ -95,7 +95,7 @@ test('overwrites files with --force', function () {
 
 test('rejects invalid context name', function () {
     $this->artisan('clean:context', ['name' => 'my-context'])
-        ->expectsOutputToContain("Invalid context")
+        ->expectsOutputToContain('Invalid context')
         ->assertExitCode(2);
 });
 
@@ -126,7 +126,7 @@ test('generates both route files with --routes=both', function () {
 
 test('rejects invalid --routes value', function () {
     $this->artisan('clean:context', ['name' => 'Billing', '--routes' => 'invalid'])
-        ->expectsOutputToContain("Invalid --routes value")
+        ->expectsOutputToContain('Invalid --routes value')
         ->assertExitCode(2);
 });
 

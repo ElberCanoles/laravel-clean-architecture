@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace CleanArchitecture\Console;
 
 use Illuminate\Support\Facades\File;
@@ -7,6 +9,7 @@ use Illuminate\Support\Facades\File;
 class MakeResource extends BaseGenerator
 {
     protected $signature = 'clean:resource {context} {name} {--force : Overwrite existing files}';
+
     protected $description = 'Create an API resource in the Presentation layer';
 
     public function handle(): int

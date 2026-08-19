@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace CleanArchitecture;
 
 use CleanArchitecture\Console\MakeArchTest;
@@ -22,6 +24,9 @@ use CleanArchitecture\Console\MakeSpecification;
 use CleanArchitecture\Console\MakeTest;
 use CleanArchitecture\Console\MakeValueObject;
 use CleanArchitecture\Kernel\ModuleLoader;
+use CleanArchitecture\Support\ProvidesHttpStatus;
+use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Http\Request;
 use Illuminate\Support\ServiceProvider;
 
 class CleanArchitectureServiceProvider extends ServiceProvider
@@ -41,6 +46,8 @@ class CleanArchitectureServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->registerDomainExceptionRenderer();
+
         if ($this->app->runningInConsole()) {
             $this->commands([
                 MakeBoundedContext::class,
@@ -72,6 +79,29 @@ class CleanArchitectureServiceProvider extends ServiceProvider
                 __DIR__ . '/../stubs' => base_path('stubs/clean-architecture'),
             ], 'clean-architecture-stubs');
         }
+    }
+
+    /**
+     * Render uncaught domain exceptions as JSON error responses so business
+     * rule violations do not surface as generic 500 errors.
+     */
+    protected function registerDomainExceptionRenderer(): void
+    {
+        $this->callAfterResolving(ExceptionHandler::class, function (ExceptionHandler $handler): void {
+            if (! method_exists($handler, 'renderable')) {
+                return;
+            }
+
+            $handler->renderable(function (\DomainException $e, Request $request) {
+                if (! config('clean-architecture.render_domain_exceptions', true) || ! $request->expectsJson()) {
+                    return null;
+                }
+
+                $status = $e instanceof ProvidesHttpStatus ? $e->httpStatus() : 422;
+
+                return response()->json(['message' => $e->getMessage()], $status);
+            });
+        });
     }
 
     protected function registerContextProviders(): void

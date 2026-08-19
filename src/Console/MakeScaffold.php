@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace CleanArchitecture\Console;
 
 use Illuminate\Support\Facades\File;
@@ -8,6 +10,7 @@ use Illuminate\Support\Str;
 class MakeScaffold extends BaseGenerator
 {
     protected $signature = 'clean:scaffold {context} {name} {--id-type= : Primary key type (uuid, ulid)} {--force : Overwrite existing files}';
+
     protected $description = 'Scaffold a full entity with repository, read model, CQRS, controller, request, resource, and sanitizer';
 
     public function handle(): int
@@ -85,6 +88,7 @@ class MakeScaffold extends BaseGenerator
                 'context' => $context,
                 'name' => $name,
                 '--entity' => $name,
+                '--id-type' => $idType,
                 '--force' => $force,
             ]],
             ['clean:request', [
@@ -133,7 +137,7 @@ class MakeScaffold extends BaseGenerator
         $spPath = base_path(config('clean-architecture.contexts_path') . "/$context/Infrastructure/{$context}ServiceProvider.php");
 
         if (! File::exists($spPath)) {
-            $this->warn("ServiceProvider not found — skipping binding wiring.");
+            $this->warn('ServiceProvider not found — skipping binding wiring.');
 
             return true;
         }
@@ -141,7 +145,7 @@ class MakeScaffold extends BaseGenerator
         $content = File::get($spPath);
 
         if (! str_contains($content, '// {bindings}')) {
-            $this->warn("No binding markers found in ServiceProvider — skipping wiring.");
+            $this->warn('No binding markers found in ServiceProvider — skipping wiring.');
 
             return true;
         }
@@ -160,7 +164,7 @@ class MakeScaffold extends BaseGenerator
             . "        \$this->app->bind(\n"
             . "            \\{$namespace}\\Application\\Contracts\\{$name}ReadRepository::class,\n"
             . "            \\{$namespace}\\Infrastructure\\{$name}ReadEloquentRepository::class,\n"
-            . "        );";
+            . '        );';
 
         $updated = preg_replace_callback(
             '/([ \t]*\/\/ \{bindings\}\n)(.*?)([ \t]*\/\/ \{\/bindings\})/s',

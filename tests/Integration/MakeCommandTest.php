@@ -61,15 +61,16 @@ test('creates create command with --crud=create', function () {
 
     $commandContent = file_get_contents("$base/CreateInvoiceCommand.php");
     expect($commandContent)
-        ->toContain('public array $data,')
-        ->not->toContain('public string $id,');
+        ->toContain('public string $id,')
+        ->toContain('public array $data,');
 
     $handlerContent = file_get_contents("$base/CreateInvoiceHandler.php");
     expect($handlerContent)
         ->toContain('use Src\Billing\Domain\Entities\Invoice;')
-        ->toContain('use Illuminate\Support\Str;')
-        ->toContain('Invoice::create((string) Str::uuid7())')
-        ->toContain('$this->repository->save($entity);');
+        ->toContain('Invoice::create($command->id)')
+        ->toContain('$this->repository->save($entity);')
+        // The id travels in the command — the Application layer stays framework-free
+        ->not->toContain('Illuminate');
 });
 
 test('creates update command with --crud=update', function () {
@@ -89,9 +90,15 @@ test('creates update command with --crud=update', function () {
 
     $handlerContent = file_get_contents("$base/UpdateInvoiceHandler.php");
     expect($handlerContent)
-        ->toContain('use Src\Billing\Domain\Entities\Invoice;')
+        ->toContain('use Src\Billing\Domain\Exceptions\InvoiceNotFound;')
         ->toContain('use Src\Billing\Domain\Repositories\InvoiceWriteRepository;')
-        ->toContain('// TODO: Load entity, apply changes from $command->data, persist via repository');
+        // Real load-guard-save flow instead of a silent no-op
+        ->toContain('$entity = $this->repository->ofId($command->id);')
+        ->toContain('throw InvoiceNotFound::withId($command->id);')
+        ->toContain('$this->repository->save($entity);')
+        ->not->toContain('use Src\Billing\Domain\Entities\Invoice;');
+
+    expect(file_exists($this->tempDir . '/Billing/Domain/Exceptions/InvoiceNotFound.php'))->toBeTrue();
 });
 
 test('creates delete command with --crud=delete', function () {
@@ -113,43 +120,55 @@ test('creates delete command with --crud=delete', function () {
     expect($handlerContent)
         ->toContain('use Src\Billing\Domain\Repositories\InvoiceWriteRepository;')
         ->not->toContain('use Src\Billing\Domain\Entities\Invoice;')
+        // Guards against deleting a missing aggregate instead of silently succeeding
+        ->toContain('if (! $this->repository->ofId($command->id))')
+        ->toContain('throw InvoiceNotFound::withId($command->id);')
         ->toContain('$this->repository->delete($command->id);');
 });
 
-test('create handler generates ULIDs with --id-type=ulid', function () {
+test('generated handlers never import the framework regardless of id type', function (string $idType) {
     $this->artisan('clean:command', [
         'context' => 'Billing',
         'name' => 'CreateInvoice',
         '--entity' => 'Invoice',
         '--crud' => 'create',
-        '--id-type' => 'ulid',
+        '--id-type' => $idType,
+        '--force' => true,
     ])->assertSuccessful();
 
     $handlerContent = file_get_contents(
         $this->tempDir . '/Billing/Application/Commands/CreateInvoice/CreateInvoiceHandler.php'
     );
 
-    expect($handlerContent)
-        ->toContain('use Illuminate\Support\Str;')
-        ->toContain('Invoice::create((string) Str::ulid())')
-        ->not->toContain('Str::uuid7()');
-});
+    expect($handlerContent)->not->toContain('Illuminate');
+})->with(['uuid', 'ulid']);
 
-test('create handler honours id_type config', function () {
-    config()->set('clean-architecture.id_type', 'ulid');
+test('update and delete do not duplicate the NotFound exception', function () {
+    $this->artisan('clean:command', [
+        'context' => 'Billing',
+        'name' => 'UpdateInvoice',
+        '--entity' => 'Invoice',
+        '--crud' => 'update',
+    ])->assertSuccessful();
+
+    $exceptionFile = $this->tempDir . '/Billing/Domain/Exceptions/InvoiceNotFound.php';
+    expect(file_exists($exceptionFile))->toBeTrue();
+    $original = file_get_contents($exceptionFile);
 
     $this->artisan('clean:command', [
         'context' => 'Billing',
-        'name' => 'CreateInvoice',
+        'name' => 'DeleteInvoice',
         '--entity' => 'Invoice',
-        '--crud' => 'create',
+        '--crud' => 'delete',
     ])->assertSuccessful();
 
-    $handlerContent = file_get_contents(
-        $this->tempDir . '/Billing/Application/Commands/CreateInvoice/CreateInvoiceHandler.php'
-    );
+    expect(file_get_contents($exceptionFile))->toBe($original);
 
-    expect($handlerContent)->toContain('Invoice::create((string) Str::ulid())');
+    $content = file_get_contents($exceptionFile);
+    expect($content)
+        ->toContain('final class InvoiceNotFound extends \DomainException implements ProvidesHttpStatus')
+        ->toContain('public function httpStatus(): int')
+        ->toContain('return 404;');
 });
 
 test('rejects invalid --id-type value on command', function () {
@@ -180,7 +199,7 @@ test('rejects invalid --crud value', function () {
         'name' => 'PayInvoice',
         '--crud' => 'invalid',
     ])
-        ->expectsOutputToContain("Invalid --crud value")
+        ->expectsOutputToContain('Invalid --crud value')
         ->assertExitCode(2);
 });
 
@@ -190,6 +209,6 @@ test('rejects invalid entity name', function () {
         'name' => 'PayInvoice',
         '--entity' => 'invalid-entity',
     ])
-        ->expectsOutputToContain("Invalid entity")
+        ->expectsOutputToContain('Invalid entity')
         ->assertExitCode(2);
 });

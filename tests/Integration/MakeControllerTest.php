@@ -18,8 +18,8 @@ test('creates controller in presentation layer', function () {
         ->toContain('public function index(Request $request): JsonResponse')
         ->toContain('public function show(string $id): JsonResponse')
         ->toContain('public function store(InvoiceRequest $request): JsonResponse')
-        ->toContain('public function update(InvoiceRequest $request, string $id): JsonResponse')
-        ->toContain('public function destroy(string $id): JsonResponse');
+        ->toContain('public function update(InvoiceRequest $request, string $id): Response')
+        ->toContain('public function destroy(string $id): Response');
 });
 
 test('warns when controller exists without --force', function () {
@@ -87,11 +87,16 @@ test('controller with --entity wires all CQRS handlers', function () {
         // show
         ->toContain('$this->getHandler->handle(new GetInvoiceQuery($id))')
         ->toContain('abort_if(! $readModel, 404)')
-        // store
+        // store — id generated at the edge, returned with a Location header
+        ->toContain('use Illuminate\Support\Str;')
+        ->toContain('$id = (string) Str::uuid7();')
         ->toContain('InvoiceSanitizer::sanitize($request->validated())')
-        ->toContain('$this->createHandler->handle(new CreateInvoiceCommand($sanitized))')
+        ->toContain('$this->createHandler->handle(new CreateInvoiceCommand($id, $sanitized))')
+        ->toContain("return response()->json(['id' => \$id], 201)")
+        ->toContain("->header('Location', \$request->url() . '/' . \$id)")
         // update
         ->toContain('$this->updateHandler->handle(new UpdateInvoiceCommand($id, $sanitized))')
+        ->toContain('return response()->noContent();')
         // destroy
         ->toContain('$this->deleteHandler->handle(new DeleteInvoiceCommand($id))');
 });

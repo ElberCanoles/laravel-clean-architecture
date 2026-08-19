@@ -58,7 +58,7 @@ test('rejects invalid entity name', function () {
         'name' => 'ListInvoices',
         '--entity' => 'bad entity',
     ])
-        ->expectsOutputToContain("Invalid entity")
+        ->expectsOutputToContain('Invalid entity')
         ->assertExitCode(2);
 });
 

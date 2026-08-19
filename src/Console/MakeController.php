@@ -1,12 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace CleanArchitecture\Console;
 
 use Illuminate\Support\Facades\File;
 
 class MakeController extends BaseGenerator
 {
-    protected $signature = 'clean:controller {context} {name} {--entity= : Entity name to wire CQRS handlers} {--force : Overwrite existing files}';
+    protected $signature = 'clean:controller {context} {name} {--entity= : Entity name to wire CQRS handlers} {--id-type= : Identifier type generated in store() (uuid, ulid)} {--force : Overwrite existing files}';
+
     protected $description = 'Create a controller in the Presentation layer';
 
     public function handle(): int
@@ -30,7 +33,12 @@ class MakeController extends BaseGenerator
         if ($entity) {
             $plural = $this->toPluralStudly($entity);
 
-            $imports = "use {$namespace}\\Application\\Commands\\Create{$entity}\\Create{$entity}Command;\n"
+            // The id is generated at the presentation edge and travels in the
+            // command, so Application handlers stay framework-free.
+            $idFactory = $this->idFactoryCall($this->resolveIdType());
+
+            $imports = "use Illuminate\\Support\\Str;\n"
+                . "use {$namespace}\\Application\\Commands\\Create{$entity}\\Create{$entity}Command;\n"
                 . "use {$namespace}\\Application\\Commands\\Create{$entity}\\Create{$entity}Handler;\n"
                 . "use {$namespace}\\Application\\Commands\\Update{$entity}\\Update{$entity}Command;\n"
                 . "use {$namespace}\\Application\\Commands\\Update{$entity}\\Update{$entity}Handler;\n"
@@ -54,19 +62,23 @@ class MakeController extends BaseGenerator
                 . "        ));\n\n"
                 . "        return {$entity}Resource::collection(\$result->items)\n"
                 . "            ->additional(['meta' => \$result->meta()])\n"
-                . "            ->response();";
+                . '            ->response();';
             $showBody = "\$readModel = \$this->getHandler->handle(new Get{$entity}Query(\$id));\n        abort_if(! \$readModel, 404);\n\n        return (new {$entity}Resource(\$readModel))->response();";
-            $storeBody = "\$sanitized = {$entity}Sanitizer::sanitize(\$request->validated());\n        \$this->createHandler->handle(new Create{$entity}Command(\$sanitized));\n\n        return response()->json([], 201);";
-            $updateBody = "\$sanitized = {$entity}Sanitizer::sanitize(\$request->validated());\n        \$this->updateHandler->handle(new Update{$entity}Command(\$id, \$sanitized));\n\n        return response()->json([]);";
-            $destroyBody = "\$this->deleteHandler->handle(new Delete{$entity}Command(\$id));\n\n        return response()->json([], 204);";
+            $storeBody = "\$id = (string) {$idFactory};\n"
+                . "        \$sanitized = {$entity}Sanitizer::sanitize(\$request->validated());\n"
+                . "        \$this->createHandler->handle(new Create{$entity}Command(\$id, \$sanitized));\n\n"
+                . "        return response()->json(['id' => \$id], 201)\n"
+                . "            ->header('Location', \$request->url() . '/' . \$id);";
+            $updateBody = "\$sanitized = {$entity}Sanitizer::sanitize(\$request->validated());\n        \$this->updateHandler->handle(new Update{$entity}Command(\$id, \$sanitized));\n\n        return response()->noContent();";
+            $destroyBody = "\$this->deleteHandler->handle(new Delete{$entity}Command(\$id));\n\n        return response()->noContent();";
         } else {
             $imports = '';
             $constructor = '// TODO: Inject command/query handlers';
             $indexBody = "// TODO: Implement list query using \$request->query('page') and \$request->query('per_page')\n        return response()->json([]);";
             $showBody = "// TODO: Implement show query\n        return response()->json([]);";
             $storeBody = "// TODO: Implement create command\n        return response()->json([], 201);";
-            $updateBody = "// TODO: Implement update command\n        return response()->json([]);";
-            $destroyBody = "// TODO: Implement delete command\n        return response()->json([], 204);";
+            $updateBody = "// TODO: Implement update command\n        return response()->noContent();";
+            $destroyBody = "// TODO: Implement delete command\n        return response()->noContent();";
         }
 
         $content = str_replace(

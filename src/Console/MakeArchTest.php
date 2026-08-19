@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace CleanArchitecture\Console;
 
 use Illuminate\Support\Facades\File;
@@ -7,6 +9,7 @@ use Illuminate\Support\Facades\File;
 class MakeArchTest extends BaseGenerator
 {
     protected $signature = 'clean:arch-test {context} {--force : Overwrite existing files}';
+
     protected $description = 'Create architecture tests for a bounded context';
 
     public function handle(): int

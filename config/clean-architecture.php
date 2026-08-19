@@ -36,6 +36,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Render Domain Exceptions
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, uncaught \DomainException instances thrown by your domain
+    | layer are rendered as JSON error responses on requests that expect JSON.
+    | Exceptions implementing CleanArchitecture\Support\ProvidesHttpStatus
+    | choose their own status code; any other \DomainException renders as 422.
+    |
+    */
+    'render_domain_exceptions' => true,
+
+    /*
+    |--------------------------------------------------------------------------
     | Auto-discover Contexts
     |--------------------------------------------------------------------------
     |

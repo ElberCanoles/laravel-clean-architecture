@@ -1,6 +1,9 @@
 <?php
 
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
+use Src\Runtime\Domain\Entities\Gadget;
+use Src\Runtime\Domain\Exceptions\GadgetNotFound;
 
 test('scaffolds all files for an entity', function () {
     $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice'])
@@ -120,7 +123,9 @@ test('scaffold wires controller with all CQRS handlers', function () {
         ->toContain('InvoiceResource::collection($result->items)')
         ->toContain('$this->getHandler->handle(new GetInvoiceQuery($id))')
         ->toContain('InvoiceSanitizer::sanitize($request->validated())')
-        ->toContain('$this->createHandler->handle(new CreateInvoiceCommand($sanitized))')
+        ->toContain('$id = (string) Str::uuid7();')
+        ->toContain('$this->createHandler->handle(new CreateInvoiceCommand($id, $sanitized))')
+        ->toContain("->header('Location', \$request->url() . '/' . \$id)")
         ->toContain('$this->updateHandler->handle(new UpdateInvoiceCommand($id, $sanitized))')
         ->toContain('$this->deleteHandler->handle(new DeleteInvoiceCommand($id))');
 });
@@ -134,7 +139,14 @@ test('scaffold wires crud-specific command constructors and handlers', function 
 
     $createHandler = file_get_contents($this->tempDir . '/Billing/Application/Commands/CreateInvoice/CreateInvoiceHandler.php');
     expect($createHandler)
-        ->toContain('Invoice::create((string) Str::uuid7())')
+        ->toContain('Invoice::create($command->id)')
+        ->toContain('$this->repository->save($entity);')
+        ->not->toContain('Illuminate');
+
+    $updateHandler = file_get_contents($this->tempDir . '/Billing/Application/Commands/UpdateInvoice/UpdateInvoiceHandler.php');
+    expect($updateHandler)
+        ->toContain('$entity = $this->repository->ofId($command->id);')
+        ->toContain('throw InvoiceNotFound::withId($command->id);')
         ->toContain('$this->repository->save($entity);');
 
     // Update command: string $id + array $data constructor
@@ -257,7 +269,7 @@ test('scaffold generates migration', function () {
     expect($content)
         ->toContain("Schema::create('invoices'")
         ->toContain("\$table->uuid('id')->primary()")
-        ->toContain("\$table->timestamps()");
+        ->toContain('$table->timestamps()');
 });
 
 test('scaffold warns when migration already exists', function () {
@@ -281,8 +293,8 @@ test('scaffold generates ULID migration, model and create handler with --id-type
         ->toContain('use HasUlids;')
         ->not->toContain('HasUuids');
 
-    expect(file_get_contents($this->tempDir . '/Billing/Application/Commands/CreateInvoice/CreateInvoiceHandler.php'))
-        ->toContain('Invoice::create((string) Str::ulid())')
+    expect(file_get_contents($this->tempDir . '/Billing/Presentation/Controllers/InvoiceController.php'))
+        ->toContain('$id = (string) Str::ulid();')
         ->not->toContain('Str::uuid7()');
 });
 
@@ -297,8 +309,8 @@ test('scaffold honours id_type config across every generated file', function () 
     expect(file_get_contents($migrations[0]))->toContain("\$table->ulid('id')->primary()");
     expect(file_get_contents($this->tempDir . '/Billing/Infrastructure/Models/InvoiceModel.php'))
         ->toContain('use HasUlids;');
-    expect(file_get_contents($this->tempDir . '/Billing/Application/Commands/CreateInvoice/CreateInvoiceHandler.php'))
-        ->toContain('Invoice::create((string) Str::ulid())');
+    expect(file_get_contents($this->tempDir . '/Billing/Presentation/Controllers/InvoiceController.php'))
+        ->toContain('$id = (string) Str::ulid();');
 });
 
 test('scaffold rejects invalid --id-type value', function () {
@@ -387,5 +399,51 @@ test('scaffold falls back to the fully qualified controller name when no import 
         ->expectsOutputToContain('Could not add the controller import');
 
     expect(file_get_contents($routeFile))
-        ->toContain("\\Src\\Billing\\Presentation\\Controllers\\InvoiceController::class");
+        ->toContain('\\Src\\Billing\\Presentation\\Controllers\\InvoiceController::class');
+});
+
+test('every scaffolded file is syntactically valid PHP', function () {
+    $this->artisan('clean:context', ['name' => 'Billing']);
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice', '--force' => true])
+        ->assertSuccessful();
+
+    $generated = collect(File::allFiles($this->tempDir))
+        ->map(fn ($file) => $file->getPathname())
+        ->merge(File::glob(database_path('migrations') . '/*_create_invoices_table.php'))
+        ->filter(fn (string $path) => str_ends_with($path, '.php'));
+
+    expect($generated->count())->toBeGreaterThanOrEqual(25);
+
+    foreach ($generated as $path) {
+        expect($path)->toBeValidPhp();
+    }
+});
+
+test('the scaffolded migration actually runs', function () {
+    config(['database.default' => 'testing']);
+
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice'])
+        ->assertSuccessful();
+
+    $this->artisan('migrate', ['--database' => 'testing'])->assertSuccessful();
+
+    expect(Schema::connection('testing')->hasTable('invoices'))->toBeTrue();
+    expect(Schema::connection('testing')->hasColumns('invoices', ['id', 'created_at', 'updated_at']))->toBeTrue();
+});
+
+test('the scaffolded entity and NotFound exception are executable', function () {
+    $this->artisan('clean:scaffold', ['context' => 'Runtime', 'name' => 'Gadget'])
+        ->assertSuccessful();
+
+    require_once $this->tempDir . '/Runtime/Domain/Entities/Gadget.php';
+    require_once $this->tempDir . '/Runtime/Domain/Exceptions/GadgetNotFound.php';
+
+    $entity = Gadget::create('gadget-1');
+    expect($entity->id())->toBe('gadget-1');
+    expect($entity->releaseEvents())->toBe([]);
+
+    $exception = GadgetNotFound::withId('gadget-1');
+    expect($exception)->toBeInstanceOf(DomainException::class)
+        ->and($exception->httpStatus())->toBe(404)
+        ->and($exception->getMessage())->toBe('Gadget with id [gadget-1] was not found.');
 });

@@ -9,6 +9,7 @@ use Orchestra\Testbench\TestCase as BaseTestCase;
 abstract class TestCase extends BaseTestCase
 {
     protected string $tempDir;
+
     protected string $relativeTempDir;
 
     protected function setUp(): void

@@ -1,11 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace {{Namespace}}\Domain\Repositories;
 
 use {{Namespace}}\Domain\Entities\{{Class}};
 
 interface {{Class}}WriteRepository
 {
+    public function ofId(string $id): ?{{Class}};
+
     public function save({{Class}} $entity): void;
 
     public function delete(string $id): void;

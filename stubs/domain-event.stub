@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace {{Namespace}}\Domain\Events;
 
 readonly class {{Class}}Event

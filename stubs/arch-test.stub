@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 test('{{Context}} domain does not depend on infrastructure', function () {
     expect('{{Namespace}}\Domain')
         ->toUseNothing()
@@ -20,6 +22,16 @@ test('{{Context}} application does not depend on presentation', function () {
 test('{{Context}} application does not depend on infrastructure', function () {
     expect('{{Namespace}}\Application')
         ->not->toUse('{{Namespace}}\Infrastructure');
+});
+
+test('{{Context}} application does not depend on the framework', function () {
+    expect('{{Namespace}}\Application')
+        ->not->toUse('Illuminate');
+});
+
+test('{{Context}} code declares strict types', function () {
+    expect('{{Namespace}}')
+        ->toUseStrictTypes();
 });
 
 test('{{Context}} entities are final classes', function () {

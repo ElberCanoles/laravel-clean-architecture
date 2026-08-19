@@ -9,7 +9,13 @@
       "role": "Developer"
     }
   ],
-  "keywords": ["laravel", "ddd", "clean-architecture", "cqrs", "bounded-context"],
+  "keywords": [
+    "laravel",
+    "ddd",
+    "clean-architecture",
+    "cqrs",
+    "bounded-context"
+  ],
   "homepage": "https://github.com/ElberCanoles/laravel-clean-architecture",
   "support": {
     "issues": "https://github.com/ElberCanoles/laravel-clean-architecture/issues",
@@ -40,16 +46,19 @@
   },
   "require-dev": {
     "orchestra/testbench": "^9.0|^10.0|^11.0",
-    "pestphp/pest": "^3.0",
-    "pestphp/pest-plugin-arch": "^3.0",
+    "pestphp/pest": "^3.8|^4.1|^5.0",
+    "pestphp/pest-plugin-arch": "^3.1|^4.0|^5.0",
     "phpstan/phpstan": "^2.0",
-    "larastan/larastan": "^3.0"
+    "larastan/larastan": "^3.0",
+    "laravel/pint": "^1.18"
   },
   "minimum-stability": "stable",
   "prefer-stable": true,
   "scripts": {
     "test": "pest",
-    "analyse": "phpstan analyse"
+    "analyse": "phpstan analyse",
+    "lint": "pint --test",
+    "fix": "pint"
   },
   "config": {
     "allow-plugins": {

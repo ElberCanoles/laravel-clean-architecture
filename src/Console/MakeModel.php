@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace CleanArchitecture\Console;
 
 use Illuminate\Support\Facades\File;
@@ -8,6 +10,7 @@ use Illuminate\Support\Str;
 class MakeModel extends BaseGenerator
 {
     protected $signature = 'clean:model {context} {name} {--id-type= : Primary key type (uuid, ulid)} {--force : Overwrite existing files}';
+
     protected $description = 'Create an Eloquent model in the Infrastructure layer';
 
     public function handle(): int

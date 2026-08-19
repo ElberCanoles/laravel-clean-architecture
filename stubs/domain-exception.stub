@@ -1,11 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace {{Namespace}}\Domain\Exceptions;
 
-class {{Class}}Exception extends \DomainException
+use CleanArchitecture\Support\ProvidesHttpStatus;
+
+class {{Class}}Exception extends \DomainException implements ProvidesHttpStatus
 {
     public static function withMessage(string $message): self
     {
         return new self($message);
+    }
+
+    public function httpStatus(): int
+    {
+        return 422;
     }
 }

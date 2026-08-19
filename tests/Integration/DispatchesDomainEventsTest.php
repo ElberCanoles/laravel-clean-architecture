@@ -7,9 +7,7 @@ use Illuminate\Support\Facades\Event;
 test('dispatches events from entity via event helper', function () {
     Event::fake();
 
-    $event = new class
-    {
-    };
+    $event = new class {};
 
     $entity = new class($event) implements HasDomainEvents
     {
@@ -47,9 +45,7 @@ test('dispatches events from entity via event helper', function () {
 test('does nothing when entity does not implement HasDomainEvents', function () {
     Event::fake();
 
-    $entity = new class
-    {
-    };
+    $entity = new class {};
 
     $repo = new class
     {
@@ -69,9 +65,7 @@ test('does nothing when entity does not implement HasDomainEvents', function () 
 test('clears events after dispatching to prevent double dispatch', function () {
     Event::fake();
 
-    $event = new class
-    {
-    };
+    $event = new class {};
 
     $entity = new class($event) implements HasDomainEvents
     {

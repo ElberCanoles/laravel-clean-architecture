@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace CleanArchitecture\Kernel;
 
+use Composer\Autoload\ClassLoader;
 use Illuminate\Support\Facades\File;
 
 class ModuleLoader
@@ -46,7 +49,7 @@ class ModuleLoader
         $namespacePrefix = config('clean-architecture.namespace_prefix', 'Src');
         $directories = File::directories($contextsPath);
 
-        /** @var \Composer\Autoload\ClassLoader $loader */
+        /** @var ClassLoader $loader */
         $loader = require base_path('vendor/autoload.php');
 
         foreach ($directories as $contextPath) {

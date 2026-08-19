@@ -8,11 +8,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com), and this 
 
 ### Added
 
+- **`ofId()` on write repositories** — generated `WriteRepository` interfaces and Eloquent implementations can now load an aggregate for a state-changing operation; `Mapper::toEntity()` and `Entity::fromPersistence()` are finally reachable
+- **Working update and delete flows** — `--crud=update` generates a real load-guard-save handler (previously a silent no-op that returned HTTP 200 without changing anything) and `--crud=delete` guards against missing aggregates; both throw a generated `{Entity}NotFound` domain exception (new `not-found-exception.stub`, auto-created when missing)
+- **Create responses return the new id** — generated `store()` produces the id at the presentation edge, passes it through the command, and responds `201` with `{"id": …}` plus a `Location` header
+- **Domain exception rendering** — uncaught `\DomainException`s render as JSON (`422` by default) on requests expecting JSON; exceptions implementing the new `CleanArchitecture\Support\ProvidesHttpStatus` interface choose their own status. Toggle with the new `render_domain_exceptions` config key
+- **Composable specifications** — new `Specification` interface plus `CompositeSpecification`, `AndSpecification`, `OrSpecification`, and `NotSpecification` in `CleanArchitecture\Support`; the specification stub now extends the base class
+- **`declare(strict_types=1)`** — in every package source file and every generated file (all 28 stubs)
+- **Two new generated architecture rules** (9 total) — Application must not depend on `Illuminate\*`, and all context code must declare strict types
+- **`--id-type` on `clean:controller`** — the controller now owns id generation, so the scaffold forwards the resolved strategy to it
+- **Generated-code verification in the suite** — a custom `toBeValidPhp()` expectation lints every scaffolded file with `php -l`, the scaffolded migration is executed against SQLite, and the generated entity/exception classes are loaded and exercised
+- **Laravel Pint** — `pint.json` (Laravel preset, house-style overrides) with `composer lint` / `composer fix` scripts, enforced in CI
+- **Two-axis CI matrix** — Laravel 11/12/13 × PHP 8.2–8.5 with the Testbench mapping and the official support-table exclusions, plus `--prefer-lowest`, a Windows leg, and a coverage job with a minimum threshold
 - **`SECURITY.md`** — vulnerabilities can now be reported privately through GitHub Security Advisories
 - **Reserved-word validation** — PHP keywords and reserved type names (`List`, `Class`, `Enum`, `String`, …) are rejected as context/entity names instead of generating uncompilable PHP
 - **`--force` description** — the flag is now documented in every command signature (`artisan help clean:*`)
 
 ### Changed
+
+- **Create commands now carry `public string $id`** — the id is generated in the controller (`Str::uuid7()`/`Str::ulid()`) instead of inside the Application handler, removing the `Illuminate\Support\Str` dependency from the Application layer entirely
+- **Generated `update()`/`destroy()` respond `204 No Content`** — via `response()->noContent()` with `Response` return types, instead of empty JSON bodies
+- **Specification stub no longer emits anonymous-class composition** — the old `and(self $other): static` implementation could not compose different specification classes and crashed with a `TypeError` on three-term chains
+- **Dev tooling modernized** — Pest widened to `^3.8|^4.1|^5.0` (each CI leg resolves the best major for its PHP; removes the `setAccessible()` deprecation noise on PHP 8.5), and `phpunit.xml` now declares test suites, a coverage `<source>`, and `failOnDeprecation`
 
 - **Commands return real exit codes** — validation errors print a clean console error and exit with code 2 (`INVALID`) instead of an uncaught stack trace; a skipped write (file exists without `--force`) or a failed write exits with code 1 (`FAILURE`); `clean:scaffold` propagates sub-command failures and reports "completed with warnings" instead of claiming success
 - **`clean:scaffold --force` overwrites the existing migration in place** — previously it stacked a second `create_*_table` migration with a fresh timestamp, breaking `php artisan migrate` with a duplicate table error

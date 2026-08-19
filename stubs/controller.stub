@@ -1,11 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace {{Namespace}}\Presentation\Controllers;
 
 {{ControllerImports}}use {{Namespace}}\Presentation\Requests\{{Class}}Request;
 use {{Namespace}}\Presentation\Resources\{{Class}}Resource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 
 class {{Class}}Controller extends Controller
@@ -30,12 +33,12 @@ class {{Class}}Controller extends Controller
         {{StoreBody}}
     }
 
-    public function update({{Class}}Request $request, string $id): JsonResponse
+    public function update({{Class}}Request $request, string $id): Response
     {
         {{UpdateBody}}
     }
 
-    public function destroy(string $id): JsonResponse
+    public function destroy(string $id): Response
     {
         {{DestroyBody}}
     }

@@ -268,6 +268,7 @@ use Src\Billing\Domain\Entities\Invoice;
 
 interface InvoiceWriteRepository
 {
+    public function ofId(string $id): ?Invoice;
     public function save(Invoice $entity): void;
     public function delete(string $id): void;
 }
@@ -304,19 +305,18 @@ interface InvoiceReadRepository
 ```php
 namespace Src\Billing\Domain\Specifications;
 
-class InvoiceOverdueSpecification
+use CleanArchitecture\Support\CompositeSpecification;
+
+class InvoiceOverdueSpecification extends CompositeSpecification
 {
     public function isSatisfiedBy(mixed $candidate): bool
     {
         // Business rule: is this invoice past its due date?
     }
-
-    public function and(self $other): static { /* ... */ }
-    public function or(self $other): static { /* ... */ }
-    public function not(): static { /* ... */ }
 }
 
-// Compose specifications:
+// and()/or()/not() come from CompositeSpecification and return real
+// composite objects, so specifications of different classes compose freely:
 // $overdue->and($highValue)->or($flagged->not())
 ```
 
@@ -357,12 +357,15 @@ A **Command** represents an intention to change state. It is a simple DTO (Data 
 readonly class CreateInvoiceCommand
 {
     public function __construct(
+        public string $id,
         public array $data,
     ) {
     }
 }
 
-// Create handler — creates entity via factory method, saves via repository
+// Create handler — creates entity via factory method, saves via repository.
+// The id is generated at the presentation edge and travels in the command,
+// so the Application layer never imports the framework.
 class CreateInvoiceHandler
 {
     public function __construct(
@@ -372,13 +375,15 @@ class CreateInvoiceHandler
 
     public function handle(CreateInvoiceCommand $command): void
     {
-        $entity = Invoice::create((string) Str::uuid7());
+        $entity = Invoice::create($command->id);
+
+        // TODO: Apply $command->data to the entity before saving
         $this->repository->save($entity);
     }
 }
 ```
 
-> With `id_type` set to `ulid` (or `--id-type=ulid`), the handler generates `Str::ulid()` instead. See [Identifier Strategy](#the---id-type-flag).
+> The generated controller produces the id with `Str::uuid7()` (or `Str::ulid()` with `--id-type=ulid`) and returns it in the `201` response with a `Location` header. See [Identifier Strategy](#the---id-type-flag).
 
 ```php
 // Delete command — receives entity id
@@ -532,6 +537,13 @@ use Src\Billing\Infrastructure\Models\InvoiceModel;
 class InvoiceWriteEloquentRepository implements InvoiceWriteRepository
 {
     use DispatchesDomainEvents;
+
+    public function ofId(string $id): ?Invoice
+    {
+        $model = InvoiceModel::query()->find($id);
+
+        return $model ? InvoiceMapper::toEntity($model) : null;
+    }
 
     public function save(Invoice $entity): void
     {
@@ -736,22 +748,27 @@ class InvoiceController extends Controller
 
     public function store(InvoiceRequest $request): JsonResponse
     {
+        $id = (string) Str::uuid7();
         $sanitized = InvoiceSanitizer::sanitize($request->validated());
-        $this->createHandler->handle(new CreateInvoiceCommand($sanitized));
-        return response()->json([], 201);
+        $this->createHandler->handle(new CreateInvoiceCommand($id, $sanitized));
+
+        return response()->json(['id' => $id], 201)
+            ->header('Location', $request->url() . '/' . $id);
     }
 
-    public function update(InvoiceRequest $request, string $id): JsonResponse
+    public function update(InvoiceRequest $request, string $id): Response
     {
         $sanitized = InvoiceSanitizer::sanitize($request->validated());
         $this->updateHandler->handle(new UpdateInvoiceCommand($id, $sanitized));
-        return response()->json([]);
+
+        return response()->noContent();
     }
 
-    public function destroy(string $id): JsonResponse
+    public function destroy(string $id): Response
     {
         $this->deleteHandler->handle(new DeleteInvoiceCommand($id));
-        return response()->json([], 204);
+
+        return response()->noContent();
     }
 }
 ```
@@ -894,7 +911,7 @@ php artisan clean:context Billing
 php artisan clean:scaffold Billing Invoice
 ```
 
-This generates **22+ fully wired files**: entity (with `HasDomainEvents` interface, private constructor, `create()` and `fromPersistence()` factory methods), Eloquent model (`HasUuids`, or `HasUlids` with `--id-type=ulid`), CQRS repositories (write + read with real Eloquent code and `PaginatedResult`), mapper (uses `fromPersistence()` for reconstitution), read model, commands (`CreateInvoice` with `array $data` and `Str::uuid7()`, `UpdateInvoice` with `string $id` + `array $data`, `DeleteInvoice` with `string $id`) with CRUD-specific handlers, queries (`GetInvoice` with nullable return, `ListInvoices` returning `PaginatedResult`) with handlers wired to `InvoiceReadRepository`, controller with all 5 handlers injected and working `index()` (with request-driven pagination + metadata)/`show()`/`store()`/`update()`/`destroy()` methods, request, resource, sanitizer (with `...$data` pass-through), and a database migration. Write repositories dispatch domain events automatically via the `HasDomainEvents` interface. If a bounded context exists, the scaffold also **wires the ServiceProvider bindings** and **registers a resource route** automatically (`apiResource` for API, `resource` for web).
+This generates **24 fully wired files**: entity (with `HasDomainEvents` interface, private constructor, `create()` and `fromPersistence()` factory methods), Eloquent model (`HasUuids`, or `HasUlids` with `--id-type=ulid`), CQRS repositories (write with `ofId()` + read with real Eloquent code and `PaginatedResult`), mapper (uses `fromPersistence()` for reconstitution), read model, a `{Entity}NotFound` domain exception (renders as HTTP 404), commands (`CreateInvoice` with `string $id` + `array $data`, `UpdateInvoice` with a real load-guard-save flow, `DeleteInvoice` guarding against missing aggregates) with CRUD-specific handlers, queries (`GetInvoice` with nullable return, `ListInvoices` returning `PaginatedResult`) with handlers wired to `InvoiceReadRepository`, controller with all 5 handlers injected and working `index()` (with request-driven pagination + metadata)/`show()`/`store()`/`update()`/`destroy()` methods, request, resource, sanitizer (with `...$data` pass-through), and a database migration. Write repositories dispatch domain events automatically via the `HasDomainEvents` interface. If a bounded context exists, the scaffold also **wires the ServiceProvider bindings** and **registers a resource route** automatically (`apiResource` for API, `resource` for web).
 
 ### Option B: Generate piece by piece
 
@@ -1002,7 +1019,7 @@ Names must be PascalCase (`Billing`, `Invoice`) and must not be PHP reserved wor
 | Command | Description | Output |
 |---------|-------------|--------|
 | `clean:context {name} [--routes=]` | Create bounded context with folders, ServiceProvider, routes, arch tests | Full folder structure |
-| `clean:scaffold {context} {name} [--id-type=]` | Scaffold full CRUD entity across all layers (wires controller, SP bindings, routes) | 22+ files |
+| `clean:scaffold {context} {name} [--id-type=]` | Scaffold full CRUD entity across all layers (wires controller, SP bindings, routes) | 24 files |
 | `clean:entity {context} {name}` | Domain entity with factory method and event recording | `Domain/Entities/{Name}.php` |
 | `clean:model {context} {name} [--id-type=]` | Eloquent model with `HasUuids`/`HasUlids` and auto-computed table name | `Infrastructure/Models/{Name}Model.php` |
 | `clean:repository {context} {name}` | CQRS repositories (Write + Read interfaces, Eloquent impls, mapper) | 5 files |
@@ -1043,22 +1060,24 @@ Without `--entity`, the generated files get TODO placeholders instead. The `clea
 The `clean:command` command accepts a `--crud` flag that generates CRUD-specific command constructors and handler bodies:
 
 ```bash
-# Constructor: array $data — Handler: Entity::create() + repository->save()
+# Constructor: string $id + array $data — Handler: Entity::create($command->id) + repository->save()
 php artisan clean:command Billing CreateInvoice --entity=Invoice --crud=create
 
-# Constructor: string $id + array $data — Handler: TODO (load entity, apply changes)
+# Constructor: string $id + array $data — Handler: ofId() → throw NotFound → save()
 php artisan clean:command Billing UpdateInvoice --entity=Invoice --crud=update
 
-# Constructor: string $id — Handler: repository->delete($command->id)
+# Constructor: string $id — Handler: ofId() guard → repository->delete($command->id)
 php artisan clean:command Billing DeleteInvoice --entity=Invoice --crud=delete
 ```
 
 | `--crud` value | Constructor | Handler body |
 |---------------|-------------|-------------|
-| `create` | `public array $data` | Creates entity via factory method + saves |
-| `update` | `public string $id, public array $data` | TODO: load, apply changes, persist |
-| `delete` | `public string $id` | `$this->repository->delete($command->id)` |
+| `create` | `public string $id, public array $data` | Creates entity via factory method + saves |
+| `update` | `public string $id, public array $data` | Loads via `ofId()`, throws `{Entity}NotFound`, saves |
+| `delete` | `public string $id` | Guards via `ofId()`, throws `{Entity}NotFound`, deletes |
 | _(none)_ | `public string $id` | TODO placeholder |
+
+> `update` and `delete` also generate a `Domain/Exceptions/{Entity}NotFound` exception (if missing), which the package renders as an HTTP 404 JSON response out of the box.
 
 The `clean:scaffold` command passes `--crud` automatically to each command (`create`, `update`, `delete`).
 
@@ -1075,7 +1094,7 @@ The `clean:scaffold` command uses this flag automatically for the `ListEntities`
 
 ### The `--id-type` flag
 
-The package supports two identifier strategies for generated models, migrations, and create handlers: `uuid` (default) and `ulid`.
+The package supports two identifier strategies for generated models, migrations, and controllers: `uuid` (default) and `ulid`. Accepted by `clean:scaffold`, `clean:model`, `clean:controller`, and `clean:command`.
 
 ```bash
 # UUIDv7 keys — the default
@@ -1085,10 +1104,12 @@ php artisan clean:scaffold Billing Invoice
 php artisan clean:scaffold Billing Invoice --id-type=ulid
 ```
 
-| `--id-type` | Eloquent model | Migration | Create handler |
-|-------------|----------------|-----------|----------------|
-| `uuid` _(default)_ | `use HasUuids;` | `$table->uuid('id')->primary()` | `Entity::create((string) Str::uuid7())` |
-| `ulid` | `use HasUlids;` | `$table->ulid('id')->primary()` | `Entity::create((string) Str::ulid())` |
+| `--id-type` | Eloquent model | Migration | Controller `store()` |
+|-------------|----------------|-----------|----------------------|
+| `uuid` _(default)_ | `use HasUuids;` | `$table->uuid('id')->primary()` | `$id = (string) Str::uuid7();` |
+| `ulid` | `use HasUlids;` | `$table->ulid('id')->primary()` | `$id = (string) Str::ulid();` |
+
+> The id is generated in the controller and travels in the create command, keeping the Application layer framework-free (and letting the arch tests enforce it).
 
 Both are time-ordered, so either choice keeps primary keys index-friendly. ULIDs are shorter (26 chars vs 36) and are lexicographically sortable as strings.
 
@@ -1126,6 +1147,7 @@ The ServiceProvider loads both `api.php` and `web.php` automatically if they exi
 | `id_type` | `uuid` | Identifier strategy for models, migrations and create handlers (`uuid` or `ulid`) |
 | `auto_discover` | `true` | Auto-register `{Context}ServiceProvider` from each context |
 | `auto_load` | `true` | Auto-register PSR-4 autoloading for all `src/` contexts |
+| `render_domain_exceptions` | `true` | Render uncaught `\DomainException`s as JSON (`422`, or the status from `ProvidesHttpStatus`) on requests expecting JSON |
 | `arch_tests_path` | `tests/Feature/Architecture` | Where generated architecture tests are stored |
 | `unit_tests_path` | `tests/Unit/Domain` | Where generated domain unit tests are stored |
 
@@ -1161,7 +1183,7 @@ Src\Shipping\   --> src/Shipping/
 
 The `clean:context` and `clean:arch-test` commands generate Pest architecture tests that **enforce DDD dependency rules** automatically.
 
-Generated tests for each context (7 rules):
+Generated tests for each context (9 rules):
 
 | Test | What it enforces |
 |------|-----------------|
@@ -1169,6 +1191,8 @@ Generated tests for each context (7 rules):
 | Domain does not depend on Application | Domain never calls use cases or handlers |
 | Application does not depend on Presentation | Use cases never reference controllers or requests |
 | Application does not depend on Infrastructure | Use cases never reference Eloquent or providers |
+| Application does not depend on the framework | Use cases never import `Illuminate\*` — the Dependency Rule, enforced |
+| Code declares strict types | Every file in the context uses `declare(strict_types=1)` |
 | Entities are final classes | Prevents inheritance that could break invariants |
 | Repositories in Domain are interfaces | Domain defines contracts, never implementations |
 | Value Objects are readonly | Guarantees immutability |
@@ -1219,6 +1243,7 @@ Available stubs:
 | `list-query-handler.stub` | `clean:query --collection` | `{{Namespace}}`, `{{Class}}`, `{{EntityImport}}`, `{{EntityConstructor}}`, `{{ReturnType}}`, `{{HandlerBody}}` |
 | `domain-event.stub` | `clean:domain-event` | `{{Namespace}}`, `{{Class}}` |
 | `domain-exception.stub` | `clean:exception` | `{{Namespace}}`, `{{Class}}` |
+| `not-found-exception.stub` | `clean:command --crud=update\|delete`, `clean:scaffold` | `{{Namespace}}`, `{{Class}}` |
 | `sanitizer.stub` | `clean:sanitizer` | `{{Namespace}}`, `{{Class}}` |
 | `unit-test.stub` | `clean:test` | `{{Namespace}}`, `{{Class}}` |
 | `service-provider.stub` | `clean:context` | `{{Namespace}}`, `{{Context}}`, `// {bindings}` / `// {/bindings}` markers |

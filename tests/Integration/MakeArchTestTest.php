@@ -15,6 +15,9 @@ test('creates architecture test file with correct content', function () {
         ->toContain('Billing domain does not depend on application layer')
         ->toContain('Billing application does not depend on presentation')
         ->toContain('Billing application does not depend on infrastructure')
+        ->toContain('Billing application does not depend on the framework')
+        ->toContain('Billing code declares strict types')
+        ->toContain('->toUseStrictTypes()')
         ->toContain('Billing entities are final classes')
         ->toContain('Billing repositories in domain are interfaces')
         ->toContain('Billing value objects are readonly');

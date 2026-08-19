@@ -35,25 +35,25 @@ test('overwrites entity file with --force', function () {
 
 test('rejects lowercase context name', function () {
     $this->artisan('clean:entity', ['context' => 'billing', 'name' => 'Invoice'])
-        ->expectsOutputToContain("Invalid context")
+        ->expectsOutputToContain('Invalid context')
         ->assertExitCode(2);
 });
 
 test('rejects context name with special characters', function () {
     $this->artisan('clean:entity', ['context' => 'My-Context', 'name' => 'Invoice'])
-        ->expectsOutputToContain("Invalid context")
+        ->expectsOutputToContain('Invalid context')
         ->assertExitCode(2);
 });
 
 test('rejects name starting with number', function () {
     $this->artisan('clean:entity', ['context' => 'Billing', 'name' => '123Entity'])
-        ->expectsOutputToContain("Invalid name")
+        ->expectsOutputToContain('Invalid name')
         ->assertExitCode(2);
 });
 
 test('rejects name with spaces', function () {
     $this->artisan('clean:entity', ['context' => 'Billing', 'name' => 'My Entity'])
-        ->expectsOutputToContain("Invalid name")
+        ->expectsOutputToContain('Invalid name')
         ->assertExitCode(2);
 });
 

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace CleanArchitecture\Support;
 
 /** @template T */
@@ -13,8 +15,7 @@ readonly class PaginatedResult
         public int $total,
         public int $page,
         public int $perPage,
-    ) {
-    }
+    ) {}
 
     /** @return array{total: int, page: int, per_page: int} */
     public function meta(): array

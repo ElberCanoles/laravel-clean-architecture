@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace {{Namespace}}\Infrastructure;
 
 use CleanArchitecture\Support\DispatchesDomainEvents;
@@ -10,6 +12,13 @@ use {{Namespace}}\Infrastructure\Models\{{Class}}Model;
 class {{Class}}WriteEloquentRepository implements {{Class}}WriteRepository
 {
     use DispatchesDomainEvents;
+
+    public function ofId(string $id): ?{{Class}}
+    {
+        $model = {{Class}}Model::query()->find($id);
+
+        return $model ? {{Class}}Mapper::toEntity($model) : null;
+    }
 
     public function save({{Class}} $entity): void
     {

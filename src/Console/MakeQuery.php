@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace CleanArchitecture\Console;
 
 use Illuminate\Support\Facades\File;
@@ -7,6 +9,7 @@ use Illuminate\Support\Facades\File;
 class MakeQuery extends BaseGenerator
 {
     protected $signature = 'clean:query {context} {name} {--entity= : Entity name to inject ReadRepository} {--collection : Generate a list/collection query} {--force : Overwrite existing files}';
+
     protected $description = 'Create a CQRS query with handler';
 
     public function handle(): int

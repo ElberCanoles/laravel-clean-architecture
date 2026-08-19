@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace {{Namespace}}\Application\Commands\{{Class}};
 
 readonly class {{Class}}Command

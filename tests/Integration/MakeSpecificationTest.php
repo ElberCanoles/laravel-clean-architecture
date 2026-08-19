@@ -10,11 +10,12 @@ test('creates specification with correct content', function () {
     $content = file_get_contents($file);
     expect($content)
         ->toContain('namespace Src\Billing\Domain\Specifications;')
-        ->toContain('class InvoiceOverdueSpecification')
+        ->toContain('use CleanArchitecture\Support\CompositeSpecification;')
+        ->toContain('class InvoiceOverdueSpecification extends CompositeSpecification')
         ->toContain('public function isSatisfiedBy(mixed $candidate): bool')
-        ->toContain('public function and(self $other): static')
-        ->toContain('public function or(self $other): static')
-        ->toContain('public function not(): static');
+        // Composition now lives in the shared CompositeSpecification base —
+        // the broken anonymous-class and()/or()/not() are gone from the stub.
+        ->not->toContain('new class');
 });
 
 test('warns when specification file exists without --force', function () {

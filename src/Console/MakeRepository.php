@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace CleanArchitecture\Console;
 
 use Illuminate\Support\Facades\File;
@@ -7,6 +9,7 @@ use Illuminate\Support\Facades\File;
 class MakeRepository extends BaseGenerator
 {
     protected $signature = 'clean:repository {context} {name} {--force : Overwrite existing files}';
+
     protected $description = 'Create CQRS repository interfaces and Eloquent implementations with mapper';
 
     public function handle(): int
