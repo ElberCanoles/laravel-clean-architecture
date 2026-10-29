@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use CleanArchitecture\Kernel\PackageConfig;
 use CleanArchitecture\Tests\TestCase;
 use Illuminate\Support\Facades\File;
 use PHPUnit\Framework\Assert;
@@ -40,7 +41,7 @@ expect()->extend('toBeValidPhp', function () {
 
 function publishStub(string $name, string $contents): void
 {
-    $dir = base_path('stubs/clean-architecture');
+    $dir = base_path(PackageConfig::stubsPath());
     File::makeDirectory($dir, 0755, true, true);
     File::put("$dir/$name.stub", $contents);
 }

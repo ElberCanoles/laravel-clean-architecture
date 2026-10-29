@@ -1,5 +1,6 @@
 <?php
 
+use CleanArchitecture\Kernel\PackageConfig;
 use Illuminate\Support\Facades\File;
 
 /**
@@ -7,7 +8,7 @@ use Illuminate\Support\Facades\File;
  * {{IdTrait}} / {{idType}} placeholders, so --id-type would be silently dropped.
  */
 afterEach(function () {
-    File::deleteDirectory(base_path('stubs/clean-architecture'));
+    File::deleteDirectory(base_path(PackageConfig::stubsPath()));
 });
 
 test('warns when a custom model stub has no IdTrait placeholder', function () {

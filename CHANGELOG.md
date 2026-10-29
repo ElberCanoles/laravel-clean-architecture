@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com), and this 
 
 ## [Unreleased]
 
+### Changed
+
+- **`clean:cache` resolves its manifest through `bootstrapPath()`** — like Laravel's own caches, so an application that relocates its bootstrap directory with `useBootstrapPath()` keeps the context manifest next to them (unchanged for everyone else: `bootstrap/cache/clean-architecture.php`)
+
+### Fixed
+
+- **The test suite is parallel-safe** — every test now gets its own database, bootstrap, and stubs paths inside its temp directory, so `pest --parallel` and the mutation-testing job no longer trip over migrations, manifests, or published stubs shared between processes
+
 ## [2.1.0] - 2026-10-29
 
 ### Added

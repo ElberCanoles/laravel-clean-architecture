@@ -20,9 +20,13 @@ class ModuleLoader
         self::$contexts = null;
     }
 
+    /**
+     * Lives next to Laravel's own caches, so an app that relocates its
+     * bootstrap directory (useBootstrapPath) keeps the manifest with them.
+     */
     public static function manifestPath(): string
     {
-        return base_path('bootstrap/cache/clean-architecture.php');
+        return app()->bootstrapPath('cache/clean-architecture.php');
     }
 
     /**
