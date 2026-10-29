@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com), and this 
 
 ### Changed
 
+- **Mutation testing gates `main`** — the CI job now requires a mutation score of at least 80% (first measured: 81.17%, 1434 mutations); `composer test:mutate` enforces the same threshold
 - **`clean:cache` resolves its manifest through `bootstrapPath()`** — like Laravel's own caches, so an application that relocates its bootstrap directory with `useBootstrapPath()` keeps the context manifest next to them (unchanged for everyone else: `bootstrap/cache/clean-architecture.php`)
 
 ### Fixed

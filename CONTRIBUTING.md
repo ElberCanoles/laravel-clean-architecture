@@ -24,7 +24,8 @@ composer lint      # Laravel Pint (fix automatically with: composer fix)
 CI additionally runs the full support matrix (Laravel 12–13 × PHP 8.2–8.5),
 `--prefer-lowest`, Windows, `composer audit`, and a coverage threshold — a green
 local run is usually enough, but the matrix has the final word. Pushes to `main`
-also run Pest's mutation testing (`composer test:mutate`) as an informational job.
+also run Pest's mutation testing (`composer test:mutate`), which must keep the
+mutation score at 80% or above.
 
 PHPUnit reads `phpunit.xml.dist`; copy it to `phpunit.xml` (git-ignored) for
 local-only overrides.

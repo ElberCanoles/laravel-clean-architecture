@@ -190,12 +190,11 @@ jobs:
         run: vendor/bin/pint --test
 
   mutation:
-    # Informational: reports the mutation score on every push to main without
-    # gating the build. Once the score settles, add --min=<score> to make it a gate.
+    # Gate: every push to main must keep the mutation score at 80% or above
+    # (first measured score: 81.17% on 2026-10-29).
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    name: Mutation testing (informational)
-    continue-on-error: true
+    name: Mutation testing
     timeout-minutes: 30
 
     steps:
@@ -214,4 +213,4 @@ jobs:
           composer-options: --prefer-dist
 
       - name: Run mutation testing
-        run: vendor/bin/pest --mutate --parallel --everything --covered-only
+        run: vendor/bin/pest --mutate --parallel --everything --covered-only --min=80
