@@ -6,9 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com), and this 
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-10-29
+
 ### Changed
 
-- **Mutation testing gates `main`** — the CI job now requires a mutation score of at least 80% (first measured: 81.17%, 1434 mutations); `composer test:mutate` enforces the same threshold
+- **Mutation testing gates `main`** — the CI job now requires a mutation score of at least 80% (93% at release time, 1439 mutations); `composer test:mutate` enforces the same threshold
 - **`clean:cache` resolves its manifest through `bootstrapPath()`** — like Laravel's own caches, so an application that relocates its bootstrap directory with `useBootstrapPath()` keeps the context manifest next to them (unchanged for everyone else: `bootstrap/cache/clean-architecture.php`)
 
 ### Fixed
@@ -318,7 +320,8 @@ Defaults are unchanged: without `id_type` or `--id-type`, generators keep emitti
 | `arch_tests_path` | `tests/Feature/Architecture` | Where architecture tests are generated |
 | `unit_tests_path` | `tests/Unit/Domain` | Where domain unit tests are generated |
 
-[Unreleased]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v2.1.1...HEAD
+[2.1.1]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v1.6.0...v2.0.0
 [1.6.0]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v1.5.0...v1.6.0

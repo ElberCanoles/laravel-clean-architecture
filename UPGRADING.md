@@ -9,6 +9,10 @@ with `--force`. If you published custom stubs, re-publish after upgrading:
 php artisan vendor:publish --tag=clean-architecture-stubs --force
 ```
 
+## To 2.1.1
+
+Nothing breaks. The context manifest written by `clean:cache` now lives under the application's bootstrap path, like Laravel's own caches. Only applications that relocate that directory with `useBootstrapPath()` notice: run `php artisan clean:cache` (or `optimize`) once after deploying so the manifest is rebuilt in its new place; the old file under `bootstrap/cache/` is ignored and can be deleted.
+
 ## To 2.1
 
 Nothing breaks. Worth knowing:
