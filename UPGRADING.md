@@ -9,6 +9,16 @@ with `--force`. If you published custom stubs, re-publish after upgrading:
 php artisan vendor:publish --tag=clean-architecture-stubs --force
 ```
 
+## To 2.1
+
+Nothing breaks. Worth knowing:
+
+- **Regenerated architecture tests carry two more rules.** New contexts, and `clean:arch-test --force`, now also assert that `Presentation` never uses `Infrastructure` and that `Infrastructure\Models` is only used from inside `Infrastructure`. A controller (or another context) that queries an Eloquent model directly will fail the regenerated test until the access goes through a repository or read model. Existing test files are not touched.
+- **`clean:factory` now edits the Eloquent model** to add `HasFactory` and `#[UseFactory({Entity}ModelFactory::class)]`, so `{Entity}Model::factory()` works. It skips models that already carry the attribute and leaves files it cannot parse untouched (with a warning).
+- **Generated models declare casts through the `casts()` method.** Existing `$casts` properties keep working; the stub change applies to new generations and `--force` re-runs.
+- **`php artisan optimize` now runs `clean:cache`** (and `optimize:clear` runs `clean:clear`). Deploy scripts that called it separately can drop the extra step — keeping it is harmless.
+- **`composer.json` requires `laravel/framework`** (`^12.0|^13.0`) instead of `illuminate/console` + `illuminate/support`. No action needed in a Laravel application.
+
 ## To 2.0
 
 ### Requirements

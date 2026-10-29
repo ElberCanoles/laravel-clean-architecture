@@ -177,3 +177,41 @@ test('events are discarded when the transaction rolls back', function () {
 
     Event::assertNotDispatched(get_class($event));
 });
+
+test('events are deferred on non-default connections too', function () {
+    // Laravel's transactions manager is shared by every connection, so the
+    // trait does not need to know which connection the model writes to.
+    config(['database.default' => 'testing']);
+    config(['database.connections.secondary' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']]);
+    Event::fake();
+
+    $event = new class {};
+
+    $entity = new class($event) implements HasDomainEvents
+    {
+        public function __construct(private object $event) {}
+
+        public function releaseEvents(): array
+        {
+            return [$this->event];
+        }
+    };
+
+    $repo = new class
+    {
+        use DispatchesDomainEvents;
+
+        public function dispatch(object $entity): void
+        {
+            $this->dispatchDomainEvents($entity);
+        }
+    };
+
+    DB::connection('secondary')->transaction(function () use ($repo, $entity, $event) {
+        $repo->dispatch($entity);
+
+        Event::assertNotDispatched(get_class($event));
+    });
+
+    Event::assertDispatched(get_class($event));
+});

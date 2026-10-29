@@ -15,7 +15,9 @@ test('creates model in infrastructure models directory', function () {
         ->toContain('class InvoiceModel extends Model')
         ->toContain('use HasUuids;')
         ->toContain("protected \$table = 'invoices';")
-        ->toContain("'id',");
+        ->toContain("'id',")
+        ->toContain('protected function casts(): array')
+        ->not->toContain('protected $casts');
 });
 
 test('generates correct table name for multi-word entities', function () {

@@ -26,7 +26,7 @@ class DestroyScaffold extends BaseGenerator
         );
 
         $migrations = $this->option('with-migration')
-            ? File::glob(database_path('migrations') . '/*_create_' . Str::snake(Str::pluralStudly($name)) . '_table.php')
+            ? (glob(database_path('migrations') . '/*_create_' . Str::snake(Str::pluralStudly($name)) . '_table.php') ?: [])
             : [];
 
         if ($existing === [] && $migrations === []) {

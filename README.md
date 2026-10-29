@@ -43,10 +43,10 @@ Module packages give you boundaries; this one also gives you **an opinion about 
 |---|---|---|
 | Module boundaries | ✅ | ✅ Bounded contexts with auto-discovery |
 | Internal structure | Unopinionated (MVC by default) | **DDD layers + CQRS**, generated wired end to end |
-| Dependency rules | — | **9 generated Pest architecture tests** per context, incl. "Application never imports `Illuminate\*`" |
+| Dependency rules | — | **11 generated Pest architecture tests** per context, incl. "Application never imports `Illuminate\*`" and "Eloquent models never leave Infrastructure" |
 | Read/write split | — | Write repositories (Domain) + read repositories with `PaginatedResult` (Application) |
 | Domain events | — | Recorded in entities, dispatched on persist |
-| composer.json edits | Required or plugin-based autoloading | **None** — PSR-4 registered automatically (cacheable via `clean:cache`) |
+| composer.json edits | Required or plugin-based autoloading | **None** — PSR-4 registered automatically (cached by `php artisan optimize`) |
 
 If you want generic modules with full freedom inside, those packages are excellent. If you want each module to *be* a clean architecture, this is the one.
 
@@ -137,7 +137,7 @@ src/Billing/
     └── Routes/api.php                           # apiResource auto-wired
 
 database/migrations/2026_..._create_invoices_table.php
-tests/Feature/Architecture/BillingArchTest.php   # 9 dependency rules (from clean:context)
+tests/Feature/Architecture/BillingArchTest.php   # 11 dependency rules (from clean:context)
 ```
 
 Prefer composing piece by piece? Every artifact has its own command (`clean:entity`, `clean:repository`, `clean:command --crud=…`, `clean:controller --entity=…`, …) — see the [Commands Reference](#commands-reference). Names are normalized for you: `clean:entity billing invoice` and `clean:entity Billing Invoice` are equivalent.
@@ -148,8 +148,8 @@ The scaffold is wired end to end, but your domain fields are yours. Until you co
 
 | File | What to complete |
 |------|------------------|
-| `Presentation/Requests/InvoiceRequest.php` | Validation `rules()` — `validated()` returns `[]` while empty |
-| `Infrastructure/Models/InvoiceModel.php` | `$fillable` and casts for your columns |
+| `Presentation/Requests/StoreInvoiceRequest.php` + `UpdateInvoiceRequest.php` | Validation `rules()` — `validated()` returns `[]` while empty |
+| `Infrastructure/Models/InvoiceModel.php` | `$fillable` and `casts()` for your columns |
 | `Infrastructure/InvoiceMapper.php` | `toArray()` / `toEntity()` field mapping |
 | `Domain/Entities/Invoice.php` | Your entity's properties and behavior |
 | `Application/Commands/*/…Handler.php` | Apply `$command->data` where the `TODO` marks it |
@@ -241,7 +241,7 @@ Names must be PascalCase (`Billing`, `Invoice`) and must not be PHP reserved wor
 | `clean:policy {context} {name}` | Authorization policy | `Presentation/Policies/{Name}Policy.php` |
 | `clean:listener {context} {name} [--event=]` | Event listener in the Application layer | `Application/Listeners/{Name}Listener.php` |
 | `clean:job {context} {name}` | Queued job delegating to an Application handler | `Infrastructure/Jobs/{Name}Job.php` |
-| `clean:factory {context} {name}` | Model factory | `Infrastructure/Database/Factories/{Name}ModelFactory.php` |
+| `clean:factory {context} {name}` | Model factory; wires `HasFactory` + `#[UseFactory]` into the Eloquent model when it exists | `Infrastructure/Database/Factories/{Name}ModelFactory.php` |
 | `clean:seeder {context} {name}` | Database seeder using the factory | `Infrastructure/Database/Seeders/{Name}Seeder.php` |
 | `clean:resource {context} {name}` | API resource with field mapping | `Presentation/Resources/{Name}Resource.php` |
 | `clean:test {context} {name} [--handler\|--feature]` | Pest test: entity unit test, use-case test against the in-memory repos, or HTTP feature test | `tests/Unit/Domain\|Unit/Application\|Feature/{Context}/…` |
@@ -249,7 +249,7 @@ Names must be PascalCase (`Billing`, `Invoice`) and must not be PHP reserved wor
 | `clean:wire {context} {name}` | Wire ServiceProvider bindings + resource route for a piecemeal entity | — |
 | `clean:destroy {context} {name} [--with-migration]` | Delete everything the scaffold generated for an entity (asks for confirmation) | — |
 | `clean:doctor` | Diagnose context discovery, wiring markers, and configuration | — |
-| `clean:cache` / `clean:clear` | Cache / clear discovered contexts and PSR-4 mappings for faster boots | `bootstrap/cache/clean-architecture.php` |
+| `clean:cache` / `clean:clear` | Cache / clear discovered contexts and PSR-4 mappings for faster boots — also run by `php artisan optimize` / `optimize:clear` | `bootstrap/cache/clean-architecture.php` |
 
 ### The `--entity` flag
 
@@ -393,13 +393,17 @@ Src\Shipping\   --> src/Shipping/
 
 **No manual `composer.json` changes needed** when you add new bounded contexts.
 
+### Production caching
+
+`php artisan clean:cache` writes the discovered contexts, providers, and PSR-4 map to `bootstrap/cache/clean-architecture.php`, so cached boots skip the filesystem scan entirely. The command is registered with Laravel's optimizer: `php artisan optimize` runs it for you, and `php artisan optimize:clear` (or `clean:clear`) forgets it. Re-run it whenever you add or remove a context.
+
 ---
 
 ## Architecture Tests
 
 The `clean:context` and `clean:arch-test` commands generate Pest architecture tests that **enforce DDD dependency rules** automatically.
 
-Generated tests for each context (9 rules):
+Generated tests for each context (11 rules):
 
 | Test | What it enforces |
 |------|-----------------|
@@ -408,6 +412,8 @@ Generated tests for each context (9 rules):
 | Application does not depend on Presentation | Use cases never reference controllers or requests |
 | Application does not depend on Infrastructure | Use cases never reference Eloquent or providers |
 | Application does not depend on the framework | Use cases never import `Illuminate\*` — the Dependency Rule, enforced |
+| Presentation does not depend on Infrastructure | Controllers, requests, and resources never touch Eloquent or repository implementations |
+| Eloquent models never leave Infrastructure | `Infrastructure\Models` is only used from `Infrastructure` (mappers, repositories, factories) — nothing else may query a model directly |
 | Code declares strict types | Every file in the context uses `declare(strict_types=1)` |
 | Entities are final classes | Prevents inheritance that could break invariants |
 | Repositories in Domain are interfaces | Domain defines contracts, never implementations |
@@ -456,9 +462,8 @@ Available stubs:
 | `command.stub` | `clean:command` | `{{Namespace}}`, `{{Class}}`, `{{CommandConstructor}}` |
 | `command-handler.stub` | `clean:command` | `{{Namespace}}`, `{{Class}}`, `{{EntityImport}}`, `{{EntityConstructor}}`, `{{HandlerBody}}` |
 | `query.stub` | `clean:query` | `{{Namespace}}`, `{{Class}}` |
-| `query-handler.stub` | `clean:query` | `{{Namespace}}`, `{{Class}}`, `{{EntityImport}}`, `{{EntityConstructor}}`, `{{ReturnType}}`, `{{HandlerBody}}` |
+| `query-handler.stub` | `clean:query`, `clean:query --collection` | `{{Namespace}}`, `{{Class}}`, `{{EntityImport}}`, `{{EntityConstructor}}`, `{{ReturnType}}`, `{{HandlerBody}}` |
 | `list-query.stub` | `clean:query --collection` | `{{Namespace}}`, `{{Class}}` |
-| `list-query-handler.stub` | `clean:query --collection` | `{{Namespace}}`, `{{Class}}`, `{{EntityImport}}`, `{{EntityConstructor}}`, `{{ReturnType}}`, `{{HandlerBody}}` |
 | `domain-event.stub` | `clean:domain-event` | `{{Namespace}}`, `{{Class}}` |
 | `domain-exception.stub` | `clean:exception` | `{{Namespace}}`, `{{Class}}` |
 | `not-found-exception.stub` | `clean:command --crud=update\|delete`, `clean:scaffold` | `{{Namespace}}`, `{{Class}}` |
@@ -490,8 +495,8 @@ Available stubs:
 
 ### Dev dependencies (for architecture tests)
 
-- [Pest](https://pestphp.com/) ^3.0
-- [Pest Architecture Plugin](https://pestphp.com/docs/arch-testing) ^3.0
+- [Pest](https://pestphp.com/) 3, 4 or 5
+- [Pest Architecture Plugin](https://pestphp.com/docs/arch-testing) matching your Pest major
 
 ---
 

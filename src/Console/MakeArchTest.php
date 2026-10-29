@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CleanArchitecture\Console;
 
+use CleanArchitecture\Kernel\PackageConfig;
 use Illuminate\Support\Facades\File;
 
 class MakeArchTest extends BaseGenerator
@@ -18,7 +19,7 @@ class MakeArchTest extends BaseGenerator
 
         $namespace = $this->buildNamespace($context);
 
-        $path = base_path(config('clean-architecture.arch_tests_path', 'tests/Feature/Architecture'));
+        $path = base_path(PackageConfig::archTestsPath());
         File::makeDirectory($path, 0755, true, true);
 
         $content = str_replace(

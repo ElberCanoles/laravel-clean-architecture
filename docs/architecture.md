@@ -139,12 +139,11 @@ Core business objects with a **unique identity** that persists over time. Two en
 ```php
 namespace Src\Billing\Domain\Entities;
 
-use CleanArchitecture\Support\HasDomainEvents;
+use CleanArchitecture\Support\AggregateRoot;
+use Src\Billing\Domain\Events\InvoiceCreatedEvent;
 
-final class Invoice implements HasDomainEvents
+final class Invoice extends AggregateRoot
 {
-    private array $domainEvents = [];
-
     private function __construct(
         private readonly string $id,
     ) {
@@ -152,7 +151,10 @@ final class Invoice implements HasDomainEvents
 
     public static function create(string $id): self
     {
-        return new self($id);
+        $invoice = new self($id);
+        $invoice->recordEvent(new InvoiceCreatedEvent($id));
+
+        return $invoice;
     }
 
     /** @internal Used only for persistence reconstitution */
@@ -166,16 +168,9 @@ final class Invoice implements HasDomainEvents
         return $this->id;
     }
 
-    private function recordEvent(object $event): void
+    public function equals(self $other): bool
     {
-        $this->domainEvents[] = $event;
-    }
-
-    public function releaseEvents(): array
-    {
-        $events = $this->domainEvents;
-        $this->domainEvents = [];
-        return $events;
+        return $this->id === $other->id;
     }
 }
 ```
@@ -185,7 +180,7 @@ final class Invoice implements HasDomainEvents
 | Identity | Every entity has a unique `id` |
 | Constructor | `private` — forces creation through factory methods |
 | Factory methods | `create()` for new entities, `fromPersistence()` for reconstitution from DB |
-| Events | Implements `HasDomainEvents` — `recordEvent()` / `releaseEvents()` for domain event dispatch |
+| Events | Extends `AggregateRoot` — `recordEvent()` inside behavior methods; the repository calls `releaseEvents()` on persist |
 | Keyword | `final class` — prevents inheritance to protect invariants |
 | Dependencies | Only `CleanArchitecture\Support` (allowed by architecture tests) |
 
@@ -582,10 +577,20 @@ class InvoiceModel extends Model
         'id',
         // TODO: Add fillable columns
     ];
+
+    /** @return array<string, string> */
+    protected function casts(): array
+    {
+        return [
+            // TODO: Add column casts
+        ];
+    }
 }
 ```
 
 With `--id-type=ulid`, the same model is generated with `HasUlids` and the migration uses `$table->ulid('id')->primary()`.
+
+Factories live in `Infrastructure/Database/Factories/`, outside Laravel's conventional lookup path, so `clean:factory` wires the model for you: it adds `HasFactory` and `#[UseFactory(InvoiceModelFactory::class)]`, and `InvoiceModel::factory()` works right away.
 
 #### Mapper
 
@@ -639,10 +644,10 @@ class BillingServiceProvider extends ServiceProvider
 
 #### Domain Event Dispatching
 
-Write repositories include the `DispatchesDomainEvents` trait, which dispatches domain events via Laravel's `event()` helper after entity persistence. Events recorded via `$entity->recordEvent()` are released and dispatched automatically when `save()` is called. The `releaseEvents()` method clears the entity's event list, preventing double dispatch.
+Write repositories include the `DispatchesDomainEvents` trait, which dispatches domain events via Laravel's `event()` helper after entity persistence. Events recorded via `$entity->recordEvent()` are released and dispatched automatically when `save()` is called. The `releaseEvents()` method clears the entity's event list, preventing double dispatch. Dispatching is transaction-aware: inside a transaction (on any connection) the events wait for the outermost commit and are discarded on rollback.
 
 ```php
-// In your entity (implements HasDomainEvents):
+// In your entity (extends AggregateRoot):
 $invoice->recordEvent(new InvoicePaidEvent($invoice->id()));
 
 // In your write repository (generated automatically):
@@ -683,6 +688,9 @@ use Src\Billing\Application\Commands\DeleteInvoice\{DeleteInvoiceCommand, Delete
 use Src\Billing\Application\Queries\GetInvoice\{GetInvoiceHandler, GetInvoiceQuery};
 use Src\Billing\Application\Queries\ListInvoices\{ListInvoicesHandler, ListInvoicesQuery};
 use Src\Billing\Application\Sanitizers\InvoiceSanitizer;
+use Src\Billing\Presentation\Requests\StoreInvoiceRequest;
+use Src\Billing\Presentation\Requests\UpdateInvoiceRequest;
+use Src\Billing\Presentation\Resources\InvoiceResource;
 
 class InvoiceController extends Controller
 {
@@ -715,7 +723,7 @@ class InvoiceController extends Controller
         return (new InvoiceResource($readModel))->response();
     }
 
-    public function store(InvoiceRequest $request): JsonResponse
+    public function store(StoreInvoiceRequest $request): JsonResponse
     {
         $id = (string) Str::uuid7();
         $sanitized = InvoiceSanitizer::sanitize($request->validated());
@@ -725,7 +733,7 @@ class InvoiceController extends Controller
             ->header('Location', $request->url() . '/' . $id);
     }
 
-    public function update(InvoiceRequest $request, string $id): Response
+    public function update(UpdateInvoiceRequest $request, string $id): Response
     {
         $sanitized = InvoiceSanitizer::sanitize($request->validated());
         $this->updateHandler->handle(new UpdateInvoiceCommand($id, $sanitized));
@@ -746,21 +754,22 @@ Without `--entity`, the controller generates with TODO placeholders for all meth
 
 #### Form Requests
 
-Validate incoming HTTP data before it reaches the Application layer.
+Validate incoming HTTP data before it reaches the Application layer. `clean:request` generates a pair per entity: `Store{Entity}Request` carries the creation rules and `Update{Entity}Request` the partial-update rules (usually `sometimes` instead of `required`).
 
 ```php
 namespace Src\Billing\Presentation\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class InvoiceRequest extends FormRequest
+class StoreInvoiceRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // TODO: Implement authorization
+        // TODO: Implement authorization (e.g. delegate to a policy)
         return true;
     }
 
+    /** @return array<string, mixed> */
     public function rules(): array
     {
         return [
@@ -836,9 +845,13 @@ graph LR
 | Domain does not depend on Infrastructure | Architecture test |
 | Application does not depend on Presentation | Architecture test |
 | Application does not depend on Infrastructure | Architecture test |
+| Application does not depend on the framework (`Illuminate\*`) | Architecture test |
+| Presentation does not depend on Infrastructure | Architecture test |
+| Eloquent models are only used inside Infrastructure | Architecture test |
 | Entities are `final` | Architecture test |
 | Repository interfaces are `interface` | Architecture test |
 | Value Objects are `readonly` | Architecture test |
+| Every file declares `strict_types=1` | Architecture test |
 | Infrastructure implements Domain interfaces | Convention (stubs) |
 
 The generated architecture tests **automatically enforce these rules** in your CI pipeline.

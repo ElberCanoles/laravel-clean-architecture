@@ -16,14 +16,18 @@ composer install
 Every pull request must pass the same checks CI runs:
 
 ```bash
-composer test      # Pest — 140+ tests, including generated-code execution
-composer analyse   # PHPStan level 8
+composer test      # Pest — 190+ tests, including generated-code execution
+composer analyse   # PHPStan level max
 composer lint      # Laravel Pint (fix automatically with: composer fix)
 ```
 
-CI additionally runs the full support matrix (Laravel 11–13 × PHP 8.2–8.5),
-`--prefer-lowest`, Windows, and a coverage threshold — a green local run is
-usually enough, but the matrix has the final word.
+CI additionally runs the full support matrix (Laravel 12–13 × PHP 8.2–8.5),
+`--prefer-lowest`, Windows, `composer audit`, and a coverage threshold — a green
+local run is usually enough, but the matrix has the final word. Pushes to `main`
+also run Pest's mutation testing (`composer test:mutate`) as an informational job.
+
+PHPUnit reads `phpunit.xml.dist`; copy it to `phpunit.xml` (git-ignored) for
+local-only overrides.
 
 ## Working on generators and stubs
 

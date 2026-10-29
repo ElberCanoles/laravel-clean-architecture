@@ -18,7 +18,11 @@ class {{Class}}Model extends Model
         // TODO: Add fillable columns
     ];
 
-    protected $casts = [
-        // TODO: Add column casts
-    ];
+    /** @return array<string, string> */
+    protected function casts(): array
+    {
+        return [
+            // TODO: Add column casts
+        ];
+    }
 }

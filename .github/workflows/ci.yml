@@ -6,6 +6,14 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
+# A new push to the same branch or PR supersedes the run in progress.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -39,13 +47,10 @@ jobs:
         run: composer require --dev --no-update "orchestra/testbench:${{ matrix.testbench }}"
 
       - name: Install dependencies
-        run: composer update --no-progress --prefer-dist
-
-      - name: Validate composer.json
-        run: composer validate --strict --no-check-lock
-
-      - name: Run PHPStan
-        run: vendor/bin/phpstan analyse
+        uses: ramsey/composer-install@v4
+        with:
+          dependency-versions: highest
+          composer-options: --prefer-dist
 
       - name: Run tests
         run: vendor/bin/pest
@@ -67,7 +72,10 @@ jobs:
         run: composer require --dev --no-update "orchestra/testbench:10.*"
 
       - name: Install lowest dependencies
-        run: composer update --no-progress --prefer-dist --prefer-lowest --prefer-stable
+        uses: ramsey/composer-install@v4
+        with:
+          dependency-versions: lowest
+          composer-options: --prefer-dist
 
       - name: Run tests
         run: vendor/bin/pest
@@ -89,10 +97,53 @@ jobs:
           coverage: none
 
       - name: Install dependencies
-        run: composer update --no-progress --prefer-dist
+        uses: ramsey/composer-install@v4
+        with:
+          dependency-versions: highest
+          composer-options: --prefer-dist
 
       - name: Run tests
         run: vendor/bin/pest
+
+  static-analysis:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - laravel: '12'
+            testbench: '10.*'
+          - laravel: '13'
+            testbench: '11.*'
+
+    name: Static analysis (Laravel ${{ matrix.laravel }})
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+
+      - name: Select Laravel version
+        run: composer require --dev --no-update "orchestra/testbench:${{ matrix.testbench }}"
+
+      - name: Install dependencies
+        uses: ramsey/composer-install@v4
+        with:
+          dependency-versions: highest
+          composer-options: --prefer-dist
+
+      - name: Validate composer.json
+        run: composer validate --strict --no-check-lock
+
+      - name: Audit dependencies
+        run: composer audit
+
+      - name: Run PHPStan
+        run: vendor/bin/phpstan analyse
 
   coverage:
     runs-on: ubuntu-latest
@@ -108,7 +159,10 @@ jobs:
           coverage: pcov
 
       - name: Install dependencies
-        run: composer update --no-progress --prefer-dist
+        uses: ramsey/composer-install@v4
+        with:
+          dependency-versions: highest
+          composer-options: --prefer-dist
 
       - name: Run tests with coverage
         run: vendor/bin/pest --coverage --min=75
@@ -127,7 +181,37 @@ jobs:
           coverage: none
 
       - name: Install dependencies
-        run: composer update --no-progress --prefer-dist
+        uses: ramsey/composer-install@v4
+        with:
+          dependency-versions: highest
+          composer-options: --prefer-dist
 
       - name: Run Pint
         run: vendor/bin/pint --test
+
+  mutation:
+    # Informational: reports the mutation score on every push to main without
+    # gating the build. Once the score settles, add --min=<score> to make it a gate.
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    name: Mutation testing (informational)
+    continue-on-error: true
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: pcov
+
+      - name: Install dependencies
+        uses: ramsey/composer-install@v4
+        with:
+          dependency-versions: highest
+          composer-options: --prefer-dist
+
+      - name: Run mutation testing
+        run: vendor/bin/pest --mutate --parallel --covered-only

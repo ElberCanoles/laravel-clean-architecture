@@ -36,6 +36,7 @@ use CleanArchitecture\Console\MakeTest;
 use CleanArchitecture\Console\MakeValueObject;
 use CleanArchitecture\Console\WireEntity;
 use CleanArchitecture\Kernel\ModuleLoader;
+use CleanArchitecture\Kernel\PackageConfig;
 use CleanArchitecture\Support\ProvidesHttpStatus;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Foundation\Console\AboutCommand;
@@ -48,11 +49,11 @@ class CleanArchitectureServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__ . '/../config/clean-architecture.php', 'clean-architecture');
 
-        if (config('clean-architecture.auto_load', true)) {
+        if (PackageConfig::autoLoad()) {
             ModuleLoader::registerAutoload();
         }
 
-        if (config('clean-architecture.auto_discover', true)) {
+        if (PackageConfig::autoDiscover()) {
             $this->registerContextProviders();
         }
     }
@@ -63,6 +64,9 @@ class CleanArchitectureServiceProvider extends ServiceProvider
 
         if ($this->app->runningInConsole()) {
             $this->registerAboutCommand();
+
+            // `php artisan optimize` caches the contexts; `optimize:clear` forgets them.
+            $this->optimizes(optimize: 'clean:cache', clear: 'clean:clear', key: 'clean-architecture');
 
             $this->commands([
                 CacheContexts::class,
@@ -103,7 +107,7 @@ class CleanArchitectureServiceProvider extends ServiceProvider
             ], 'clean-architecture-config');
 
             $this->publishes([
-                __DIR__ . '/../stubs' => base_path((string) config('clean-architecture.stubs_path', 'stubs/clean-architecture')),
+                __DIR__ . '/../stubs' => base_path(PackageConfig::stubsPath()),
             ], 'clean-architecture-stubs');
         }
     }
@@ -121,7 +125,7 @@ class CleanArchitectureServiceProvider extends ServiceProvider
         AboutCommand::add('Clean Architecture', fn (): array => [
             'Contexts' => implode(', ', ModuleLoader::contextNames()) ?: 'none discovered',
             'Providers Discovered' => (string) count(ModuleLoader::load()),
-            'Id Type' => (string) config('clean-architecture.id_type', 'uuid'),
+            'Id Type' => PackageConfig::idType(),
             'Contexts Cached' => is_file(ModuleLoader::manifestPath()) ? 'yes' : 'no',
         ]);
     }
@@ -138,7 +142,7 @@ class CleanArchitectureServiceProvider extends ServiceProvider
             }
 
             $handler->renderable(function (\DomainException $e, Request $request) {
-                if (! config('clean-architecture.render_domain_exceptions', true) || ! $request->expectsJson()) {
+                if (! PackageConfig::rendersDomainExceptions() || ! $request->expectsJson()) {
                     return null;
                 }
 

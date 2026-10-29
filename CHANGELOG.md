@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com), and this 
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-10-29
+
+### Added
+
+- **`php artisan optimize` integration** — the context cache is registered with Laravel's optimizer: `optimize` runs `clean:cache` and `optimize:clear` runs `clean:clear`, so deploys need no separate step
+- **`clean:factory` wires the model** — factories live outside Laravel's conventional lookup path, so the generator now adds `HasFactory` and `#[UseFactory({Entity}ModelFactory::class)]` to the Eloquent model (idempotently, skipping models that already carry the attribute and leaving files it cannot parse untouched); `{Entity}Model::factory()` works out of the box
+- **Two new generated architecture rules** (11 total) — "Presentation does not depend on Infrastructure" and "Eloquent models never leave Infrastructure" (`toOnlyBeUsedIn`), closing the most common leak: a controller importing an Eloquent model
+- **Mutation testing in CI** — pushes to `main` run `pest --mutate` as an informational job
+- **`.editorconfig`**
+
+### Changed
+
+- **`model.stub` declares casts through the `casts()` method** instead of the `$casts` property, matching current Laravel conventions
+- **`laravel/framework` is the declared dependency** (`^12.0|^13.0`) instead of `illuminate/console` + `illuminate/support` — the package already relied on Foundation (`AboutCommand`, `base_path()`, `config()`); the manifest now says so
+- **PHPStan level raised from 8 to max** — configuration flows through a typed `PackageConfig` accessor with every default in one place, and `ModuleLoader` validates the shape of the cache manifest instead of trusting it
+- **CI** — PHPStan and `composer validate` run once per Laravel major instead of in every matrix leg; `composer audit`, Composer caching, least-privilege `permissions`, and cancellation of superseded runs were added; Dependabot groups minor/patch updates and uses the `chore(deps)` prefix
+- **`phpunit.xml` renamed to `phpunit.xml.dist`** — copy it to `phpunit.xml` for local overrides
+
+### Fixed
+
+- **Docs caught up with 2.0** — the README and architecture guide still showed the pre-2.0 single `InvoiceRequest`, the removed `list-query-handler.stub`, a Pest `^3.0` requirement (Pest 3, 4 and 5 are supported), and entities implementing `HasDomainEvents` by hand instead of extending `AggregateRoot`
+
 ## [2.0.0] - 2026-08-19
 
 ### Added
@@ -285,7 +307,8 @@ Defaults are unchanged: without `id_type` or `--id-type`, generators keep emitti
 | `arch_tests_path` | `tests/Feature/Architecture` | Where architecture tests are generated |
 | `unit_tests_path` | `tests/Unit/Domain` | Where domain unit tests are generated |
 
-[Unreleased]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v1.6.0...v2.0.0
 [1.6.0]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/ElberCanoles/laravel-clean-architecture/compare/v1.4.0...v1.5.0

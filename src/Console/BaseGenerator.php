@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CleanArchitecture\Console;
 
+use CleanArchitecture\Kernel\PackageConfig;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Console\PromptsForMissingInput;
 use Illuminate\Support\Facades\File;
@@ -56,8 +57,7 @@ abstract class BaseGenerator extends Command implements PromptsForMissingInput
 
     protected function getStub(string $name): string
     {
-        $stubsPath = (string) config('clean-architecture.stubs_path', 'stubs/clean-architecture');
-        $customPath = base_path("$stubsPath/$name.stub");
+        $customPath = base_path(PackageConfig::stubsPath() . "/$name.stub");
 
         if (File::exists($customPath)) {
             return File::get($customPath);
@@ -79,7 +79,7 @@ abstract class BaseGenerator extends Command implements PromptsForMissingInput
 
     protected function getNamespacePrefix(): string
     {
-        return config('clean-architecture.namespace_prefix', 'Src');
+        return PackageConfig::namespacePrefix();
     }
 
     protected function buildNamespace(string $context): string
@@ -125,7 +125,7 @@ abstract class BaseGenerator extends Command implements PromptsForMissingInput
      */
     protected function contextPath(string $context, string $subPath = ''): string
     {
-        $base = base_path(config('clean-architecture.contexts_path', 'src') . "/$context");
+        $base = base_path(PackageConfig::contextsPath() . "/$context");
 
         return $subPath === '' ? $base : "$base/$subPath";
     }
@@ -154,7 +154,7 @@ abstract class BaseGenerator extends Command implements PromptsForMissingInput
     protected function resolveIdType(): string
     {
         $idType = ($this->hasOption('id-type') ? $this->stringOption('id-type') : null)
-            ?? (string) config('clean-architecture.id_type', 'uuid');
+            ?? PackageConfig::idType();
 
         if (! in_array($idType, self::ID_TYPES, true)) {
             throw new \InvalidArgumentException(

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CleanArchitecture\Console;
 
 use CleanArchitecture\Kernel\ModuleLoader;
+use CleanArchitecture\Kernel\PackageConfig;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 
@@ -18,10 +19,10 @@ class DiagnoseContexts extends Command
     {
         $healthy = true;
 
-        $contextsPath = base_path((string) config('clean-architecture.contexts_path', 'src'));
+        $contextsPath = base_path(PackageConfig::contextsPath());
         $this->components->twoColumnDetail('Contexts path', $contextsPath . (File::isDirectory($contextsPath) ? '' : ' (missing)'));
 
-        $idType = (string) config('clean-architecture.id_type', 'uuid');
+        $idType = PackageConfig::idType();
         $idTypeOk = in_array($idType, ['uuid', 'ulid'], true);
         $this->components->twoColumnDetail('Id type', $idType . ($idTypeOk ? '' : ' (invalid — must be uuid or ulid)'));
         $healthy = $idTypeOk;

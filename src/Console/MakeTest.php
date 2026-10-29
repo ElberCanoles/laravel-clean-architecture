@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CleanArchitecture\Console;
 
+use CleanArchitecture\Kernel\PackageConfig;
 use Illuminate\Support\Facades\File;
 
 class MakeTest extends BaseGenerator
@@ -24,19 +25,19 @@ class MakeTest extends BaseGenerator
         [$stub, $basePath, $fileName, $label] = match (true) {
             (bool) $this->option('handler') => [
                 'handler-test',
-                (string) config('clean-architecture.handler_tests_path', 'tests/Unit/Application'),
+                PackageConfig::handlerTestsPath(),
                 "{$name}HandlersTest.php",
                 'Handler test',
             ],
             (bool) $this->option('feature') => [
                 'feature-test',
-                (string) config('clean-architecture.feature_tests_path', 'tests/Feature'),
+                PackageConfig::featureTestsPath(),
                 "{$name}ApiTest.php",
                 'Feature test',
             ],
             default => [
                 'unit-test',
-                (string) config('clean-architecture.unit_tests_path', 'tests/Unit/Domain'),
+                PackageConfig::unitTestsPath(),
                 "{$name}Test.php",
                 'Unit test',
             ],

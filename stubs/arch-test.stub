@@ -29,6 +29,16 @@ test('{{Context}} application does not depend on the framework', function () {
         ->not->toUse('Illuminate');
 });
 
+test('{{Context}} presentation does not depend on infrastructure', function () {
+    expect('{{Namespace}}\Presentation')
+        ->not->toUse('{{Namespace}}\Infrastructure');
+});
+
+test('{{Context}} eloquent models never leave infrastructure', function () {
+    expect('{{Namespace}}\Infrastructure\Models')
+        ->toOnlyBeUsedIn('{{Namespace}}\Infrastructure');
+});
+
 test('{{Context}} code declares strict types', function () {
     expect('{{Namespace}}')
         ->toUseStrictTypes();

@@ -80,7 +80,7 @@ class ModuleLoader
      */
     public static function psr4Map(): array
     {
-        $prefix = (string) config('clean-architecture.namespace_prefix', 'Src');
+        $prefix = PackageConfig::namespacePrefix();
         $map = [];
 
         foreach (self::contexts() as $contextName => $contextPath) {
@@ -107,7 +107,7 @@ class ModuleLoader
             return self::$contexts;
         }
 
-        $contextsPath = base_path((string) config('clean-architecture.contexts_path', 'src'));
+        $contextsPath = base_path(PackageConfig::contextsPath());
 
         if (! File::isDirectory($contextsPath)) {
             return self::$contexts = [];
@@ -116,7 +116,9 @@ class ModuleLoader
         $contexts = [];
 
         foreach (File::directories($contextsPath) as $contextPath) {
-            $contexts[basename($contextPath)] = $contextPath;
+            if (is_string($contextPath)) {
+                $contexts[basename($contextPath)] = $contextPath;
+            }
         }
 
         return self::$contexts = $contexts;
@@ -124,14 +126,16 @@ class ModuleLoader
 
     protected static function providerClass(string $contextName): string
     {
-        $prefix = (string) config('clean-architecture.namespace_prefix', 'Src');
+        $prefix = PackageConfig::namespacePrefix();
 
         return "$prefix\\$contextName\\Infrastructure\\{$contextName}ServiceProvider";
     }
 
     /**
      * The manifest written by clean:cache, if any — skips filesystem scans
-     * entirely on cached production boots.
+     * entirely on cached production boots. Anything that is not the exact
+     * shape clean:cache writes is ignored, so a corrupt file falls back to
+     * scanning instead of breaking the boot.
      *
      * @return array{providers: list<string>, psr4: array<string, string>}|null
      */
@@ -145,11 +149,27 @@ class ModuleLoader
 
         $manifest = require $path;
 
-        if (! is_array($manifest) || ! isset($manifest['providers'], $manifest['psr4'])) {
+        if (! is_array($manifest) || ! is_array($manifest['providers'] ?? null) || ! is_array($manifest['psr4'] ?? null)) {
             return null;
         }
 
-        return $manifest;
+        $providers = [];
+
+        foreach ($manifest['providers'] as $provider) {
+            if (is_string($provider)) {
+                $providers[] = $provider;
+            }
+        }
+
+        $psr4 = [];
+
+        foreach ($manifest['psr4'] as $namespace => $directory) {
+            if (is_string($namespace) && is_string($directory)) {
+                $psr4[$namespace] = $directory;
+            }
+        }
+
+        return ['providers' => $providers, 'psr4' => $psr4];
     }
 
     /**
@@ -167,6 +187,12 @@ class ModuleLoader
 
         $autoload = base_path('vendor/autoload.php');
 
-        return is_file($autoload) ? require $autoload : null;
+        if (! is_file($autoload)) {
+            return null;
+        }
+
+        $loader = require $autoload;
+
+        return $loader instanceof ClassLoader ? $loader : null;
     }
 }

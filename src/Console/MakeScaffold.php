@@ -169,7 +169,7 @@ class MakeScaffold extends BaseGenerator
 
         File::makeDirectory($migrationPath, 0755, true, true);
 
-        $existing = File::glob("$migrationPath/*_create_{$table}_table.php");
+        $existing = glob("$migrationPath/*_create_{$table}_table.php") ?: [];
 
         if (! empty($existing)) {
             if (! $this->option('force')) {
