@@ -37,9 +37,6 @@ class DiagnoseContexts extends Command
 
         if ($contexts === []) {
             $this->components->twoColumnDetail('Contexts', 'none discovered');
-            $this->newLine();
-
-            return self::SUCCESS;
         }
 
         foreach ($contexts as $context) {
@@ -87,7 +84,9 @@ class DiagnoseContexts extends Command
             return self::FAILURE;
         }
 
-        $this->components->info(sprintf('%d context(s) checked, no issues found.', count($contexts)));
+        if ($contexts !== []) {
+            $this->components->info(sprintf('%d context(s) checked, no issues found.', count($contexts)));
+        }
 
         return self::SUCCESS;
     }

@@ -79,7 +79,7 @@ test('--id-type option overrides id_type config', function () {
 
 test('rejects invalid --id-type value', function () {
     $this->artisan('clean:model', ['context' => 'Billing', 'name' => 'Invoice', '--id-type' => 'snowflake'])
-        ->expectsOutputToContain("Invalid id type: 'snowflake'")
+        ->expectsOutputToContain("Invalid id type: 'snowflake'. Must be 'uuid' or 'ulid'.")
         ->assertExitCode(2);
 });
 
@@ -101,9 +101,10 @@ test('normalizes kebab-case names to StudlyCase', function () {
 });
 
 test('honours a --table override', function () {
-    $this->artisan('clean:model', ['context' => 'Billing', 'name' => 'Person', '--table' => 'people'])
+    $this->artisan('clean:model', ['context' => 'Billing', 'name' => 'Person', '--table' => 'staff_directory'])
         ->assertSuccessful();
 
     expect(file_get_contents($this->tempDir . '/Billing/Infrastructure/Models/PersonModel.php'))
-        ->toContain("protected \$table = 'people';");
+        ->toContain("protected \$table = 'staff_directory';")
+        ->not->toContain("'people'");
 });

@@ -74,3 +74,19 @@ test('rejects PHP reserved words as names', function () {
 
     expect(file_exists($this->tempDir . '/Billing/Domain/Entities/List.php'))->toBeFalse();
 });
+
+test('reports the creation event it generates and never regenerates it', function () {
+    $this->artisan('clean:entity', ['context' => 'Billing', 'name' => 'Invoice'])
+        ->expectsOutputToContain('Entity created')
+        ->expectsOutputToContain('Domain event created')
+        ->assertSuccessful();
+
+    $event = $this->tempDir . '/Billing/Domain/Events/InvoiceCreatedEvent.php';
+    file_put_contents($event, '<?php // customized by hand');
+
+    $this->artisan('clean:entity', ['context' => 'Billing', 'name' => 'Invoice', '--force' => true])
+        ->doesntExpectOutputToContain('Domain event created')
+        ->assertSuccessful();
+
+    expect(file_get_contents($event))->toBe('<?php // customized by hand');
+});

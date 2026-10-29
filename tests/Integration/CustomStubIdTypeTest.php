@@ -29,7 +29,7 @@ test('warns when a custom model stub has no IdTrait placeholder', function () {
         STUB);
 
     $this->artisan('clean:model', ['context' => 'Billing', 'name' => 'Invoice', '--id-type' => 'ulid'])
-        ->expectsOutputToContain('has no {{IdTrait}} placeholder')
+        ->expectsOutputToContain("Custom stub 'model.stub' has no {{IdTrait}} placeholder — the id type was not applied. Re-publish stubs with: php artisan vendor:publish --tag=clean-architecture-stubs --force")
         ->assertSuccessful();
 });
 
@@ -84,7 +84,7 @@ test('warns when a custom migration stub has no idType placeholder', function ()
         STUB);
 
     $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice', '--id-type' => 'ulid'])
-        ->expectsOutputToContain('has no {{idType}} placeholder')
+        ->expectsOutputToContain("Custom stub 'migration.stub' has no {{idType}} placeholder — the id type was not applied. Re-publish stubs with: php artisan vendor:publish --tag=clean-architecture-stubs --force")
         ->assertSuccessful();
 });
 

@@ -16,7 +16,7 @@ composer install
 Every pull request must pass the same checks CI runs:
 
 ```bash
-composer test      # Pest — 190+ tests, including generated-code execution
+composer test      # Pest — 250+ tests, including generated-code execution
 composer analyse   # PHPStan level max
 composer lint      # Laravel Pint (fix automatically with: composer fix)
 ```

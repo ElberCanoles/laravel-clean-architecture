@@ -144,3 +144,36 @@ test('generates routes file with route markers', function () {
         ->toContain('// {routes}')
         ->toContain('// {/routes}');
 });
+
+test('announces what it creates', function () {
+    $this->artisan('clean:context', ['name' => 'Billing'])
+        ->expectsOutputToContain('ServiceProvider created')
+        ->expectsOutputToContain('Routes created')
+        ->expectsOutputToContain('Bounded context [Billing] created.')
+        ->assertSuccessful();
+});
+
+test('reports failure when the ServiceProvider already exists but still writes the rest', function () {
+    mkdir($this->tempDir . '/Billing/Infrastructure', 0755, true);
+    file_put_contents($this->tempDir . '/Billing/Infrastructure/BillingServiceProvider.php', '<?php // mine');
+
+    $this->artisan('clean:context', ['name' => 'Billing'])
+        ->expectsOutputToContain('File already exists')
+        ->doesntExpectOutputToContain('ServiceProvider created')
+        ->assertExitCode(1);
+
+    expect(file_get_contents($this->tempDir . '/Billing/Infrastructure/BillingServiceProvider.php'))->toBe('<?php // mine');
+    expect(file_exists($this->tempDir . '/Billing/Presentation/Routes/api.php'))->toBeTrue();
+    expect(file_exists($this->tempDir . '/tests/Feature/Architecture/BillingArchTest.php'))->toBeTrue();
+});
+
+test('still writes web.php when api.php already exists with --routes=both', function () {
+    mkdir($this->tempDir . '/Billing/Presentation/Routes', 0755, true);
+    file_put_contents($this->tempDir . '/Billing/Presentation/Routes/api.php', '<?php // mine');
+
+    $this->artisan('clean:context', ['name' => 'Billing', '--routes' => 'both'])
+        ->assertExitCode(1);
+
+    expect(file_get_contents($this->tempDir . '/Billing/Presentation/Routes/api.php'))->toBe('<?php // mine');
+    expect(file_exists($this->tempDir . '/Billing/Presentation/Routes/web.php'))->toBeTrue();
+});

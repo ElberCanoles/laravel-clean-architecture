@@ -87,3 +87,54 @@ test('controller with --entity wires all CQRS handlers', function () {
         // destroy
         ->toContain('$this->deleteHandler->handle(new DeleteInvoiceCommand($id))');
 });
+
+test('controller with --entity renders the import block, constructor, and store body in order', function () {
+    $this->artisan('clean:controller', ['context' => 'Billing', 'name' => 'Invoice', '--entity' => 'Invoice'])
+        ->expectsOutputToContain('Controller created')
+        ->assertSuccessful();
+
+    $content = (string) file_get_contents($this->tempDir . '/Billing/Presentation/Controllers/InvoiceController.php');
+
+    $imports = <<<'PHP'
+use Illuminate\Support\Str;
+use Src\Billing\Application\Commands\CreateInvoice\CreateInvoiceCommand;
+use Src\Billing\Application\Commands\CreateInvoice\CreateInvoiceHandler;
+use Src\Billing\Application\Commands\UpdateInvoice\UpdateInvoiceCommand;
+use Src\Billing\Application\Commands\UpdateInvoice\UpdateInvoiceHandler;
+use Src\Billing\Application\Commands\DeleteInvoice\DeleteInvoiceCommand;
+use Src\Billing\Application\Commands\DeleteInvoice\DeleteInvoiceHandler;
+use Src\Billing\Application\Queries\GetInvoice\GetInvoiceHandler;
+use Src\Billing\Application\Queries\GetInvoice\GetInvoiceQuery;
+use Src\Billing\Application\Queries\ListInvoices\ListInvoicesHandler;
+use Src\Billing\Application\Queries\ListInvoices\ListInvoicesQuery;
+use Src\Billing\Application\Sanitizers\InvoiceSanitizer;
+use Src\Billing\Presentation\Requests\StoreInvoiceRequest;
+PHP;
+
+    $constructor = <<<'PHP'
+    public function __construct(
+        private readonly CreateInvoiceHandler $createHandler,
+        private readonly UpdateInvoiceHandler $updateHandler,
+        private readonly DeleteInvoiceHandler $deleteHandler,
+        private readonly GetInvoiceHandler $getHandler,
+        private readonly ListInvoicesHandler $listHandler,
+    ) {
+PHP;
+
+    $store = <<<'PHP'
+    public function store(StoreInvoiceRequest $request): JsonResponse
+    {
+        $id = (string) Str::uuid7();
+        $sanitized = InvoiceSanitizer::sanitize($request->validated());
+        $this->createHandler->handle(new CreateInvoiceCommand($id, $sanitized));
+
+        return response()->json(['id' => $id], 201)
+            ->header('Location', $request->url() . '/' . $id);
+    }
+PHP;
+
+    expect($content)
+        ->toContain($imports)
+        ->toContain($constructor)
+        ->toContain($store);
+});

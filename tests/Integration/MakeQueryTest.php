@@ -106,3 +106,33 @@ test('creates collection query with entity injection', function () {
         ->toContain('public function handle(ListInvoicesQuery $query): PaginatedResult')
         ->toContain('return $this->repository->findAll($query->page, $query->perPage);');
 });
+
+test('generates the missing half when only one query file exists', function () {
+    $base = $this->tempDir . '/Billing/Application/Queries/GetInvoice';
+    mkdir($base, 0755, true);
+    file_put_contents("$base/GetInvoiceQuery.php", '<?php // mine');
+
+    $this->artisan('clean:query', ['context' => 'Billing', 'name' => 'GetInvoice'])
+        ->expectsOutputToContain('File already exists')
+        ->expectsOutputToContain('Query created')
+        ->assertSuccessful();
+
+    expect(file_get_contents("$base/GetInvoiceQuery.php"))->toBe('<?php // mine')
+        ->and(file_exists("$base/GetInvoiceHandler.php"))->toBeTrue();
+});
+
+test('fails when both query files exist without --force', function () {
+    $this->artisan('clean:query', ['context' => 'Billing', 'name' => 'GetInvoice'])->assertSuccessful();
+
+    $this->artisan('clean:query', ['context' => 'Billing', 'name' => 'GetInvoice'])
+        ->doesntExpectOutputToContain('Query created')
+        ->assertExitCode(1);
+});
+
+test('handlers without --entity are valid PHP', function () {
+    $this->artisan('clean:query', ['context' => 'Billing', 'name' => 'GetInvoice'])->assertSuccessful();
+    $this->artisan('clean:query', ['context' => 'Billing', 'name' => 'ListInvoices', '--collection' => true])->assertSuccessful();
+
+    expect($this->tempDir . '/Billing/Application/Queries/GetInvoice/GetInvoiceHandler.php')->toBeValidPhp();
+    expect($this->tempDir . '/Billing/Application/Queries/ListInvoices/ListInvoicesHandler.php')->toBeValidPhp();
+});

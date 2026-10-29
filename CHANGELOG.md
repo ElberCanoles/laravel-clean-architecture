@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com), and this 
 
 ### Fixed
 
+- **`clean:doctor` reports an invalid `id_type` even when no context exists yet** — it used to print the invalid value, skip the warning, and exit 0
 - **The test suite is parallel-safe** — every test now gets its own database, bootstrap, and stubs paths inside its temp directory, so `pest --parallel` and the mutation-testing job no longer trip over migrations, manifests, or published stubs shared between processes
 - **Mutation testing actually mutates** — `composer test:mutate` and the CI job pass `--everything --covered-only`; without it Pest refuses to run because the suite declares no `covers()`/`mutates()` targets
 

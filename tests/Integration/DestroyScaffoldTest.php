@@ -6,6 +6,10 @@ test('destroys every scaffolded file with --force', function () {
     $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice'])->assertSuccessful();
 
     $this->artisan('clean:destroy', ['context' => 'Billing', 'name' => 'Invoice', '--force' => true])
+        ->expectsOutputToContain('Entity')
+        ->expectsOutputToContain('deleted')
+        ->expectsOutputToContain('ServiceProvider bindings and route entries were left in place')
+        ->doesntExpectOutputToContain('Migration')
         ->assertSuccessful();
 
     expect(file_exists($this->tempDir . '/Billing/Domain/Entities/Invoice.php'))->toBeFalse();
@@ -20,6 +24,7 @@ test('also deletes the migration with --with-migration', function () {
     $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice'])->assertSuccessful();
 
     $this->artisan('clean:destroy', ['context' => 'Billing', 'name' => 'Invoice', '--with-migration' => true, '--force' => true])
+        ->expectsOutputToContain('Migration')
         ->assertSuccessful();
 
     expect(File::glob(database_path('migrations') . '/*_create_invoices_table.php'))->toBeEmpty();
@@ -39,5 +44,14 @@ test('asks for confirmation without --force and aborts on no', function () {
 test('reports when there is nothing to destroy', function () {
     $this->artisan('clean:destroy', ['context' => 'Billing', 'name' => 'Invoice', '--force' => true])
         ->expectsOutputToContain('Nothing to destroy')
+        ->doesntExpectOutputToContain('left in place')
+        ->assertSuccessful();
+});
+
+test('counts the migration in the confirmation when --with-migration is given', function () {
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice'])->assertSuccessful();
+
+    $this->artisan('clean:destroy', ['context' => 'Billing', 'name' => 'Invoice', '--with-migration' => true])
+        ->expectsConfirmation('Delete 28 file(s) generated for [Invoice] in [Billing]?', 'no')
         ->assertSuccessful();
 });

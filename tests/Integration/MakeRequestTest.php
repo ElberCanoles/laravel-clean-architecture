@@ -45,3 +45,16 @@ test('overwrites both requests with --force', function () {
 
     expect(file_get_contents($store))->not->toContain('stale');
 });
+
+test('generates the missing request when only one of the pair exists', function () {
+    $dir = $this->tempDir . '/Billing/Presentation/Requests';
+    mkdir($dir, 0755, true);
+    file_put_contents("$dir/StoreInvoiceRequest.php", '<?php // mine');
+
+    $this->artisan('clean:request', ['context' => 'Billing', 'name' => 'Invoice'])
+        ->expectsOutputToContain('File already exists')
+        ->assertSuccessful();
+
+    expect(file_get_contents("$dir/StoreInvoiceRequest.php"))->toBe('<?php // mine')
+        ->and(file_exists("$dir/UpdateInvoiceRequest.php"))->toBeTrue();
+});

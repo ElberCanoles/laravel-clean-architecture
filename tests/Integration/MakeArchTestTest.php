@@ -2,6 +2,7 @@
 
 test('creates architecture test file with correct content', function () {
     $this->artisan('clean:arch-test', ['context' => 'Billing'])
+        ->expectsOutputToContain('Architecture test created')
         ->assertSuccessful();
 
     $file = $this->tempDir . '/tests/Feature/Architecture/BillingArchTest.php';
@@ -43,5 +44,7 @@ test('warns when arch test file exists without --force', function () {
     $this->artisan('clean:arch-test', ['context' => 'Billing']);
 
     $this->artisan('clean:arch-test', ['context' => 'Billing'])
-        ->expectsOutputToContain('File already exists');
+        ->expectsOutputToContain('File already exists')
+        ->doesntExpectOutputToContain('Architecture test created')
+        ->assertExitCode(1);
 });

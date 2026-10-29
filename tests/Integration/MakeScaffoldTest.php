@@ -392,7 +392,7 @@ test('scaffold inserts controller import after the last use statement when the R
     $content = file_get_contents($routeFile);
     file_put_contents($routeFile, str_replace(
         'use Illuminate\Support\Facades\Route;',
-        'use \Illuminate\Support\Facades\Route;',
+        "use \\Illuminate\\Support\\Facades\\Route;\nuse Illuminate\\Support\\Facades\\Log;",
         $content
     ));
 
@@ -401,7 +401,7 @@ test('scaffold inserts controller import after the last use statement when the R
     $wired = file_get_contents($routeFile);
 
     expect($wired)
-        ->toContain('use Src\Billing\Presentation\Controllers\InvoiceController;')
+        ->toContain("use \\Illuminate\\Support\\Facades\\Route;\nuse Illuminate\\Support\\Facades\\Log;\nuse Src\\Billing\\Presentation\\Controllers\\InvoiceController;\n\nRoute::prefix('billing')")
         ->toContain("Route::apiResource('invoices', InvoiceController::class)");
 });
 
@@ -592,4 +592,87 @@ test('scaffold honours --plural and --table overrides', function () {
 
     expect(file_get_contents($this->tempDir . '/People/Infrastructure/Models/PersonModel.php'))
         ->toContain("protected \$table = 'people';");
+});
+
+test('scaffold --dry-run prints each planned file relative to the project root', function () {
+    $this->artisan('clean:context', ['name' => 'Billing'])->assertSuccessful();
+
+    // One file already exists: the plan must flag it and leave it alone.
+    File::ensureDirectoryExists($this->tempDir . '/Billing/Domain/Entities');
+    file_put_contents($this->tempDir . '/Billing/Domain/Entities/Invoice.php', '<?php');
+
+    $output = artisanOutput('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice', '--dry-run' => true]);
+    $relative = preg_quote($this->relativeTempDir, '/');
+
+    expect($output)
+        ->toMatch('/Entity[ .]+' . $relative . '\/Billing\/Domain\/Entities\/Invoice\.php \(exists — needs --force\)\s*$/m')
+        ->toMatch('/Controller[ .]+' . $relative . '\/Billing\/Presentation\/Controllers\/InvoiceController\.php\s*$/m')
+        ->toMatch('/Migration[ .]+database\/migrations\/\*_create_invoices_table\.php\s*$/m')
+        ->toContain('BillingServiceProvider bindings + resource route')
+        ->toContain('Dry run — nothing was written');
+
+    expect(file_get_contents($this->tempDir . '/Billing/Domain/Entities/Invoice.php'))->toBe('<?php');
+});
+
+test('scaffold reports failure when a sub-command cannot write, but generates the rest', function () {
+    File::ensureDirectoryExists($this->tempDir . '/Billing/Domain/Entities');
+    file_put_contents($this->tempDir . '/Billing/Domain/Entities/Invoice.php', '<?php // mine');
+
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice'])
+        ->expectsOutputToContain('completed with warnings')
+        ->assertExitCode(1);
+
+    expect(file_get_contents($this->tempDir . '/Billing/Domain/Entities/Invoice.php'))->toBe('<?php // mine');
+    expect(file_exists($this->tempDir . '/Billing/Presentation/Controllers/InvoiceController.php'))->toBeTrue();
+});
+
+test('an existing migration alone makes the scaffold report warnings and is left untouched', function () {
+    File::ensureDirectoryExists(database_path('migrations'));
+    $migration = database_path('migrations') . '/2026_01_01_000000_create_invoices_table.php';
+    file_put_contents($migration, '<?php // mine');
+
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice'])
+        ->expectsOutputToContain('Migration already exists')
+        ->doesntExpectOutputToContain('Migration created')
+        ->assertExitCode(1);
+
+    expect(file_get_contents($migration))->toBe('<?php // mine');
+    expect(File::glob(database_path('migrations') . '/*_create_invoices_table.php'))->toHaveCount(1);
+});
+
+test('scaffold forwards --table to the model and names the migration after it', function () {
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice', '--table' => 'billing_invoices'])
+        ->assertSuccessful();
+
+    expect(file_get_contents($this->tempDir . '/Billing/Infrastructure/Models/InvoiceModel.php'))
+        ->toContain("protected \$table = 'billing_invoices';");
+
+    $migrations = File::glob(database_path('migrations') . '/*_create_billing_invoices_table.php');
+    expect($migrations)->toHaveCount(1)
+        ->and(basename($migrations[0]))->toMatch('/^\d{4}_\d{2}_\d{2}_\d{6}_create_billing_invoices_table\.php$/')
+        ->and(file_get_contents($migrations[0]))->toContain("Schema::create('billing_invoices'");
+});
+
+test('scaffold uses the --plural override for the route and the plan even when the inflector disagrees', function () {
+    $this->artisan('clean:context', ['name' => 'Billing'])->assertSuccessful();
+
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Person', '--plural' => 'Folks'])
+        ->assertSuccessful();
+
+    expect(file_get_contents($this->tempDir . '/Billing/Presentation/Routes/api.php'))
+        ->toContain("Route::apiResource('folks', PersonController::class)")
+        ->not->toContain("'people'");
+
+    expect(artisanOutput('clean:scaffold', ['context' => 'Billing', 'name' => 'Person', '--plural' => 'Folks', '--dry-run' => true]))
+        ->toContain('ListFolks/ListFolksQuery.php (exists')
+        ->not->toContain('ListPeople');
+});
+
+test('scaffold wires web routes when only web.php exists', function () {
+    $this->artisan('clean:context', ['name' => 'Billing', '--routes' => 'web'])->assertSuccessful();
+
+    $this->artisan('clean:scaffold', ['context' => 'Billing', 'name' => 'Invoice'])->assertSuccessful();
+
+    expect(file_get_contents($this->tempDir . '/Billing/Presentation/Routes/web.php'))
+        ->toContain("Route::resource('invoices', InvoiceController::class)");
 });

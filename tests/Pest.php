@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use CleanArchitecture\Kernel\PackageConfig;
 use CleanArchitecture\Tests\TestCase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use PHPUnit\Framework\Assert;
 
@@ -38,6 +39,18 @@ expect()->extend('toBeValidPhp', function () {
 | Shared Helpers
 |--------------------------------------------------------------------------
 */
+
+/**
+ * Run an artisan command without the console mock and return its plain output,
+ * for assertions on whole lines that expectsOutputToContain cannot express.
+ */
+function artisanOutput(string $command, array $parameters = []): string
+{
+    test()->withoutMockingConsoleOutput();
+    test()->artisan($command, $parameters);
+
+    return (string) Artisan::output();
+}
 
 function publishStub(string $name, string $contents): void
 {

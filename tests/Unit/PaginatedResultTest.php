@@ -45,3 +45,10 @@ test('rejects invalid pagination arguments', function (int $total, int $page, in
     'zero page' => [0, 0, 15],
     'zero perPage' => [0, 1, 0],
 ]);
+
+test('accepts the first page and a single item per page', function () {
+    $result = new PaginatedResult(items: ['a'], total: 1, page: 1, perPage: 1);
+
+    expect($result->lastPage())->toBe(1)
+        ->and($result->hasMorePages())->toBeFalse();
+});

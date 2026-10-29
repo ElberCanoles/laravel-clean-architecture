@@ -13,7 +13,7 @@ test('generator honours the create, exists, and force contract', function (strin
     $args = ['context' => 'Billing', 'name' => $name];
     $file = $this->tempDir . '/' . $relativePath;
 
-    $this->artisan($command, $args)->assertSuccessful();
+    $this->artisan($command, $args)->expectsOutputToContain('created:')->assertSuccessful();
     expect(file_exists($file))->toBeTrue();
     expect($file)->toBeValidPhp();
 

@@ -23,7 +23,9 @@ test('defaults to a generic object hint without --event', function () {
 
     $content = file_get_contents($this->tempDir . '/Billing/Application/Listeners/SendInvoiceMailListener.php');
 
-    expect($content)->toContain('public function handle(object $event): void');
+    expect($content)
+        ->toContain('public function handle(object $event): void')
+        ->toContain('Event::listen(YourEvent::class, SendInvoiceMailListener::class);');
 });
 
 test('does not double the Event suffix in --event', function () {

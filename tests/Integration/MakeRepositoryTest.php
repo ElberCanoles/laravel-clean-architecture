@@ -1,5 +1,7 @@
 <?php
 
+use Illuminate\Support\Facades\File;
+
 test('creates CQRS repository interfaces, eloquent implementations and mapper', function () {
     $this->artisan('clean:repository', ['context' => 'Billing', 'name' => 'Invoice'])
         ->assertSuccessful();
@@ -99,7 +101,9 @@ test('overwrites repository files with --force', function () {
         ->expectsOutputToContain('Read repository interface created')
         ->expectsOutputToContain('Write Eloquent repository created')
         ->expectsOutputToContain('Read Eloquent repository created')
-        ->expectsOutputToContain('Mapper created');
+        ->expectsOutputToContain('Mapper created')
+        ->expectsOutputToContain('In-memory write repository created')
+        ->expectsOutputToContain('In-memory read repository created');
 });
 
 test('does not create a read model (use clean:read-model instead)', function () {
@@ -108,3 +112,24 @@ test('does not create a read model (use clean:read-model instead)', function () 
     $readModel = $this->tempDir . '/Billing/Application/ReadModels/InvoiceReadModel.php';
     expect(file_exists($readModel))->toBeFalse();
 });
+
+test('refuses to overwrite an existing file and reports failure while generating the rest', function (string $relativePath) {
+    $file = $this->tempDir . '/' . $relativePath;
+    File::ensureDirectoryExists(dirname($file));
+    file_put_contents($file, '<?php // user edits');
+
+    $this->artisan('clean:repository', ['context' => 'Billing', 'name' => 'Invoice'])
+        ->expectsOutputToContain('File already exists')
+        ->assertExitCode(1);
+
+    expect(file_get_contents($file))->toBe('<?php // user edits');
+    expect(count(File::allFiles($this->tempDir . '/Billing')))->toBe(7);
+})->with([
+    'write interface' => 'Billing/Domain/Repositories/InvoiceWriteRepository.php',
+    'read contract' => 'Billing/Application/Contracts/InvoiceReadRepository.php',
+    'write eloquent' => 'Billing/Infrastructure/InvoiceWriteEloquentRepository.php',
+    'read eloquent' => 'Billing/Infrastructure/InvoiceReadEloquentRepository.php',
+    'mapper' => 'Billing/Infrastructure/InvoiceMapper.php',
+    'in-memory write' => 'Billing/Infrastructure/InMemoryInvoiceWriteRepository.php',
+    'in-memory read' => 'Billing/Infrastructure/InMemoryInvoiceReadRepository.php',
+]);

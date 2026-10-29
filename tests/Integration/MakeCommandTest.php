@@ -213,3 +213,89 @@ test('normalizes the entity option to StudlyCase', function () {
     $handlerContent = file_get_contents($this->tempDir . '/Billing/Application/Commands/PayInvoice/PayInvoiceHandler.php');
     expect($handlerContent)->toContain('GiftCardWriteRepository');
 });
+
+test('crud handlers render their bodies exactly', function () {
+    $this->artisan('clean:command', ['context' => 'Billing', 'name' => 'CreateInvoice', '--entity' => 'Invoice', '--crud' => 'create'])
+        ->expectsOutputToContain('Command created')
+        ->assertSuccessful();
+    $this->artisan('clean:command', ['context' => 'Billing', 'name' => 'UpdateInvoice', '--entity' => 'Invoice', '--crud' => 'update'])
+        ->expectsOutputToContain('Domain exception created')
+        ->assertSuccessful();
+
+    $create = <<<'PHP'
+    public function handle(CreateInvoiceCommand $command): void
+    {
+        $entity = Invoice::create($command->id);
+
+        // TODO: Apply $command->data to the entity before saving
+        $this->repository->save($entity);
+    }
+PHP;
+
+    $update = <<<'PHP'
+    public function handle(UpdateInvoiceCommand $command): void
+    {
+        $entity = $this->repository->ofId($command->id);
+
+        if (! $entity) {
+            throw InvoiceNotFound::withId($command->id);
+        }
+
+        // TODO: Apply changes from $command->data to the entity
+        $this->repository->save($entity);
+    }
+PHP;
+
+    expect(file_get_contents($this->tempDir . '/Billing/Application/Commands/CreateInvoice/CreateInvoiceHandler.php'))->toContain($create);
+    expect(file_get_contents($this->tempDir . '/Billing/Application/Commands/UpdateInvoice/UpdateInvoiceHandler.php'))->toContain($update);
+});
+
+test('generates the missing half when only one command file exists', function () {
+    $base = $this->tempDir . '/Billing/Application/Commands/PayInvoice';
+    mkdir($base, 0755, true);
+    file_put_contents("$base/PayInvoiceCommand.php", '<?php // mine');
+
+    $this->artisan('clean:command', ['context' => 'Billing', 'name' => 'PayInvoice'])
+        ->expectsOutputToContain('File already exists')
+        ->assertSuccessful();
+
+    expect(file_get_contents("$base/PayInvoiceCommand.php"))->toBe('<?php // mine')
+        ->and(file_exists("$base/PayInvoiceHandler.php"))->toBeTrue();
+});
+
+test('fails when both command files exist without --force', function () {
+    $this->artisan('clean:command', ['context' => 'Billing', 'name' => 'PayInvoice'])->assertSuccessful();
+
+    $this->artisan('clean:command', ['context' => 'Billing', 'name' => 'PayInvoice'])
+        ->doesntExpectOutputToContain('Command created')
+        ->assertExitCode(1);
+});
+
+test('a customized NotFound exception is never regenerated', function () {
+    $this->artisan('clean:command', ['context' => 'Billing', 'name' => 'UpdateInvoice', '--entity' => 'Invoice', '--crud' => 'update'])
+        ->assertSuccessful();
+
+    $exception = $this->tempDir . '/Billing/Domain/Exceptions/InvoiceNotFound.php';
+    file_put_contents($exception, '<?php // customized by hand');
+
+    $this->artisan('clean:command', ['context' => 'Billing', 'name' => 'DeleteInvoice', '--entity' => 'Invoice', '--crud' => 'delete'])
+        ->doesntExpectOutputToContain('Domain exception created')
+        ->assertSuccessful();
+
+    expect(file_get_contents($exception))->toBe('<?php // customized by hand');
+});
+
+test('the delete command also provides the NotFound exception', function () {
+    $this->artisan('clean:command', ['context' => 'Billing', 'name' => 'DeleteInvoice', '--entity' => 'Invoice', '--crud' => 'delete'])
+        ->expectsOutputToContain('Domain exception created')
+        ->assertSuccessful();
+
+    expect(file_exists($this->tempDir . '/Billing/Domain/Exceptions/InvoiceNotFound.php'))->toBeTrue();
+});
+
+test('a handler without --entity is valid PHP', function () {
+    $this->artisan('clean:command', ['context' => 'Billing', 'name' => 'PayInvoice'])->assertSuccessful();
+
+    expect($this->tempDir . '/Billing/Application/Commands/PayInvoice/PayInvoiceHandler.php')->toBeValidPhp();
+    expect($this->tempDir . '/Billing/Application/Commands/PayInvoice/PayInvoiceCommand.php')->toBeValidPhp();
+});

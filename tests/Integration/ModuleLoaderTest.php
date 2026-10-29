@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use CleanArchitecture\Kernel\ModuleLoader;
+use Composer\Autoload\ClassLoader;
 use Illuminate\Support\Facades\File;
 
 function makeContext(string $tempDir, string $name, bool $withProvider = true): void
@@ -119,4 +120,70 @@ test('contextNames lists discovered contexts', function () {
     ModuleLoader::flush();
 
     expect(ModuleLoader::contextNames())->toBe(['Billing', 'Shipping']);
+});
+
+test('psr4Map maps each context to its directory with a trailing slash', function () {
+    makeContext($this->tempDir, 'Billing');
+    ModuleLoader::flush();
+
+    expect(ModuleLoader::psr4Map())->toBe(['Src\Billing\\' => $this->tempDir . '/Billing/']);
+});
+
+test('clean:clear also forgets the memoized scan', function () {
+    makeContext($this->tempDir, 'Billing');
+    ModuleLoader::flush();
+    expect(ModuleLoader::contextNames())->toBe(['Billing']);
+
+    makeContext($this->tempDir, 'Shipping');
+    $this->artisan('clean:clear')->assertSuccessful();
+
+    expect(ModuleLoader::contextNames())->toBe(['Billing', 'Shipping']);
+});
+
+test('a manifest with the wrong shape is ignored in favour of scanning', function (string $manifest) {
+    makeContext($this->tempDir, 'Billing');
+    File::ensureDirectoryExists(dirname(ModuleLoader::manifestPath()));
+    File::put(ModuleLoader::manifestPath(), $manifest);
+    ModuleLoader::flush();
+
+    expect(ModuleLoader::load())->toBe(['Src\Billing\Infrastructure\BillingServiceProvider']);
+})->with([
+    'not an array' => "<?php return 'nope';",
+    'providers missing' => "<?php return ['psr4' => []];",
+    'psr4 missing' => "<?php return ['providers' => []];",
+    'providers not a list' => "<?php return ['providers' => 'x', 'psr4' => []];",
+]);
+
+test('manifest entries that are not strings are dropped', function () {
+    File::ensureDirectoryExists(dirname(ModuleLoader::manifestPath()));
+    File::put(ModuleLoader::manifestPath(), '<?php return ' . var_export([
+        'providers' => ['Src\Cached\Infrastructure\CachedServiceProvider', 42],
+        'psr4' => ['Src\Cached\\' => $this->tempDir . '/Cached/', 7 => '/ignored/', 'Src\Broken\\' => 9],
+    ], true) . ';');
+    ModuleLoader::flush();
+
+    expect(ModuleLoader::load())->toBe(['Src\Cached\Infrastructure\CachedServiceProvider']);
+
+    ModuleLoader::registerAutoload();
+    $prefixes = array_values(ClassLoader::getRegisteredLoaders())[0]->getPrefixesPsr4();
+
+    expect($prefixes['Src\Cached\\'])->toContain($this->tempDir . '/Cached/')
+        ->and($prefixes)->not->toHaveKey('Src\Broken\\')
+        ->and($prefixes)->not->toHaveKey(7);
+});
+
+test('clean:cache creates the cache directory and writes a manifest PHP can load', function () {
+    makeContext($this->tempDir, 'Billing');
+    File::deleteDirectory(dirname(ModuleLoader::manifestPath()));
+    ModuleLoader::flush();
+
+    $this->artisan('clean:cache')->assertSuccessful();
+
+    $content = (string) file_get_contents(ModuleLoader::manifestPath());
+    expect($content)->toStartWith('<?php return array (')
+        ->and($content)->toEndWith(';' . PHP_EOL)
+        ->and(require ModuleLoader::manifestPath())->toBe([
+            'providers' => ['Src\Billing\Infrastructure\BillingServiceProvider'],
+            'psr4' => ['Src\Billing\\' => $this->tempDir . '/Billing/'],
+        ]);
 });
