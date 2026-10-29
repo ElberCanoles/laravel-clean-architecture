@@ -214,4 +214,4 @@ jobs:
           composer-options: --prefer-dist
 
       - name: Run mutation testing
-        run: vendor/bin/pest --mutate --parallel --covered-only
+        run: vendor/bin/pest --mutate --parallel --everything --covered-only

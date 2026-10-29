@@ -58,7 +58,7 @@
     "analyse": "phpstan analyse",
     "lint": "pint --test",
     "fix": "pint",
-    "test:mutate": "pest --mutate --parallel"
+    "test:mutate": "pest --mutate --parallel --everything --covered-only"
   },
   "config": {
     "allow-plugins": {
