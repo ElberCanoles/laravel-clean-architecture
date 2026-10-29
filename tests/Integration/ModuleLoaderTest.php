@@ -126,7 +126,8 @@ test('psr4Map maps each context to its directory with a trailing slash', functio
     makeContext($this->tempDir, 'Billing');
     ModuleLoader::flush();
 
-    expect(ModuleLoader::psr4Map())->toBe(['Src\Billing\\' => $this->tempDir . '/Billing/']);
+    // Directory scans use the OS separator; the trailing slash is always '/'.
+    expect(ModuleLoader::psr4Map())->toBe(['Src\Billing\\' => $this->tempDir . DIRECTORY_SEPARATOR . 'Billing/']);
 });
 
 test('clean:clear also forgets the memoized scan', function () {
@@ -184,6 +185,6 @@ test('clean:cache creates the cache directory and writes a manifest PHP can load
         ->and($content)->toEndWith(';' . PHP_EOL)
         ->and(require ModuleLoader::manifestPath())->toBe([
             'providers' => ['Src\Billing\Infrastructure\BillingServiceProvider'],
-            'psr4' => ['Src\Billing\\' => $this->tempDir . '/Billing/'],
+            'psr4' => ['Src\Billing\\' => $this->tempDir . DIRECTORY_SEPARATOR . 'Billing/'],
         ]);
 });
