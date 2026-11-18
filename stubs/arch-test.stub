@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 test('{{Context}} domain does not depend on infrastructure', function () {
     expect('{{Namespace}}\Domain')
-        ->toUseNothing()
-        ->ignoring('{{Namespace}}\Domain')
-        ->ignoring('CleanArchitecture\Support');
+        ->toOnlyUse('CleanArchitecture\Support');
 });
 
 test('{{Context}} domain does not depend on application layer', function () {

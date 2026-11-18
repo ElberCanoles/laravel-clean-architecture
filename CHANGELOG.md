@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com), and this 
 
 ## [Unreleased]
 
+### Fixed
+
+- **The generated "Domain does not depend on Infrastructure" rule could never fail** — `->ignoring('{Namespace}\Domain')` did not just let the Domain reference itself: it removed the Domain from the classes under test, so the rule passed no matter what the Domain imported (every release since 1.0.0). The rule is now `->toOnlyUse('CleanArchitecture\Support')`, and the suite runs the generated test in a real Pest process to prove it fails when a Domain class uses the framework. Architecture tests you already generated keep the old rule — see [UPGRADING.md](UPGRADING.md)
+
 ## [2.1.1] - 2026-10-29
 
 ### Changed
