@@ -28,6 +28,8 @@ The rule now really runs, so it may report dependencies that slipped in unnotice
 ->toOnlyUse(['CleanArchitecture\Support', 'Src\Shared\Domain', 'Brick\Money']);
 ```
 
+Regenerated files also open with a guard test, `{Context} classes are visible to the architecture tests`. Pest only checks the classes it sees, and a context is autoloaded when Laravel boots — so an architecture test that runs before that passes every rule without checking anything. The guard fails instead. If it fails right after you regenerate, nothing regressed: the rules were not running in that setup, and [Autoloading in tests](README.md#autoloading-in-tests) has the fix (usually one line in `tests/Pest.php`). To add the guard to a file you edit by hand, copy the first test of [`stubs/arch-test.stub`](stubs/arch-test.stub).
+
 ## To 2.1.1
 
 Nothing breaks. The context manifest written by `clean:cache` now lives under the application's bootstrap path, like Laravel's own caches. Only applications that relocate that directory with `useBootstrapPath()` notice: run `php artisan clean:cache` (or `optimize`) once after deploying so the manifest is rebuilt in its new place; the old file under `bootstrap/cache/` is ignored and can be deleted.

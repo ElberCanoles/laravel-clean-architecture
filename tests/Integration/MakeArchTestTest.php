@@ -15,9 +15,12 @@ use Symfony\Component\Process\Process;
  * tests/, and a path Pest can turn into a test class name (a system temp
  * directory with a segment that starts with a digit is not).
  *
+ * $autoloaded says whether Laravel booted before the run — that is what
+ * autoloads a context — or the test runs in a process where it never did.
+ *
  * @return array{0: int|null, 1: string} Exit code and output
  */
-function runGeneratedArchRule(string $tempDir, string $context, string $rule): array
+function runGeneratedArchRule(string $tempDir, string $context, string $rule, bool $autoloaded = true): array
 {
     $root = dirname(__DIR__, 2);
     $project = $root . '/.phpunit.cache/' . basename($tempDir);
@@ -37,13 +40,18 @@ function runGeneratedArchRule(string $tempDir, string $context, string $rule): a
             </phpunit>
             XML);
 
-        // What ModuleLoader does for the context when the application boots.
-        File::put("$project/bootstrap.php", sprintf(
-            '<?php (require %s)->addPsr4(%s, %s);',
-            var_export("$root/vendor/autoload.php", true),
-            var_export("Src\\$context\\", true),
-            var_export("$project/src/$context", true),
-        ));
+        $bootstrap = sprintf('<?php $loader = require %s;', var_export("$root/vendor/autoload.php", true));
+
+        if ($autoloaded) {
+            // What ModuleLoader does for the context when the application boots.
+            $bootstrap .= sprintf(
+                ' $loader->addPsr4(%s, %s);',
+                var_export("Src\\$context\\", true),
+                var_export("$project/src/$context", true),
+            );
+        }
+
+        File::put("$project/bootstrap.php", $bootstrap);
 
         $process = new Process(
             [
@@ -73,6 +81,8 @@ test('creates architecture test file with correct content', function () {
 
     $content = file_get_contents($file);
     expect($content)
+        ->toContain('Billing classes are visible to the architecture tests')
+        ->toContain("expect('Src\Billing')->toBeInterfaces()")
         ->toContain("expect('Src\Billing\Domain')")
         ->toContain('Billing domain does not depend on infrastructure')
         ->toContain("->toOnlyUse('CleanArchitecture\Support')")
@@ -100,7 +110,9 @@ test('uses configured namespace prefix in arch tests', function () {
     $file = $this->tempDir . '/tests/Feature/Architecture/SalesArchTest.php';
     $content = file_get_contents($file);
 
-    expect($content)->toContain("expect('Domain\Sales\Domain')");
+    expect($content)
+        ->toContain("expect('Domain\Sales')->toBeInterfaces()")
+        ->toContain("expect('Domain\Sales\Domain')");
 });
 
 test('warns when arch test file exists without --force', function () {
@@ -153,6 +165,23 @@ test('the generated domain rule accepts generated domain code and rejects a fram
     [$exitCode, $output] = runGeneratedArchRule($this->tempDir, 'Billing', 'domain does not depend on infrastructure');
 
     // The same run plus one class: exit code 1 means the rule itself failed.
+    expect($exitCode)->toBe(1, $output);
+})->skip(
+    getenv('PEST_MUTATION_TESTING') !== false,
+    'Spawns Pest itself: worth running once per suite, not once per mutant.',
+);
+
+test('the generated guard passes when Pest sees the context and fails when it does not', function () {
+    $this->artisan('clean:context', ['name' => 'Billing'])->assertSuccessful();
+
+    [$exitCode, $output] = runGeneratedArchRule($this->tempDir, 'Billing', 'classes are visible to the architecture tests');
+
+    expect($exitCode)->toBe(0, $output);
+
+    [$exitCode, $output] = runGeneratedArchRule($this->tempDir, 'Billing', 'classes are visible to the architecture tests', autoloaded: false);
+
+    // The same run minus the autoloading: every other rule in the file would
+    // pass here without a single class to check, so this one has to fail.
     expect($exitCode)->toBe(1, $output);
 })->skip(
     getenv('PEST_MUTATION_TESTING') !== false,

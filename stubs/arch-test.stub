@@ -2,6 +2,24 @@
 
 declare(strict_types=1);
 
+use PHPUnit\Framework\AssertionFailedError;
+
+test('{{Context}} classes are visible to the architecture tests', function () {
+    // Every rule below passes when Pest sees no classes in the context, which
+    // is what happens when Laravel has not autoloaded it before the first
+    // architecture test of the run. So this rule has to fail: a context is
+    // never made of interfaces alone.
+    $visible = false;
+
+    try {
+        expect('{{Namespace}}')->toBeInterfaces();
+    } catch (AssertionFailedError) {
+        $visible = true;
+    }
+
+    expect($visible)->toBeTrue('Pest sees no classes in {{Namespace}}, so every rule in this file passes without checking anything. See "Architecture Tests" in the laravel-clean-architecture README.');
+});
+
 test('{{Context}} domain does not depend on infrastructure', function () {
     expect('{{Namespace}}\Domain')
         ->toOnlyUse('CleanArchitecture\Support');
