@@ -18,7 +18,9 @@ abstract class TestCase extends BaseTestCase
 
     protected function setUp(): void
     {
-        $this->relativeTempDir = 'clean-arch-test-' . uniqid();
+        // Random, not uniqid(): two parallel workers can draw the same
+        // microsecond, and would then share every path below.
+        $this->relativeTempDir = 'clean-arch-test-' . bin2hex(random_bytes(8));
 
         parent::setUp();
 

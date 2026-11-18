@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com), and this 
 ### Fixed
 
 - **The generated "Domain does not depend on Infrastructure" rule could never fail** — `->ignoring('{Namespace}\Domain')` did not just let the Domain reference itself: it removed the Domain from the classes under test, so the rule passed no matter what the Domain imported (every release since 1.0.0). The rule is now `->toOnlyUse('CleanArchitecture\Support')`, and the suite runs the generated test in a real Pest process to prove it fails when a Domain class uses the framework. Architecture tests you already generated keep the old rule — see [UPGRADING.md](UPGRADING.md)
+- **Parallel test runs no longer collide on a temp directory** — its name came from `uniqid()`, which two workers can draw in the same microsecond, so they shared every path and one of them failed (about 1 run in 20 with 16 processes — enough to abort the mutation job on its initial run); the name is now random
 
 ## [2.1.1] - 2026-10-29
 
